@@ -1,7 +1,16 @@
 {
     "extends": [
       "next/core-web-vitals",
-      "plugin:tailwindcss/recommended"
+      "plugin:tailwindcss/recommended",
+      "plugin:@typescript-eslint/recommended"
     ],
-    "plugins": ["tailwindcss"]
+    "plugins": ["tailwindcss", "@typescript-eslint"],
+    "rules": {
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/explicit-function-return-type": "warn",
+      "camelcase": "error"
+    },
+    "env": {
+      "browser": true
+    }
   }
