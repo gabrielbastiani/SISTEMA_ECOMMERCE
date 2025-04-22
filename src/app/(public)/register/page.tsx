@@ -6,12 +6,12 @@ import { Container } from '@/app/components/container';
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce'; 
+import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce';
 import { toast } from 'react-toastify'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ChangeEvent, useEffect, useState } from 'react'
-import { LoadingRequest } from '@/app/components/loadingRequest'; 
+import { LoadingRequest } from '@/app/components/loadingRequest';
 import { FiUpload } from 'react-icons/fi'
 import { Input } from '@/app/components/input';
 import Login from '../login/page';
@@ -40,7 +40,6 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 export default function Register() {
-
     const router = useRouter();
     const [cognitiveValid, setCognitiveValid] = useState(false);
     const [superAdmin, setSuperAdmin] = useState([]);
@@ -84,7 +83,6 @@ export default function Register() {
     };
 
     const onSubmit = async (data: FormData) => {
-
         if (!cognitiveValid) {
             toast.error('Complete o desafio de segurança antes de enviar');
             return;
@@ -107,7 +105,6 @@ export default function Register() {
             ecommerceFormData.append("logo", logo);
 
             await apiClient.post('/create/ecommerce', ecommerceFormData);
-
             await apiClient.post('/user/ecommerce/create', {
                 name: data.name,
                 email: data.email,
@@ -126,120 +123,149 @@ export default function Register() {
 
     return (
         <>
-            {loading ?
-                <LoadingRequest />
-                :
-                <>
-                    {superAdmin.length >= 1 ?
-                        <Login />
-                        :
-                        <Container>
-                            <div className='w-full min-h-screen flex justify-center items-center flex-col gap-4'>
-                                <form
-                                    className='bg-white max-w-xl w-full rounded-lg p-4'
-                                    onSubmit={handleSubmit(onSubmit)}
-                                >
-                                    <div className='mb-3'>
-                                        <Input
-                                            styles='w-full border-2 rounded-md h-11 px-2'
-                                            type="text"
-                                            placeholder="Digite o nome do blog..."
-                                            name="name"
-                                            error={errors.name?.message}
-                                            register={register}
+            {loading ? <LoadingRequest /> : (
+                superAdmin.length >= 1 ? <Login /> : (
+                    <Container>
+                        <div className='w-full min-h-screen flex items-center justify-center py-8'>
+                            <div className='w-full max-w-4xl bg-white rounded-xl shadow-lg p-8'>
+                                <h1 className='text-2xl font-bold text-gray-800 mb-6 text-center'>
+                                    Cadastro do E-commerce
+                                </h1>
+
+                                <form onSubmit={handleSubmit(onSubmit)} className='space-y-6'>
+                                    <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                                        {/* Seção do E-commerce */}
+                                        <div className='space-y-4'>
+                                            <h2 className='text-lg font-semibold text-gray-700 border-b pb-2'>
+                                                Informações do E-commerce
+                                            </h2>
+
+                                            <div>
+                                                <label className='block text-sm font-medium text-gray-600 mb-1'>
+                                                    Nome do E-commerce *
+                                                </label>
+                                                <Input
+                                                    styles='w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500'
+                                                    type="text"
+                                                    name="name_ecommerce"
+                                                    error={errors.name_ecommerce?.message}
+                                                    register={register} placeholder={''} />
+                                            </div>
+
+                                            <div>
+                                                <label className='block text-sm font-medium text-gray-600 mb-1'>
+                                                    Email do E-commerce *
+                                                </label>
+                                                <Input
+                                                    styles='w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500'
+                                                    type="email"
+                                                    name="email_ecommerce"
+                                                    error={errors.email_ecommerce?.message}
+                                                    register={register} placeholder={''} />
+                                            </div>
+
+                                            <div>
+                                                <label className='block text-sm font-medium text-gray-600 mb-1'>
+                                                    Logo do E-commerce *
+                                                </label>
+                                                <label className="relative w-full aspect-square rounded-lg cursor-pointer flex justify-center bg-gray-100 border-2 border-dashed hover:border-orange-500 transition-colors">
+                                                    <input
+                                                        type="file"
+                                                        accept="image/png, image/jpeg"
+                                                        onChange={handleFile}
+                                                        className="hidden"
+                                                    />
+                                                    {avatarUrl ? (
+                                                        <Image
+                                                            src={avatarUrl}
+                                                            alt="Preview da imagem"
+                                                            width={400}
+                                                            height={400}
+                                                            className="w-full h-full object-contain p-2"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex flex-col items-center justify-center w-full h-full text-gray-400">
+                                                            <FiUpload size={32} className='mb-2' />
+                                                            <span className='text-sm'>Clique para enviar</span>
+                                                        </div>
+                                                    )}
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        {/* Seção do Usuário Admin */}
+                                        <div className='space-y-4'>
+                                            <h2 className='text-lg font-semibold text-gray-700 border-b pb-2'>
+                                                Informações do Administrador
+                                            </h2>
+
+                                            <div>
+                                                <label className='block text-sm font-medium text-gray-600 mb-1'>
+                                                    Nome Completo *
+                                                </label>
+                                                <Input
+                                                    styles='w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500'
+                                                    type="text"
+                                                    name="name"
+                                                    error={errors.name?.message}
+                                                    register={register} placeholder={''} />
+                                            </div>
+
+                                            <div>
+                                                <label className='block text-sm font-medium text-gray-600 mb-1'>
+                                                    Email *
+                                                </label>
+                                                <Input
+                                                    styles='w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500'
+                                                    type="email"
+                                                    name="email"
+                                                    error={errors.email?.message}
+                                                    register={register} placeholder={''} />
+                                            </div>
+
+                                            <div>
+                                                <label className='block text-sm font-medium text-gray-600 mb-1'>
+                                                    Senha *
+                                                </label>
+                                                <Input
+                                                    styles='w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500'
+                                                    type="password"
+                                                    name="password"
+                                                    error={errors.password?.message}
+                                                    register={register} placeholder={''} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className='mt-8'>
+                                        <CognitiveChallenge
+                                            onValidate={(isValid) => setCognitiveValid(isValid)}
                                         />
                                     </div>
-
-                                    <div className='mb-3'>
-                                        <Input
-                                            styles='w-full border-2 rounded-md h-11 px-2'
-                                            type="email"
-                                            placeholder="Digite o email do blog..."
-                                            name="email"
-                                            error={errors.email?.message}
-                                            register={register}
-                                        />
-                                    </div>
-
-                                    <div className='mb-3'>
-                                        <label className="relative w-full h-[250px] rounded-lg cursor-pointer flex justify-center bg-gray-200 overflow-hidden">
-                                            <input
-                                                type="file"
-                                                accept="image/png, image/jpeg"
-                                                onChange={handleFile}
-                                                className="hidden"
-                                            />
-                                            {avatarUrl ? (
-                                                <Image
-                                                    src={avatarUrl}
-                                                    alt="Preview da imagem"
-                                                    width={250}
-                                                    height={200}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            ) : (
-                                                <div className="flex items-center justify-center w-full h-full bg-gray-300">
-                                                    <FiUpload size={30} color="#ff6700" />
-                                                </div>
-                                            )}
-                                        </label>
-                                    </div>
-
-                                    <div className='mb-3'>
-                                        <Input
-                                            styles='w-full border-2 rounded-md h-11 px-2'
-                                            type="text"
-                                            placeholder="Digite seu nome completo..."
-                                            name="name"
-                                            error={errors.name?.message}
-                                            register={register}
-                                        />
-                                    </div>
-
-                                    <div className='mb-3'>
-                                        <Input
-                                            styles='w-full border-2 rounded-md h-11 px-2'
-                                            type="email"
-                                            placeholder="Digite seu email..."
-                                            name="email"
-                                            error={errors.email?.message}
-                                            register={register}
-                                        />
-                                    </div>
-
-                                    <div className='mb-3'>
-                                        <Input
-                                            styles='w-full border-2 rounded-md h-11 px-2'
-                                            type="password"
-                                            placeholder="Digite sua senha..."
-                                            name="password"
-                                            error={errors.password?.message}
-                                            register={register}
-                                        />
-                                    </div>
-
-                                    <CognitiveChallenge
-                                        onValidate={(isValid) => setCognitiveValid(isValid)}
-                                    />
 
                                     <button
                                         type='submit'
-                                        className={`bg-red-600 w-full rounded-md text-[#FFFFFF] h-10 font-medium ${!cognitiveValid ? 'opacity-50 cursor-not-allowed' : ''
+                                        className={`w-full bg-orange-600 text-white py-3 rounded-lg font-semibold hover:bg-orange-700 transition-colors ${!cognitiveValid ? 'opacity-50 cursor-not-allowed' : ''
                                             }`}
                                         disabled={!cognitiveValid || loading}
                                     >
-                                        {loading ? 'Carregando...' : 'Cadastrar'}
+                                        {loading ? 'Processando...' : 'Finalizar Cadastro'}
                                     </button>
                                 </form>
 
-                                <Link href="/login" className="text-[#FFFFFF] hover:underline">
-                                    Já possui uma conta? Faça o login!
-                                </Link>
+                                <div className='mt-6 text-center'>
+                                    <Link
+                                        href="/login"
+                                        className="text-orange-600 hover:text-orange-700 font-medium hover:underline"
+                                    >
+                                        Já possui uma conta? Faça o login!
+                                    </Link>
+                                </div>
                             </div>
-                        </Container>
-                    }
-                </>
-            }
+                        </div>
+                    </Container>
+                )
+            )}
         </>
     )
 }
