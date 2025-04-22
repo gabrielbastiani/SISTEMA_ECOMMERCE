@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
+import { Providers } from "./providers";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from "./contexts/AuthContext";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
-const BLOG_URL = process.env.NEXT_PUBLIC_URL_ECOMMERCE || 'http://localhost:3000';
+const ECOMMERCE_URL = process.env.NEXT_PUBLIC_URL_ECOMMERCE || 'http://localhost:3000';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,7 +44,7 @@ export async function generateMetadata(): Promise<Metadata> {
     : defaultMetadata.favicon;
 
   return {
-    metadataBase: new URL(BLOG_URL),
+    metadataBase: new URL(ECOMMERCE_URL),
     title: ecommerce?.name_blog || defaultMetadata.title,
     description: ecommerce?.description_blog || defaultMetadata.description,
     icons: {
@@ -65,10 +63,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>
-          <ToastContainer autoClose={5000} />
+        <Providers>
           {children}
-        </AuthProvider>
+        </Providers>
       </body>
     </html>
   );

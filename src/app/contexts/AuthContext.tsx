@@ -63,6 +63,8 @@ export const AuthContext = createContext({} as AuthContextData);
 export function AuthProvider({ children }: AuthProviderProps) {
     const router = useRouter();
 
+    const [isClient, setIsClient] = useState(false)
+
     const [configs, setConfigs] = useState<ConfigProps>({
         name: "",
         whatsap: "",
@@ -86,6 +88,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         technical_assistance: "",
         street: ""
     });
+
+    useEffect(() => {
+        setIsClient(true)
+    }, [])
+
     const [cookies, setCookie, removeCookie] = useCookies(['@ecommerce.token']);
     const [cookiesId, setCookieId, removeCookieId] = useCookies(['@idUser']);
     const [user, setUser] = useState<UserProps>();
@@ -236,7 +243,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     return (
         <AuthContext.Provider value={{ configs, user, isAuthenticated, loadingAuth, signIn, signOut, updateUser }}>
-            {children}
+            {isClient ? children : null}
         </AuthContext.Provider>
     );
 }
