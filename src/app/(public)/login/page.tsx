@@ -92,7 +92,6 @@ export default function Login() {
                 :
                 <Container>
                     <div className='w-full min-h-screen flex justify-center items-center flex-col gap-4'>
-                    Current Theme: {theme}
                         <div className='mb-6 max-w-sm w-full'>
                             {configs?.logo ?
                                 <Link href='/'>

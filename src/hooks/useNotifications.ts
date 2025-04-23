@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useEffect } from 'react';
 import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce'; 
 import { Notification } from 'Types/types'; 

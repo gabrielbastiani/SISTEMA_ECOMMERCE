@@ -11,15 +11,22 @@ type ThemeContextType = {
 const ThemeContext = createContext<ThemeContextType | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-    
+
     const [theme, setTheme] = useState<Theme>('light');
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        setMounted(true);
         const savedTheme = localStorage.getItem('theme') as Theme || 'light';
-        setTheme(savedTheme);
-        document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light';
+
+        // Prioriza o tema salvo, depois o tema do sistema
+        const initialTheme = savedTheme !== 'system' ? savedTheme : systemTheme;
+
+        setTheme(initialTheme);
+        document.documentElement.classList.toggle('dark', initialTheme === 'dark');
+        setMounted(true);
     }, []);
 
     const toggleTheme = () => {

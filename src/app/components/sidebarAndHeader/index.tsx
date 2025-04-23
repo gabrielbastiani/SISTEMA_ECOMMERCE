@@ -1,3 +1,5 @@
+"use client"
+
 import { ReactNode, useContext, useEffect, useState } from "react";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { ArrowBendDoubleUpLeft, CaretRight } from "phosphor-react";
@@ -16,6 +18,7 @@ import { UserAvatar } from "./header/notificationDropdown/userAvatar";
 
 // Configurações e tipos
 import noImage from '../../../../public/no-image.png';
+import ThemeToggle from "../themeToggle";
 
 interface Content {
     children: ReactNode;
@@ -24,6 +27,7 @@ interface Content {
 export function SidebarAndHeader({ children }: Content) {
 
     const API_URL = process.env.NEXT_PUBLIC_URL_ECOMMERCE;
+    const URL_STORE = process.env.NEXT_PUBLIC_URL_STORE;
 
     const { user, configs } = useContext(AuthContext);
     const idUser = user?.id;
@@ -68,7 +72,7 @@ export function SidebarAndHeader({ children }: Content) {
                 name: 'users',
                 items: [
                     { title: 'Usuários CMS', path: '/user/all_users' },
-                    { title: 'Usuários Blog', path: '/user/users_blog' },
+                    { title: 'Usuários Ecommerce', path: '/user/users_blog' },
                     { title: 'Adicionar Novo Usuário', path: '/user/add_user' },
                     { title: 'Editar perfil', path: '/user/profile' }
                 ]
@@ -123,7 +127,7 @@ export function SidebarAndHeader({ children }: Content) {
                 ]
             },
             {
-                title: 'Configurações do blog',
+                title: 'Configurações do ecommerce',
                 name: 'configurations',
                 items: [
                     { title: 'Configurações gerais', path: '/configurations/configuration' },
@@ -138,7 +142,7 @@ export function SidebarAndHeader({ children }: Content) {
                 name: 'users',
                 items: [
                     { title: 'Usuários CMS', path: '/user/all_users' },
-                    { title: 'Usuários Blog', path: '/user/users_blog' },
+                    { title: 'Usuários Ecommerce', path: '/user/users_blog' },
                     { title: 'Adicionar Novo Usuário', path: '/user/add_user' },
                     { title: 'Editar perfil', path: '/user/profile' }
                 ]
@@ -259,12 +263,12 @@ export function SidebarAndHeader({ children }: Content) {
                     <nav className="flex mx-2 flex-col gap-8 text-slate-100">
                         <div className="flex flex-col gap-2 ml-2">
                             <div className="text-white font-semibold uppercase mb-2 ml-2 mt-3">
-                                <Link href="/dashboard">
+                                <Link href="/">
                                     <Image
                                         src={configs?.logo ? `${API_URL}/files/${configs.logo}` : noImage}
                                         width={120}
                                         height={120}
-                                        alt="Logo do blog"
+                                        alt="Logo do Ecommerce"
                                         priority
                                     />
                                 </Link>
@@ -272,9 +276,9 @@ export function SidebarAndHeader({ children }: Content) {
                         </div>
 
                         <section className="flex flex-col gap-px">
-                            <Link href="/dashboard" className={clsx({
-                                'bg-activeLink rounded p-2 mb-2': currentRoute === "/dashboard",
-                                'text-white p-2 mb-2': currentRoute !== "/dashboard"
+                            <Link href="/" className={clsx({
+                                'bg-activeLink rounded p-2 mb-2': currentRoute === "/",
+                                'text-white p-2 mb-2': currentRoute !== "/"
                             })}>
                                 Dashboard
                             </Link>
@@ -303,12 +307,15 @@ export function SidebarAndHeader({ children }: Content) {
                     </div>
 
                     <div className="flex items-center gap-6">
+
+                        <ThemeToggle />
+
                         <Link
-                            href="/"
+                            href={`${URL_STORE}`}
                             target="_blank"
                             className="text-sm text-white hover:underline"
                         >
-                            Ir para o blog
+                            Ir para a loja
                         </Link>
 
                         <div className="flex items-center gap-4">

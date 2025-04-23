@@ -1,7 +1,17 @@
+import { Section } from "./components/section";
+import { TitlePage } from "./components/section/titlePage";
+import { SidebarAndHeader } from "./components/sidebarAndHeader";
 
 
 export default function Home() {
   return (
-    <h1>Home</h1>
+    <SidebarAndHeader>
+      <Section>
+        <TitlePage title="DASHBOARD" />
+
+
+
+      </Section>
+    </SidebarAndHeader>
   );
 }
