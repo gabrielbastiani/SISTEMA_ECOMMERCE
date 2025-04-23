@@ -7,7 +7,7 @@ import { Input } from '../../components/input'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useContext, useRef, useState } from 'react'
+import { useContext, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { LoadingRequest } from '../../components/loadingRequest'
@@ -15,6 +15,8 @@ import { toast } from 'react-toastify'
 import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce'; 
 import { AuthContext } from '@/app/contexts/AuthContext'; 
 import noImage from '../../../../public/no-image.png'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const CognitiveChallenge = dynamic(
     () => import('../../components/cognitiveChallenge/index').then(mod => mod.CognitiveChallenge),
@@ -28,8 +30,6 @@ const CognitiveChallenge = dynamic(
     }
 );
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
 const schema = z.object({
     email: z.string().email("Insira um email válido").nonempty("O campo email é obrigatório"),
 })
@@ -38,8 +38,9 @@ type FormData = z.infer<typeof schema>
 
 export default function EmailRecoveryPassword() {
 
-    const [cognitiveValid, setCognitiveValid] = useState(false);
     const { configs } = useContext(AuthContext);
+    
+    const [cognitiveValid, setCognitiveValid] = useState(false);
     const router = useRouter();
     const [loading, setLoading] = useState(false);
 

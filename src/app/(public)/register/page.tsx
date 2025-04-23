@@ -33,13 +33,14 @@ const schema = z.object({
     email: z.string().email("Insira um email válido").nonempty("O campo email é obrigatório"),
     password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres").nonempty("O campo senha é obrigatório"),
     logo: z.string().optional(),
-    name_ecommerce: z.string().nonempty("O nome do blog é obrigatório"),
-    email_ecommerce: z.string().email("Insira um email válido para o blog").nonempty("O email do blog é obrigatório")
+    name_ecommerce: z.string().nonempty("O nome do ecommerce é obrigatório"),
+    email_ecommerce: z.string().email("Insira um email válido para o ecommerce").nonempty("O email do ecommerce é obrigatório")
 });
 
 type FormData = z.infer<typeof schema>
 
 export default function Register() {
+    
     const router = useRouter();
     const [cognitiveValid, setCognitiveValid] = useState(false);
     const [superAdmin, setSuperAdmin] = useState([]);

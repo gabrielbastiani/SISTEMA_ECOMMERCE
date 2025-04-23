@@ -45,8 +45,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     metadataBase: new URL(ECOMMERCE_URL),
-    title: ecommerce?.name_blog || defaultMetadata.title,
-    description: ecommerce?.description_blog || defaultMetadata.description,
+    title: ecommerce?.name || defaultMetadata.title,
+    description: ecommerce?.about_store || defaultMetadata.description,
     icons: {
       icon: faviconUrl,
     },

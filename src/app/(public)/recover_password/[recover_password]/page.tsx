@@ -1,23 +1,25 @@
 "use client"
 
 import dynamic from 'next/dynamic';
-import { useTheme } from '@/app/contexts/ThemeContext'; 
 import { useRouter } from 'next/navigation'
-import { Container } from '../../components/container'
+import { Container } from '../../../components/container'
+import { Input } from '../../../components/input'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { AuthContext } from '@/app/contexts/AuthContext'; 
 import { useContext, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { LoadingRequest } from '../../components/loadingRequest'
-import noImage from '../../../../public/no-image.png'
+import { LoadingRequest } from '../../../components/loadingRequest'
 import { toast } from 'react-toastify'
-import { Input } from '@/app/components/input';
+import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce'; 
+import { AuthContext } from '@/app/contexts/AuthContext'; 
+import noImage from '../../../../../public/no-image.png'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const CognitiveChallenge = dynamic(
-    () => import('../../components/cognitiveChallenge/index').then(mod => mod.CognitiveChallenge),
+    () => import('../../../components/cognitiveChallenge/index').then(mod => mod.CognitiveChallenge),
     {
         ssr: false,
         loading: () => (
@@ -28,29 +30,29 @@ const CognitiveChallenge = dynamic(
     }
 );
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const passwordSchema = z.object({
+    password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+    confirmPassword: z.string().min(6, 'Confirmação de senha deve ter pelo menos 6 caracteres'),
+}).refine(data => data.password === data.confirmPassword, {
+    message: 'As senhas não coincidem',
+    path: ['confirmPassword'],
+});
 
-const schema = z.object({
-    email: z.string().email("Insira um email válido").nonempty("O campo email é obrigatório"),
-    password: z.string().nonempty("O campo senha é obrigatório")
-})
+type PasswordFormValues = z.infer<typeof passwordSchema>;
 
-type FormData = z.infer<typeof schema>
+export default function Recoverpassworduserblog({ params }: { params: { recover_password: string } }) {
 
-export default function Login() {
+    const { configs } = useContext(AuthContext);
 
-    const { theme } = useTheme();
-    
     const [cognitiveValid, setCognitiveValid] = useState(false);
     const router = useRouter();
-    const { signIn, configs } = useContext(AuthContext);
     const [loading, setLoading] = useState(false);
-    const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
-        resolver: zodResolver(schema),
-        mode: "onChange"
+
+    const { register, handleSubmit, formState: { errors } } = useForm<PasswordFormValues>({
+        resolver: zodResolver(passwordSchema),
     });
 
-    async function onSubmit(data: FormData) {
+    async function onSubmit(data: PasswordFormValues) {
 
         if (!cognitiveValid) {
             toast.error('Complete o desafio de segurança antes de enviar');
@@ -59,31 +61,25 @@ export default function Login() {
 
         setLoading(true);
 
-        const email = data?.email;
-        const password = data?.password;
-
         try {
-            let dataUser = {
-                email,
-                password
-            };
+            const apiClient = setupAPIClientEcommerce();
+            await apiClient.put(`/user/ecommerce/recovery_password?passwordRecoveryUserEcommerce_id=${params?.recover_password}`, { password: data?.confirmPassword });
 
-            const success = await signIn(dataUser);
-
-            if (success) {
-                router.push('/');
-                window.location.reload();
-            }
+            toast.success('Senha atualizada com sucesso!');
 
             setLoading(false);
 
-        } catch (error) {
-            console.error(error);
+            router.push('/login');
+
+        } catch (error) {/* @ts-ignore */
+            console.log(error.response.data);
+            toast.error('Erro ao cadastrar!');
         } finally {
             setLoading(false);
         }
 
     }
+
 
     return (
         <>
@@ -92,16 +88,14 @@ export default function Login() {
                 :
                 <Container>
                     <div className='w-full min-h-screen flex justify-center items-center flex-col gap-4'>
-                    Current Theme: {theme}
                         <div className='mb-6 max-w-sm w-full'>
                             {configs?.logo ?
                                 <Link href='/'>
                                     <Image
-                                        src={configs?.logo ? `${API_URL}/files/${configs.logo}` : noImage}
-                                        alt='logo-do-ecommerce'
+                                        src={configs?.logo ? `${API_URL}/files/${configs?.logo}` : noImage}
+                                        alt='logo-do-site'
                                         width={500}
-                                        height={300}
-                                        priority
+                                        height={500}
                                     />
                                 </Link>
                                 :
@@ -115,22 +109,22 @@ export default function Login() {
                         >
                             <div className='mb-3'>
                                 <Input
-                                    styles='w-full border-2 rounded-md h-11 px-2'
-                                    type="email"
-                                    placeholder="Digite seu email..."
-                                    name="email"
-                                    error={errors.email?.message}
+                                    styles='w-full p-2'
+                                    type="password"
+                                    placeholder="Digite a nova senha..."
+                                    name="confirmPassword"
+                                    error={errors.password?.message}
                                     register={register}
                                 />
                             </div>
 
                             <div className='mb-3'>
                                 <Input
-                                    styles='w-full border-2 rounded-md h-11 px-2'
+                                    styles='w-full p-2'
                                     type="password"
-                                    placeholder="Digite sua senha..."
+                                    placeholder="Digite novamente a senha..."
                                     name="password"
-                                    error={errors.password?.message}
+                                    error={errors.confirmPassword?.message}
                                     register={register}
                                 />
                             </div>
@@ -147,12 +141,16 @@ export default function Login() {
                                     }`}
                                 disabled={!cognitiveValid || loading}
                             >
-                                {loading ? 'Acessando...' : 'Acessar'}
+                                {loading ? 'Solicitando...' : 'Solicitar'}
                             </button>
                         </form>
 
-                        <Link href="/email_recovery_password">
-                            Recupere sua senha!
+                        <Link href="/register">
+                            Ainda não possui uma conta? Cadastre-se
+                        </Link>
+
+                        <Link href="/login">
+                            Já possui uma conta? Faça o login!
                         </Link>
 
                     </div>

@@ -19,20 +19,20 @@ type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'EMPLOYEE';
 
 // Rotas públicas que não requerem autenticação
 const publicPaths = [
-    '/',
     '/email_recovery_password',
     '/email_recovery_password_user_ecommerce',
     '/register',
     '/not-found',
     '/recover_password',
-    '/recover_password_user_ecommerce'
+    '/recover_password_user_ecommerce',
+    '/login'
 ];
 
 // Configuração de permissões por role
 const rolePermissions: Record<UserRole, string[]> = {
     SUPER_ADMIN: [
         '/unauthorized',
-        '/dashboard'
+        '/'
     ],
     ADMIN: [
         '/unauthorized',
@@ -40,7 +40,7 @@ const rolePermissions: Record<UserRole, string[]> = {
     ],
     EMPLOYEE: [
         '/unauthorized',
-        '/dashboard',
+        '/',
     ]
 };
 
@@ -54,7 +54,7 @@ export const middleware: NextMiddleware = async (req: NextRequest) => {
 
     try {
         console.log(`[Middleware] ${req.method} ${req.url}`);
-        const authToken = req.cookies.get('@cmsblog.token')?.value;
+        const authToken = req.cookies.get('@ecommerce.token')?.value;
 
         // 1. Verificar se é uma rota pública
         const isPublicPath = publicPaths.some(publicPath => {
@@ -68,7 +68,7 @@ export const middleware: NextMiddleware = async (req: NextRequest) => {
 
         // 2. Redirecionar rotas bloqueadas para autenticados
         if (authToken && options.blockedIfAuthenticated?.some(path => pathname.startsWith(path))) {
-            return NextResponse.redirect(new URL('/dashboard', req.url));
+            return NextResponse.redirect(new URL('/', req.url));
         }
 
         // 3. Verificação de autenticação e permissões

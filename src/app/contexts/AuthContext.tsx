@@ -124,7 +124,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                         faq: "Perguntas e respostas",
                         payment_methods: "Metodos de pagamentos",
                         technical_assistance: "Assistencia tecnica",
-                        about_store: "Escreva uma descrição para o blog, do que se trata...",
+                        about_store: "Escreva uma descrição para o ecommerce, do que se trata...",
                         privacy_policies: "Escrveva aqui seu texto das suas politicas de privacidades focado na lei LGPD"
                     };
 
@@ -153,7 +153,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                             faq: "Perguntas e respostas",
                             payment_methods: "Metodos de pagamentos",
                             technical_assistance: "Assistencia tecnica",
-                            about_store: "Escreva uma descrição para o blog, do que se trata...",
+                            about_store: "Escreva uma descrição para o ecommerce, do que se trata...",
                             privacy_policies: "Escrveva aqui seu texto das suas politicas de privacidades focado na lei LGPD"
                         });
                     } else {
