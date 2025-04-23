@@ -16,7 +16,7 @@ import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce';
 import { AuthContext } from '@/app/contexts/AuthContext'; 
 import noImage from '../../../../../public/no-image.png'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_URL_ECOMMERCE;
 
 const CognitiveChallenge = dynamic(
     () => import('../../../components/cognitiveChallenge/index').then(mod => mod.CognitiveChallenge),

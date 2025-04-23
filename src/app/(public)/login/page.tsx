@@ -28,7 +28,7 @@ const CognitiveChallenge = dynamic(
     }
 );
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_URL_ECOMMERCE;
 
 const schema = z.object({
     email: z.string().email("Insira um email válido").nonempty("O campo email é obrigatório"),
