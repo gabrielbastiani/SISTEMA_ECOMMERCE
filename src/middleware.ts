@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 
 export const config = {
     matcher: [
-        '/((?!api|_next/static|_next/image|favicon.ico|images|assets).*)',
+        '/((?!api|_next/static|_next/image|favicon.ico|images|assets|configuration_ecommerce).*)',
     ],
 };
 
@@ -24,7 +24,9 @@ const publicPaths = [
     '/register',
     '/not-found',
     '/recover_password',
-    '/recover_password_user_ecommerce'
+    '/recover_password_user_ecommerce',
+    '/login',
+    '/configuration_ecommerce/get_configs'
 ];
 
 // Configuração de permissões por role
@@ -52,10 +54,15 @@ export const middleware: NextMiddleware = async (req: NextRequest) => {
     };
 
     try {
-        console.log(`[Middleware] ${req.method} ${req.url}`);
         const authToken = req.cookies.get('@ecommerce.token')?.value;
 
-        // 1. Verificar se é uma rota pública
+        // 1. Redirecionar rotas bloqueadas para autenticados
+        if (authToken && options.blockedIfAuthenticated?.some(path => pathname.startsWith(path))) {
+            console.log(`[Middleware] Usuário autenticado tentando acessar rota bloqueada: ${pathname}`);
+            return NextResponse.redirect(new URL('/', req.url));
+        }
+
+        // 2. Verificar se é uma rota pública
         const isPublicPath = publicPaths.some(publicPath => {
             const regex = new RegExp(`^${publicPath.replace(/\[.*?\]/g, '.*')}$`);
             return regex.test(pathname);
@@ -65,29 +72,22 @@ export const middleware: NextMiddleware = async (req: NextRequest) => {
             return NextResponse.next();
         }
 
-        // 2. Redirecionar rotas bloqueadas para autenticados
-        if (authToken && options.blockedIfAuthenticated?.some(path => pathname.startsWith(path))) {
-            return NextResponse.redirect(new URL('/', req.url));
-        }
-
         // 3. Verificação de autenticação e permissões
         if (authToken) {
             try {
-                const decoded = jwt.decode(authToken) as { role: UserRole };
-                const userRole = decoded?.role;
+                const decoded = jwt.decode(authToken) as { role?: UserRole };
 
-                if (!userRole || !rolePermissions[userRole]) {
+                if (!decoded?.role || !rolePermissions[decoded.role]) {
                     return NextResponse.redirect(new URL('/unauthorized', req.url));
                 }
 
-                const hasPermission = rolePermissions[userRole].some(allowedPath =>
+                const hasPermission = rolePermissions[decoded.role].some(allowedPath =>
                     pathname.startsWith(allowedPath)
                 );
 
                 if (!hasPermission) {
                     return NextResponse.redirect(new URL('/unauthorized', req.url));
                 }
-
             } catch (error) {
                 console.error('Token inválido:', error);
                 return NextResponse.redirect(new URL('/login', req.url));
@@ -95,13 +95,17 @@ export const middleware: NextMiddleware = async (req: NextRequest) => {
         }
 
         // 4. Verificar rotas protegidas para não autenticados
-        const isProtectedRoute = options.protectedPaths?.some(path =>
-            pathname.startsWith(path)
-        );
+        const isProtectedRoute = options.protectedPaths?.some(path => {
+            const basePath = pathname.split('?')[0]; // Ignora query params
+            return basePath.startsWith(path);
+        })
 
         if (isProtectedRoute && !authToken) {
             const loginUrl = new URL('/login', req.url);
-            loginUrl.searchParams.set('redirect', pathname);
+            // Evite loop verificando se já está no login
+            if (!pathname.startsWith('/login')) {
+                loginUrl.searchParams.set('redirect', pathname);
+            }
             return NextResponse.redirect(loginUrl);
         }
 

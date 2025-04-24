@@ -2,7 +2,7 @@ import moment from 'moment';
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
 import { FiBell } from 'react-icons/fi';
-import { NotificationIcon } from './notificationIcon'; 
+import { NotificationIcon } from './notificationIcon';
 import { Notification } from 'Types/types';
 
 interface NotificationDropdownProps {
@@ -32,10 +32,10 @@ export const NotificationDropdown = ({
     }, []);
 
     return (
-        <div className="relative">
+        <div className="relative bg-background text-foreground transition-colors duration-300">
             <FiBell
                 size={24}
-                className="text-[#FFFFFF] cursor-pointer"
+                className="cursor-pointer bg-background text-foreground transition-colors duration-300"
                 onClick={() => setShowNotifications(!showNotifications)}
             />
             {hasUnread && (
@@ -44,12 +44,12 @@ export const NotificationDropdown = ({
             {showNotifications && (
                 <div
                     ref={notificationRef}
-                    className="absolute top-14 right-6 bg-gray-800 text-[#FFFFFF] rounded-md w-80 shadow-lg p-4 z-10"
+                    className="absolute top-14 right-6 bg-gray-400 rounded-md w-80 shadow-lg p-4 z-10 text-foreground transition-colors duration-300"
                 >
                     <div className="flex justify-between mb-2">
-                        <h2 className="font-semibold">Notificações</h2>
+                        <h2 className="font-semibold text-black">Notificações</h2>
                         <button
-                            className="text-sm text-red-500 hover:underline"
+                            className="text-sm text-red-600 hover:underline"
                             onClick={onMarkAllAsRead}
                         >
                             Marcar todas como lidas
@@ -71,7 +71,7 @@ export const NotificationDropdown = ({
                                         <NotificationIcon type={notification.type} />
                                         <span>{notification.message}</span>
                                     </span>
-                                    <span className="text-xs text-gray-400">
+                                    <span className="text-xs text-black">
                                         {moment(notification.created_at).format('DD-MM-YYYY HH:mm')}
                                     </span>
                                 </button>

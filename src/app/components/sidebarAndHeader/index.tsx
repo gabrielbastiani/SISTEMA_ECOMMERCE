@@ -26,7 +26,7 @@ interface Content {
 
 export function SidebarAndHeader({ children }: Content) {
 
-    const API_URL = process.env.NEXT_PUBLIC_URL_ECOMMERCE;
+    const API_URL = process.env.NEXT_PUBLIC_API_URL;
     const URL_STORE = process.env.NEXT_PUBLIC_URL_STORE;
 
     const { user, configs } = useContext(AuthContext);
@@ -250,19 +250,19 @@ export function SidebarAndHeader({ children }: Content) {
     return (
         <Collapsible.Root
             defaultOpen
-            className="h-screen w-screen bg-gray-950 text-slate-100 flex overflow-hidden"
+            className="h-screen w-screen flex overflow-hidden bg-background text-foreground transition-colors duration-300"
             onOpenChange={setIsSideBarOpen}
         >
             {/* Sidebar */}
-            <Collapsible.Content className="bg-gray-950 flex-shrink-0 border-r border-slate-600 h-full relative group overflow-y-auto">
-                <Collapsible.Trigger className="absolute h-7 right-4 z-[99] text-white hover:scale-105 duration-200 inline-flex items-center justify-center">
-                    <ArrowBendDoubleUpLeft className="h-7 w-7 mt-8" />
+            <Collapsible.Content className="flex-shrink-0 border-r border-slate-600 h-full relative group overflow-y-auto text-foreground transition-colors">
+                <Collapsible.Trigger className="absolute h-7 right-4 z-[99] hover:scale-105 duration-200 inline-flex items-center justify-center text-foreground transition-colors">
+                    <ArrowBendDoubleUpLeft className="h-7 w-7 mt-8 bg-background text-foreground transition-colors" />
                 </Collapsible.Trigger>
 
-                <div className="flex-1 flex flex-col h-full gap-8 w-[220px]">
-                    <nav className="flex mx-2 flex-col gap-8 text-slate-100">
-                        <div className="flex flex-col gap-2 ml-2">
-                            <div className="text-white font-semibold uppercase mb-2 ml-2 mt-3">
+                <div className="flex-1 flex flex-col h-full gap-8 w-[220px] bg-background text-foreground transition-colors duration-300">
+                    <nav className="flex mx-2 flex-col gap-8 bg-background text-foreground transition-colors duration-300">
+                        <div className="flex flex-col gap-2 ml-2 bg-background text-foreground transition-colors duration-300">
+                            <div className="font-semibold uppercase mb-2 ml-2 mt-3 bg-background text-foreground transition-colors duration-300">
                                 <Link href="/">
                                     <Image
                                         src={configs?.logo ? `${API_URL}/files/${configs.logo}` : noImage}
@@ -275,10 +275,10 @@ export function SidebarAndHeader({ children }: Content) {
                             </div>
                         </div>
 
-                        <section className="flex flex-col gap-px">
+                        <section className="flex flex-col gap-px bg-background text-foreground transition-colors duration-300">
                             <Link href="/" className={clsx({
                                 'bg-activeLink rounded p-2 mb-2': currentRoute === "/",
-                                'text-white p-2 mb-2': currentRoute !== "/"
+                                'bg-background text-foreground transition-colors duration-300 p-2 mb-2': currentRoute !== "/"
                             })}>
                                 Dashboard
                             </Link>
@@ -290,12 +290,12 @@ export function SidebarAndHeader({ children }: Content) {
             </Collapsible.Content>
 
             {/* Conteúdo Principal */}
-            <div className="flex-1 flex flex-col overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-200">
+            <div className="flex-1 flex flex-col overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-200 bg-background text-foreground transition-colors duration-300">
                 {/* Header */}
                 <div className="flex items-center gap-4 leading-tight relative border-b border-slate-600 transition-all duration-200 py-[1.125rem] px-6 justify-between">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 bg-background text-foreground transition-colors duration-300">
                         <Collapsible.Trigger
-                            className={clsx('h-7 w-7 text-gray-800 bg-gray-100 p-1 rounded-full relative z-[99]', {
+                            className={clsx('h-7 w-7 p-1 rounded-full relative z-[99] bg-background text-foreground transition-colors duration-300', {
                                 hidden: isSideBarOpen,
                                 block: !isSideBarOpen
                             })}
@@ -303,23 +303,23 @@ export function SidebarAndHeader({ children }: Content) {
                             <CaretRight className="w-5 h-5" />
                         </Collapsible.Trigger>
 
-                        <h1 className="text-white font-bold">CMS Ecommerce - {configs?.name}</h1>
+                        <h1 className="font-bold bg-background text-foreground transition-colors duration-300">CMS Ecommerce - {configs?.name}</h1>
                     </div>
 
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-6 bg-background text-foreground transition-colors duration-300">
 
                         <ThemeToggle />
 
                         <Link
                             href={`${URL_STORE}`}
                             target="_blank"
-                            className="text-sm text-white hover:underline"
+                            className="text-sm bg-background text-foreground transition-colors duration-300 hover:underline"
                         >
                             Ir para a loja
                         </Link>
 
-                        <div className="flex items-center gap-4">
-                            <span className="text-white">{user?.name}</span>
+                        <div className="flex items-center gap-4 bg-background text-foreground transition-colors duration-300">
+                            <span className="bg-background text-foreground transition-colors duration-300">{user?.name}</span>
 
                             <NotificationDropdown
                                 notifications={notifications}
@@ -333,7 +333,7 @@ export function SidebarAndHeader({ children }: Content) {
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto scrollbar">
+                <div className="flex-1 overflow-y-auto scrollbar bg-background text-foreground transition-colors duration-300">
                     {children}
                 </div>
             </div>

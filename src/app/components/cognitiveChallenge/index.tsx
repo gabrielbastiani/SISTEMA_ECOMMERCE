@@ -82,10 +82,10 @@ export const CognitiveChallenge = ({ onValidate }: CognitiveChallengeProps) => {
     if (!mounted || !challenge) return null;
 
     return (
-        <div className="mb-4 p-4 rounded-lg">
+        <div className="mb-4 p-4 rounded-lg bg-background text-foreground transition-colors duration-300">
             <div className="mb-2">
                 <label
-                    className="block text-sm font-medium mb-2 text-black">
+                    className="block text-sm font-medium mb-2 text-foreground transition-colors duration-300">
                     Desafio de segurança: Quanto é {challenge.question}?
                 </label>
                 <input

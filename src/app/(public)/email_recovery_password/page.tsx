@@ -16,7 +16,7 @@ import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce';
 import { AuthContext } from '@/app/contexts/AuthContext'; 
 import noImage from '../../../../public/no-image.png'
 
-const API_URL = process.env.NEXT_PUBLIC_URL_ECOMMERCE;
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const CognitiveChallenge = dynamic(
     () => import('../../components/cognitiveChallenge/index').then(mod => mod.CognitiveChallenge),
@@ -90,7 +90,7 @@ export default function EmailRecoveryPassword() {
                 <LoadingRequest />
                 :
                 <Container>
-                    <div className='w-full min-h-screen flex justify-center items-center flex-col gap-4'>
+                    <div className='w-full min-h-screen flex justify-center items-center flex-col gap-4 bg-background text-foreground transition-colors duration-300'>
                         <div className='mb-6 max-w-sm w-full'>
                             {configs?.logo ?
                                 <Image
@@ -105,7 +105,7 @@ export default function EmailRecoveryPassword() {
                         </div>
 
                         <form
-                            className='bg-white max-w-xl w-full rounded-lg p-4'
+                            className='max-w-xl w-full rounded-lg p-4 bg-background text-foreground transition-colors duration-300'
                             onSubmit={handleSubmit(onSubmit)}
                         >
                             <div className='mb-3'>

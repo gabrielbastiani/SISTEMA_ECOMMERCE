@@ -40,7 +40,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 export default function Register() {
-    
+
     const router = useRouter();
     const [cognitiveValid, setCognitiveValid] = useState(false);
     const [superAdmin, setSuperAdmin] = useState([]);
@@ -127,22 +127,22 @@ export default function Register() {
             {loading ? <LoadingRequest /> : (
                 superAdmin.length >= 1 ? <Login /> : (
                     <Container>
-                        <div className='w-full min-h-screen flex items-center justify-center py-8'>
-                            <div className='w-full max-w-4xl bg-white rounded-xl shadow-lg p-8'>
-                                <h1 className='text-2xl font-bold text-gray-800 mb-6 text-center'>
+                        <div className='w-full min-h-screen flex items-center justify-center py-8 bg-background text-foreground transition-colors duration-300'>
+                            <div className='w-full max-w-4xl bg-background text-foreground transition-colors duration-300 rounded-xl shadow-lg p-8'>
+                                <h1 className='text-2xl font-bold bg-background text-foreground transition-colors duration-300 mb-6 text-center'>
                                     Cadastro do E-commerce
                                 </h1>
 
-                                <form onSubmit={handleSubmit(onSubmit)} className='space-y-6'>
-                                    <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                                <form onSubmit={handleSubmit(onSubmit)} className='space-y-6 bg-background text-foreground transition-colors duration-300'>
+                                    <div className='grid grid-cols-1 md:grid-cols-2 gap-6 bg-background text-foreground transition-colors duration-300'>
                                         {/* Seção do E-commerce */}
                                         <div className='space-y-4'>
-                                            <h2 className='text-lg font-semibold text-gray-700 border-b pb-2'>
-                                                Informações do E-commerce
+                                            <h2 className='text-lg font-semibold text-foreground border-b pb-2'>
+                                                Informações do e-commerce
                                             </h2>
 
                                             <div>
-                                                <label className='block text-sm font-medium text-gray-600 mb-1'>
+                                                <label className='block text-sm font-medium text-foreground mb-1'>
                                                     Nome do E-commerce *
                                                 </label>
                                                 <Input
@@ -154,7 +154,7 @@ export default function Register() {
                                             </div>
 
                                             <div>
-                                                <label className='block text-sm font-medium text-gray-600 mb-1'>
+                                                <label className='block text-sm font-medium text-foreground mb-1'>
                                                     Email do E-commerce *
                                                 </label>
                                                 <Input
@@ -166,7 +166,7 @@ export default function Register() {
                                             </div>
 
                                             <div>
-                                                <label className='block text-sm font-medium text-gray-600 mb-1'>
+                                                <label className='block text-sm font-medium text-foreground mb-1'>
                                                     Logo do E-commerce *
                                                 </label>
                                                 <label className="relative w-full aspect-square rounded-lg cursor-pointer flex justify-center bg-gray-100 border-2 border-dashed hover:border-orange-500 transition-colors">
@@ -196,12 +196,12 @@ export default function Register() {
 
                                         {/* Seção do Usuário Admin */}
                                         <div className='space-y-4'>
-                                            <h2 className='text-lg font-semibold text-gray-700 border-b pb-2'>
+                                            <h2 className='text-lg font-semibold text-foreground border-b pb-2'>
                                                 Informações do Administrador
                                             </h2>
 
                                             <div>
-                                                <label className='block text-sm font-medium text-gray-600 mb-1'>
+                                                <label className='block text-sm font-medium text-foreground mb-1'>
                                                     Nome Completo *
                                                 </label>
                                                 <Input
@@ -213,7 +213,7 @@ export default function Register() {
                                             </div>
 
                                             <div>
-                                                <label className='block text-sm font-medium text-gray-600 mb-1'>
+                                                <label className='block text-sm font-medium text-foreground mb-1'>
                                                     Email *
                                                 </label>
                                                 <Input
@@ -225,7 +225,7 @@ export default function Register() {
                                             </div>
 
                                             <div>
-                                                <label className='block text-sm font-medium text-gray-600 mb-1'>
+                                                <label className='block text-sm font-medium text-foreground mb-1'>
                                                     Senha *
                                                 </label>
                                                 <Input

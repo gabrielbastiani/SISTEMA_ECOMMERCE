@@ -1,13 +1,12 @@
 "use client"
 
 import dynamic from 'next/dynamic';
-import { useTheme } from '@/app/contexts/ThemeContext'; 
 import { useRouter } from 'next/navigation'
 import { Container } from '../../components/container'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { AuthContext } from '@/app/contexts/AuthContext'; 
+import { AuthContext } from '@/app/contexts/AuthContext';
 import { useContext, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -28,7 +27,7 @@ const CognitiveChallenge = dynamic(
     }
 );
 
-const API_URL = process.env.NEXT_PUBLIC_URL_ECOMMERCE;
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const schema = z.object({
     email: z.string().email("Insira um email válido").nonempty("O campo email é obrigatório"),
@@ -39,8 +38,6 @@ type FormData = z.infer<typeof schema>
 
 export default function Login() {
 
-    const { theme } = useTheme();
-    
     const [cognitiveValid, setCognitiveValid] = useState(false);
     const router = useRouter();
     const { signIn, configs } = useContext(AuthContext);
@@ -72,7 +69,6 @@ export default function Login() {
 
             if (success) {
                 router.push('/');
-                window.location.reload();
             }
 
             setLoading(false);
@@ -91,7 +87,7 @@ export default function Login() {
                 <LoadingRequest />
                 :
                 <Container>
-                    <div className='w-full min-h-screen flex justify-center items-center flex-col gap-4'>
+                    <div className='w-full min-h-screen flex justify-center items-center flex-col gap-4 bg-background text-foreground transition-colors duration-300'>
                         <div className='mb-6 max-w-sm w-full'>
                             {configs?.logo ?
                                 <Link href='/'>
@@ -109,7 +105,7 @@ export default function Login() {
                         </div>
 
                         <form
-                            className='bg-white max-w-xl w-full rounded-lg p-4'
+                            className='max-w-xl w-full rounded-lg p-4 bg-background text-foreground transition-colors duration-300'
                             onSubmit={handleSubmit(onSubmit)}
                         >
                             <div className='mb-3'>

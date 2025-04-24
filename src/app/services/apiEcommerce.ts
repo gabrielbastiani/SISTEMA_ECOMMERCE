@@ -2,7 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import Cookies from 'universal-cookie';
 import { toast } from 'react-toastify';
 
-const API_URL = process.env.NEXT_PUBLIC_URL_ECOMMERCE;
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 function signOut() {
     try {

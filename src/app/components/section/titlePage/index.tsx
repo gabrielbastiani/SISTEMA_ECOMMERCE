@@ -14,7 +14,7 @@ export function TitlePage({ title }: TitleProps) {
     return (
         <div className="flex">
             <IoArrowUndoSharp
-                color="white"
+                className="bg-background text-foreground transition-colors duration-300"
                 style={{ cursor: 'pointer', marginRight: '15' }}
                 size={40}
                 onClick={() => router.back()}

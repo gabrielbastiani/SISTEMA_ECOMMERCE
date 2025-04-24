@@ -3,7 +3,7 @@ import { Providers } from "./providers";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const API_URL = process.env.NEXT_PUBLIC_URL_ECOMMERCE;
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const ECOMMERCE_URL = process.env.NEXT_PUBLIC_URL_ECOMMERCE || 'http://localhost:3000';
 
 const geistSans = Geist({
