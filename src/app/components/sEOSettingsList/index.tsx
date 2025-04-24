@@ -95,7 +95,7 @@ export default function SEOSettingsList() {
                         </tr>
                     ) : (
                         seoSettings.map((setting) => (
-                            <tr key={setting.id} className="hover:bg-gray-50 bg-background text-foreground transition-colors duration-300">
+                            <tr key={setting.id} className="bg-background text-foreground transition-colors duration-300">
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                                     {setting.page}
                                 </td>
