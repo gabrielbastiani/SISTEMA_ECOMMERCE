@@ -32,10 +32,14 @@ const publicPaths = [
 // Configuração de permissões por role
 const rolePermissions: Record<UserRole, string[]> = {
     SUPER_ADMIN: [
+        '/configurations/seo_pages',
+        '/configurations/seo_pages/[seo_id]',
         '/unauthorized',
         '/'
     ],
     ADMIN: [
+        '/configurations/seo_pages',
+        '/configurations/seo_pages/[seo_id]',
         '/unauthorized',
         '/',
     ],
