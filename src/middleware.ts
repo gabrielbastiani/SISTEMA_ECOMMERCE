@@ -34,12 +34,14 @@ const rolePermissions: Record<UserRole, string[]> = {
     SUPER_ADMIN: [
         '/configurations/seo_pages',
         '/configurations/seo_pages/[seo_id]',
+        '/configurations/configuration_ecommerce',
         '/unauthorized',
         '/'
     ],
     ADMIN: [
         '/configurations/seo_pages',
         '/configurations/seo_pages/[seo_id]',
+        '/configurations/configuration_ecommerce',
         '/unauthorized',
         '/',
     ],

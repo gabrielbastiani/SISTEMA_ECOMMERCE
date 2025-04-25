@@ -130,7 +130,7 @@ export function SidebarAndHeader({ children }: Content) {
                 title: 'Configurações do ecommerce',
                 name: 'configurations',
                 items: [
-                    { title: 'Configurações gerais', path: '/configurations/configuration' },
+                    { title: 'Configurações gerais', path: '/configurations/configuration_ecommerce' },
                     { title: 'Cores', path: '/configurations/theme' },
                     { title: 'SEO', path: '/configurations/seo_pages' }
                 ]
