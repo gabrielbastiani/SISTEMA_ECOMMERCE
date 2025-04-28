@@ -35,6 +35,8 @@ const rolePermissions: Record<UserRole, string[]> = {
         '/configurations/seo_pages',
         '/configurations/seo_pages/[seo_id]',
         '/configurations/configuration_ecommerce',
+        '/configurations/colors',
+        '/user/profile',
         '/unauthorized',
         '/'
     ],
@@ -42,11 +44,14 @@ const rolePermissions: Record<UserRole, string[]> = {
         '/configurations/seo_pages',
         '/configurations/seo_pages/[seo_id]',
         '/configurations/configuration_ecommerce',
+        '/configurations/colors',
+        '/user/profile',
         '/unauthorized',
         '/',
     ],
     EMPLOYEE: [
         '/unauthorized',
+        '/user/profile',
         '/',
     ]
 };

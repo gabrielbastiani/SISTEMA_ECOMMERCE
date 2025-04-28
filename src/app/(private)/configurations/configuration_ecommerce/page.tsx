@@ -14,6 +14,36 @@ import { z } from "zod";
 import Config_media_social from "@/app/components/config_media_social";
 import { Editor } from "@tinymce/tinymce-react";
 
+const BRAZILIAN_STATES = [
+    { value: "AC", label: "Acre" },
+    { value: "AL", label: "Alagoas" },
+    { value: "AP", label: "Amapá" },
+    { value: "AM", label: "Amazonas" },
+    { value: "BA", label: "Bahia" },
+    { value: "CE", label: "Ceará" },
+    { value: "DF", label: "Distrito Federal" },
+    { value: "ES", label: "Espírito Santo" },
+    { value: "GO", label: "Goiás" },
+    { value: "MA", label: "Maranhão" },
+    { value: "MT", label: "Mato Grosso" },
+    { value: "MS", label: "Mato Grosso do Sul" },
+    { value: "MG", label: "Minas Gerais" },
+    { value: "PA", label: "Pará" },
+    { value: "PB", label: "Paraíba" },
+    { value: "PR", label: "Paraná" },
+    { value: "PE", label: "Pernambuco" },
+    { value: "PI", label: "Piauí" },
+    { value: "RJ", label: "Rio de Janeiro" },
+    { value: "RN", label: "Rio Grande do Norte" },
+    { value: "RS", label: "Rio Grande do Sul" },
+    { value: "RO", label: "Rondônia" },
+    { value: "RR", label: "Roraima" },
+    { value: "SC", label: "Santa Catarina" },
+    { value: "SP", label: "São Paulo" },
+    { value: "SE", label: "Sergipe" },
+    { value: "TO", label: "Tocantins" }
+];
+
 const schema = z.object({
     name: z.string().nonempty("O nome é obrigatório"),
     logo: z.string().optional(),
@@ -24,6 +54,13 @@ const schema = z.object({
         .regex(
             /^\(?\d{2}\)?[\s-]?\d{4,5}[\s-]?\d{4}$/,
             "Insira um número de telefone/celular válido. Ex: (11) 91234-5678 ou 11912345678"
+        )
+        .optional(),
+    whatsapp: z
+        .string()
+        .regex(
+            /^\(?\d{2}\)?[\s-]?\d{4,5}[\s-]?\d{4}$/,
+            "Insira um número de whatsapp válido. Ex: (11) 91234-5678 ou 11912345678"
         )
         .optional(),
     about_store: z.string().optional(),
@@ -58,6 +95,7 @@ export default function Configuration_ecommerce() {
     const [favicon, setFavicon] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
     const [phoneValue, setPhoneValue] = useState("");
+    const [whatsappValue, setWhatsappValue] = useState("");
     const [isMounted, setIsMounted] = useState(false);
     const [privacyPoliciesContent, setPrivacyPoliciesContent] = useState("");
     const [exchangesAndReturnsContent, setExchangesAndReturnsContent] = useState("");
@@ -67,6 +105,79 @@ export default function Configuration_ecommerce() {
     const [paymentMethodsContent, setPaymentMethodsContent] = useState("");
     const [technicalAssistanceContent, setTechnicalAssistanceContent] = useState("");
     const [aboutStoreContent, setAboutStoreContent] = useState("");
+    const [activeTab, setActiveTab] = useState('about');
+    const [zipCodeValue, setZipCodeValue] = useState("");
+
+    const editorTabs = [
+        {
+            id: 'about',
+            title: 'Sobre a Loja',
+            content: aboutStoreContent,
+            setContent: setAboutStoreContent
+        },
+        {
+            id: 'policies',
+            title: 'Políticas de Privacidade',
+            content: privacyPoliciesContent,
+            setContent: setPrivacyPoliciesContent
+        },
+        {
+            id: 'payments',
+            title: 'Métodos de Pagamento',
+            content: paymentMethodsContent,
+            setContent: setPaymentMethodsContent
+        },
+        {
+            id: 'returns',
+            title: 'Trocas e Devoluções',
+            content: exchangesAndReturnsContent,
+            setContent: setExchangesAndReturnsContent
+        },
+        {
+            id: 'shipping',
+            title: 'Prazos de Entrega',
+            content: shippingDeliveryTimeContent,
+            setContent: setShippingDeliveryTimeContent
+        },
+        {
+            id: 'howtobuy',
+            title: 'Como Comprar',
+            content: howToBuyContent,
+            setContent: setHowToBuyContent
+        },
+        {
+            id: 'faq',
+            title: 'Perguntas Frequentes',
+            content: faqContent,
+            setContent: setFaqContent
+        },
+        {
+            id: 'assistance',
+            title: 'Assistência Técnica',
+            content: technicalAssistanceContent,
+            setContent: setTechnicalAssistanceContent
+        }
+    ];
+
+    const formatZipCode = (value: string) => {
+        const numbers = value.replace(/\D/g, '');
+        const match = numbers.match(/^(\d{0,5})(\d{0,3})$/);
+
+        if (!match) return '';
+
+        return [
+            match[1],
+            match[2] ? `-${match[2]}` : ''
+        ].join('');
+    };
+
+    useEffect(() => {
+        setZipCodeValue(prev => {
+            const newValue = formatZipCode(prev);
+            if (newValue !== prev) return newValue;
+            return prev;
+        });
+    }, [zipCodeValue]);
 
     useEffect(() => {
         const formatPhone = (value: string) => {
@@ -87,7 +198,26 @@ export default function Configuration_ecommerce() {
             if (newValue !== prev) return newValue;
             return prev;
         });
-    }, [phoneValue]);
+
+        const formatWhatsApp = (value: string) => {
+            const numbers = value.replace(/\D/g, '');
+            const match = numbers.match(/^(\d{0,2})(\d{0,5})(\d{0,4})$/);
+
+            if (!match) return '';
+
+            return [
+                match[1] ? `(${match[1]}` : '',
+                match[2] ? `) ${match[2]}` : '',
+                match[3] ? `-${match[3]}` : ''
+            ].join('');
+        };
+
+        setWhatsappValue(prev => {
+            const newValue = formatWhatsApp(prev);
+            if (newValue !== prev) return newValue;
+            return prev;
+        });
+    }, [phoneValue, whatsappValue]);
 
     useEffect(() => {
         setIsMounted(true);
@@ -139,6 +269,9 @@ export default function Configuration_ecommerce() {
             if (data.phone) {
                 setPhoneValue(data.phone);
             }
+            if (data.whatsapp) {
+                setWhatsappValue(data.whatsapp);
+            }
             setId(data?.id || "");
 
             setLogoUrl(data.logo || null);
@@ -148,6 +281,7 @@ export default function Configuration_ecommerce() {
                 name: data.name,
                 email: data.email,
                 phone: data.phone,
+                whatsapp: data.whatsapp,
                 street: data.street,
                 city: data.city,
                 state: data.state,
@@ -166,6 +300,8 @@ export default function Configuration_ecommerce() {
             setTechnicalAssistanceContent(data.technical_assistance || "");
             setAboutStoreContent(data.about_store);
 
+            setZipCodeValue(data.zipCode ? formatZipCode(data.zipCode) : "");
+
         } catch (error) {
             toast.error("Erro ao carregar os dados do post.");
         }
@@ -178,19 +314,12 @@ export default function Configuration_ecommerce() {
     const onSubmit = async (data: FormData) => {
         setLoading(true);
 
-        /* const content = editorRef.current?.getContent();
-        if (!content || content.trim() === "") {
-            toast.error("O conteúdo do post não pode estar vazio!");
-            setLoading(false);
-            return;
-        } */
-
         try {
-
             const formData = new FormData();
             formData.append("ecommerceData_id", id || "");
             formData.append("name", data.name || "");
             formData.append("phone", phoneValue.replace(/\D/g, '') || "");
+            formData.append("whatsapp", whatsappValue.replace(/\D/g, '') || "");
             formData.append("email", data.email || "");
             formData.append("street", data.street || "");
             formData.append("city", data.city || "");
@@ -199,10 +328,14 @@ export default function Configuration_ecommerce() {
             formData.append("number", data.number || "");
             formData.append("neighborhood", data.neighborhood || "");
             formData.append("country", data.country || "");
-            formData.append("about_store",);
-            formData.append("technical_assistance",);
-            formData.append("payment_methods",);
-            formData.append("privacy_policies",);
+            formData.append("about_store", aboutStoreContent || "");
+            formData.append("technical_assistance", technicalAssistanceContent || "");
+            formData.append("payment_methods", paymentMethodsContent || "");
+            formData.append("privacy_policies", privacyPoliciesContent || "");
+            formData.append("faq", faqContent || "");
+            formData.append("shipping_delivery_time", shippingDeliveryTimeContent || "");
+            formData.append("how_to_buy", howToBuyContent || "");
+            formData.append("exchanges_and_returns", exchangesAndReturnsContent || "");
 
             if (logo) {
                 formData.append("logo", logo);
@@ -246,257 +379,257 @@ export default function Configuration_ecommerce() {
                     Deletar arquivos absoletos no sistema
                 </button>
 
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
-                    <p>Logomarca:</p>
-                    <div className="grid grid-cols-2 gap-4">
-                        <label className="relative w-[380px] h-[280px] rounded-lg cursor-pointer flex justify-center bg-gray-200 overflow-hidden">
-                            <input type="file" accept="image/png, image/jpeg" onChange={handleFile} className="hidden" />
-                            {logoUrl ? (
-                                <Image
-                                    src={logo ? logoUrl : `${API_URL}/files/${logoUrl}`}
-                                    alt="Preview da imagem"
-                                    width={450}
-                                    height={300}
-                                    className="w-full h-full"
+                    {/* Seção de Uploads */}
+                    <div className="bg-background text-foreground transition-colors duration-300 p-6 rounded-lg shadow-sm border border-gray-200">
+                        <h2 className="text-xl font-semibold mb-4">Logomarca e Favicon</h2>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Logomarca</label>
+                                <label className="relative w-full h-64 rounded-lg cursor-pointer flex justify-center overflow-hidden border-2 border-dashed border-gray-300 hover:border-orange-500 bg-background text-foreground transition-colors duration-300">
+                                    <input type="file" accept="image/png, image/jpeg" onChange={handleFile} className="hidden" />
+                                    {logoUrl ? (
+                                        <Image
+                                            src={logo ? logoUrl : `${API_URL}/files/${logoUrl}`}
+                                            alt="Preview da logomarca"
+                                            width={450}
+                                            height={300}
+                                            className="w-full h-full object-contain p-4"
+                                        />
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center w-full h-full text-gray-400">
+                                            <FiUpload size={40} className="mb-2" />
+                                            <span className="text-center">Clique para enviar a logomarca<br />(PNG ou JPG)</span>
+                                        </div>
+                                    )}
+                                </label>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Favicon</label>
+                                <label className="relative w-full h-64 rounded-lg cursor-pointer flex justify-center overflow-hidden border-2 border-dashed border-gray-300 hover:border-orange-500 bg-background text-foreground transition-colors duration-300">
+                                    <input type="file" accept=".ico, image/x-icon, image/vnd.microsoft.icon" onChange={handleFileFavicon} className="hidden" />
+                                    {faviconUrl ? (
+                                        <Image
+                                            src={favicon ? faviconUrl : `${API_URL}/files/${faviconUrl}`}
+                                            alt="Preview do favicon"
+                                            width={300}
+                                            height={200}
+                                            className="w-full h-full object-contain p-4"
+                                        />
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center w-full h-full text-gray-400">
+                                            <FiUpload size={40} className="mb-2" />
+                                            <span className="text-center">Clique para enviar o favicon<br />(Formato ICO)</span>
+                                        </div>
+                                    )}
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Seção de Dados Básicos */}
+                    <div className="p-6 rounded-lg shadow-sm border border-gray-200 bg-background text-foreground transition-colors duration-300">
+                        <h2 className="text-xl font-semibold mb-4">Dados da Loja</h2>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium">Nome da Loja *</label>
+                                <input
+                                    type="text"
+                                    placeholder="Nome da sua loja"
+                                    {...register("name")}
+                                    className="w-full border-2 rounded-md px-4 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition text-black"
                                 />
-                            ) : (
-                                <div className="flex items-center justify-center w-full h-full bg-gray-300">
-                                    <FiUpload size={30} color="#ff6700" />
-                                </div>
-                            )}
-                        </label>
-                    </div>
+                                {errors.name && <span className="text-red-500 text-sm">{errors.name.message}</span>}
+                            </div>
 
-                    <p>Favicon:</p>
-                    <div className="grid grid-cols-2 gap-4">
-                        <label className="relative w-[300px] h-[200px] rounded-lg cursor-pointer flex justify-center bg-gray-200 overflow-hidden">
-                            <input type="file" accept=".ico, image/x-icon, image/vnd.microsoft.icon" onChange={handleFileFavicon} className="hidden" />
-                            {faviconUrl ? (
-                                <Image
-                                    src={favicon ? faviconUrl : `${API_URL}/files/${faviconUrl}`}
-                                    alt="Preview da imagem"
-                                    width={300}
-                                    height={200}
-                                    className="w-full h-full"
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium">E-mail *</label>
+                                <input
+                                    type="email"
+                                    placeholder="contato@loja.com.br"
+                                    {...register("email")}
+                                    className="text-black w-full border-2 rounded-md px-4 py-2 focus:ring-2 focus:ring-orange-500 outline-none transition"
                                 />
-                            ) : (
-                                <div className="flex items-center justify-center w-full h-full bg-gray-300">
-                                    <FiUpload size={30} color="#ff6700" />
+                                {errors.email && <span className="text-red-500 text-sm">{errors.email.message}</span>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium">Telefone</label>
+                                <input
+                                    type="tel"
+                                    placeholder="(00) 00000-0000"
+                                    value={phoneValue}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setPhoneValue(value);
+                                        setValue("phone", value.replace(/\D/g, ''));
+                                    }}
+                                    className="text-black w-full border-2 rounded-md px-4 py-2 focus:ring-2 focus:ring-orange-500 outline-none transition"
+                                    maxLength={15}
+                                />
+                                {errors.phone && <span className="text-red-500 text-sm">{errors.phone.message}</span>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium">WhatsApp</label>
+                                <input
+                                    type="tel"
+                                    placeholder="(00) 00000-0000"
+                                    value={whatsappValue}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setWhatsappValue(value);
+                                        setValue("whatsapp", value.replace(/\D/g, '')); // Adicione esta linha
+                                    }}
+                                    className="text-black w-full border-2 rounded-md px-4 py-2 focus:ring-2 focus:ring-orange-500 outline-none transition"
+                                    maxLength={15}
+                                />
+                                {errors.whatsapp && <span className="text-red-500 text-sm">{errors.whatsapp.message}</span>}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Seção de Endereço */}
+                    <div className="p-6 rounded-lg shadow-sm border border-gray-200 bg-background text-foreground transition-colors duration-300 ">
+                        <h2 className="text-xl font-semibold mb-4">Endereço</h2>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium">CEP</label>
+                                <input
+                                    type="text"
+                                    placeholder="00000-000"
+                                    value={zipCodeValue}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setZipCodeValue(value);
+                                        setValue("zipCode", value.replace(/\D/g, ''));
+                                    }}
+                                    className="text-black w-full border-2 rounded-md px-4 py-2 focus:ring-2 focus:ring-orange-500 outline-none transition"
+                                    maxLength={9}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium">Estado</label>
+                                <select
+                                    {...register("state")}
+                                    className="text-black w-full border-2 rounded-md px-4 py-2 focus:ring-2 focus:ring-orange-500 outline-none transition bg-white"
+                                >
+                                    <option value="">Selecione um estado</option>
+                                    {BRAZILIAN_STATES.map((state) => (
+                                        <option key={state.value} value={state.value}>
+                                            {state.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium">Cidade</label>
+                                <input
+                                    type="text"
+                                    placeholder="Cidade"
+                                    {...register("city")}
+                                    className="text-black w-full border-2 rounded-md px-4 py-2 focus:ring-2 focus:ring-orange-500 outline-none transition"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium">Bairro</label>
+                                <input
+                                    type="text"
+                                    placeholder="Bairro"
+                                    {...register("neighborhood")}
+                                    className="text-black w-full border-2 rounded-md px-4 py-2 focus:ring-2 focus:ring-orange-500 outline-none transition"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium">Logradouro</label>
+                                <input
+                                    type="text"
+                                    placeholder="Rua/Avenida"
+                                    {...register("street")}
+                                    className="text-black w-full border-2 rounded-md px-4 py-2 focus:ring-2 focus:ring-orange-500 outline-none transition"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium">Número</label>
+                                <input
+                                    type="text"
+                                    placeholder="Número"
+                                    {...register("number")}
+                                    className="text-black w-full border-2 rounded-md px-4 py-2 focus:ring-2 focus:ring-orange-500 outline-none transition"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-6 rounded-lg shadow-sm border border-gray-200 bg-background text-foreground transition-colors duration-300">
+                        <h2 className="text-xl font-semibold mb-4">Conteúdo da Loja</h2>
+
+                        {/* Navegação por abas */}
+                        <div className="border-b border-gray-200">
+                            <nav className="flex space-x-4 overflow-x-auto">
+                                {editorTabs.map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        type="button"
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`px-4 py-2 text-sm font-medium transition-colors
+                                        ${activeTab === tab.id
+                                                ? 'border-b-2 border-orange-500 text-orange-600'
+                                                : 'text-gray-500 hover:text-gray-700 hover:border-b-2 hover:border-gray-300'
+                                            }`}
+                                    >
+                                        {tab.title}
+                                    </button>
+                                ))}
+                            </nav>
+                        </div>
+
+                        {/* Conteúdo dos Editores */}
+                        <div className="mt-4">
+                            {editorTabs.map((tab) => (
+                                <div
+                                    key={tab.id}
+                                    className={`${activeTab === tab.id ? 'block' : 'hidden'}`}
+                                >
+                                    {isMounted && (
+                                        <Editor
+                                            apiKey={TOKEN_TINY}
+                                            value={tab.content}
+                                            onEditorChange={(content) => tab.setContent(content)}
+                                            onInit={(evt, editor) => {
+                                                editorRef.current = editor;
+                                            }}
+                                            init={{
+                                                height: 600,
+                                                menubar: true,
+                                                plugins: "advlist autolink lists link image charmap print preview anchor searchreplace visualblocks code fullscreen insertdatetime media table paste code help wordcount",
+                                                toolbar: "undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help",
+                                                content_style: "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }"
+                                            }}
+                                        />
+                                    )}
                                 </div>
-                            )}
-                        </label>
+                            ))}
+                        </div>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <label>
-                            Nome da loja:
-                            <input
-                                type="text"
-                                placeholder="Digite um título..."
-                                {...register("name")}
-                                className="w-full border-2 rounded-md px-3 py-2 text-black"
-                            />
-                        </label>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <label>
-                            Endereço:
-                            <input
-                                type="text"
-                                placeholder="Digite o endereço..."
-                                {...register("street")}
-                                className="w-full border-2 rounded-md px-3 py-2 text-black"
-                            />
-                        </label>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <label>
-                            Cidade:
-                            <input
-                                placeholder="Sobre o autor..."
-                                {...register("city")}
-                                className="w-full h-96 border-2 rounded-md px-3 py-2 text-black"
-                            />
-                        </label>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <label>
-                            Email da loja:
-                            <input
-                                type="email"
-                                placeholder="Email do blog..."
-                                {...register("email")}
-                                className="w-full border-2 rounded-md px-3 py-2 text-black"
-                            />
-                        </label>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <label>
-                            CEP da loja:
-                            <input
-                                type="text"
-                                placeholder="00000-000..."
-                                {...register("zipCode")}
-                                className="w-full border-2 rounded-md px-3 py-2 text-black"
-                            />
-                        </label>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <label>
-                            Estado:
-                            <input
-                                type="text"
-                                placeholder="RS"
-                                {...register("state")}
-                                className="w-full border-2 rounded-md px-3 py-2 text-black"
-                            />
-                        </label>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <label>
-                            Numero:
-                            <input
-                                type="text"
-                                placeholder="2000"
-                                {...register("number")}
-                                className="w-full border-2 rounded-md px-3 py-2 text-black"
-                            />
-                        </label>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <label>
-                            Bairro:
-                            <input
-                                type="text"
-                                placeholder="Digite o bairro"
-                                {...register("neighborhood")}
-                                className="w-full border-2 rounded-md px-3 py-2 text-black"
-                            />
-                        </label>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <label>
-                            Pais:
-                            <input
-                                type="text"
-                                placeholder="Digite o pais"
-                                {...register("country")}
-                                className="w-full border-2 rounded-md px-3 py-2 text-black"
-                            />
-                        </label>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <label>
-                            Telefone:
-                            <input
-                                type="tel"
-                                placeholder="(11) 91234-5678"
-                                value={phoneValue}
-                                onChange={(e) => {
-                                    const value = e.target.value;
-                                    setPhoneValue(value);
-                                    setValue("phone", value.replace(/\D/g, ''));
-                                }}
-                                className={`w-full border-2 rounded-md px-3 py-2 text-black ${errors.phone ? "border-red-500" : ""
-                                    }`}
-                                maxLength={15}
-                            />
-                            {errors.phone && (
-                                <span className="text-red-500">{errors.phone.message}</span>
-                            )}
-                        </label>
-                    </div>
-
-                    {isMounted && (
-                        <label>Trocas e devoluções
-                            <Editor
-                                apiKey={TOKEN_TINY}
-                                onInit={(evt, editor) => {
-                                    editorRef.current = editor;
-                                    editor.setContent(exchangesAndReturnsContent);
-                                }}
-                                initialValue={exchangesAndReturnsContent}
-                                id="exchanges_and_returns"
-                                init={{
-                                    height: 800,
-                                    menubar: true,
-                                    toolbar: "undo redo | formatselect | bold italic | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image emoticons | table codesample | preview help",
-                                    external_plugins: {
-                                        insertdatetime: "https://cdn.jsdelivr.net/npm/tinymce/plugins/insertdatetime/plugin.min.js",
-                                        media: "https://cdn.jsdelivr.net/npm/tinymce/plugins/media/plugin.min.js",
-                                        table: "https://cdn.jsdelivr.net/npm/tinymce/plugins/table/plugin.min.js",
-                                        paste: "https://cdn.jsdelivr.net/npm/tinymce/plugins/paste/plugin.min.js",
-                                        code: "https://cdn.jsdelivr.net/npm/tinymce/plugins/code/plugin.min.js",
-                                        help: "https://cdn.jsdelivr.net/npm/tinymce/plugins/help/plugin.min.js",
-                                        wordcount: "https://cdn.jsdelivr.net/npm/tinymce/plugins/wordcount/plugin.min.js",
-                                    },
-                                    codesample_languages: [
-                                        { text: "HTML/XML", value: "markup" },
-                                        { text: "JavaScript", value: "javascript" },
-                                        { text: "CSS", value: "css" },
-                                        { text: "PHP", value: "php" },
-                                        { text: "Ruby", value: "ruby" },
-                                        { text: "Python", value: "python" },
-                                    ],
-                                    content_style: "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }",
-                                }}
-                            />
-                        </label>
-                    )}
-
-                    {isMounted && (
-                        <label>Políticas de privacidade
-                            <Editor
-                                apiKey={TOKEN_TINY}
-                                onInit={(evt, editor) => {
-                                    editorRef.current = editor;
-                                    editor.setContent(privacyPoliciesContent);
-                                }}
-                                initialValue={privacyPoliciesContent}
-                                id="privacy_policies_editor"
-                                init={{
-                                    height: 800,
-                                    menubar: true,
-                                    toolbar: "undo redo | formatselect | bold italic | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image emoticons | table codesample | preview help",
-                                    external_plugins: {
-                                        insertdatetime: "https://cdn.jsdelivr.net/npm/tinymce/plugins/insertdatetime/plugin.min.js",
-                                        media: "https://cdn.jsdelivr.net/npm/tinymce/plugins/media/plugin.min.js",
-                                        table: "https://cdn.jsdelivr.net/npm/tinymce/plugins/table/plugin.min.js",
-                                        paste: "https://cdn.jsdelivr.net/npm/tinymce/plugins/paste/plugin.min.js",
-                                        code: "https://cdn.jsdelivr.net/npm/tinymce/plugins/code/plugin.min.js",
-                                        help: "https://cdn.jsdelivr.net/npm/tinymce/plugins/help/plugin.min.js",
-                                        wordcount: "https://cdn.jsdelivr.net/npm/tinymce/plugins/wordcount/plugin.min.js",
-                                    },
-                                    codesample_languages: [
-                                        { text: "HTML/XML", value: "markup" },
-                                        { text: "JavaScript", value: "javascript" },
-                                        { text: "CSS", value: "css" },
-                                        { text: "PHP", value: "php" },
-                                        { text: "Ruby", value: "ruby" },
-                                        { text: "Python", value: "python" },
-                                    ],
-                                    content_style: "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }",
-                                }}
-                            />
-                        </label>
-                    )}
 
                     <button
                         type="submit"
                         disabled={loading}
-                        className={`w-52 py-3 text-[#FFFFFF] ${loading ? "bg-gray-500" : "bg-red-600 hover:bg-orange-600"} rounded-md`}
+                        className={`w-52 py-3 text-white font-medium rounded-md transition-colors ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-orange-500 hover:bg-orange-600"
+                            }`}
                     >
-                        {loading ? "Atualizando..." : "Atualizar Cadastro"}
+                        {loading ? "Salvando..." : "Salvar Configurações"}
                     </button>
                 </form>
 

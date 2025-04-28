@@ -131,7 +131,7 @@ export function SidebarAndHeader({ children }: Content) {
                 name: 'configurations',
                 items: [
                     { title: 'Configurações gerais', path: '/configurations/configuration_ecommerce' },
-                    { title: 'Cores', path: '/configurations/theme' },
+                    { title: 'Cores', path: '/configurations/colors' },
                     { title: 'SEO', path: '/configurations/seo_pages' }
                 ]
             }
