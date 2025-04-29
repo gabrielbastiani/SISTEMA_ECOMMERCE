@@ -25,7 +25,7 @@ interface UsersProps {
     last_access: string | number | Date;
 }
 
-const statusOptions = ["Disponivel", "Indisponivel"];
+const statusOptions = ["DISPONIVEL", "INDISPONIVEL"];
 const roleOptions = ["SUPER_ADMIN", "ADMIN", "EMPLOYEE"];
 
 export default function All_users() {
@@ -179,71 +179,71 @@ export default function All_users() {
                                 key: 'status',
                                 label: 'Status',
                                 render: (item) => (
-                                    <td>
-                                        {editingUser?.id === item.id && editingUser?.field === "status" ? (
-                                            <select
-                                                value={editedValue || item.status}
-                                                onChange={(e) => setEditedValue(e.target.value)}
-                                                onBlur={() => handleSave(item.id)}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === "Enter") {
-                                                        handleSave(item.id);
-                                                    }
-                                                }}
-                                                className="appearance-auto text-black border-gray-300 rounded-md p-1"
-                                            >
-                                                {statusOptions.map((status) => (
-                                                    <option key={status} value={status}>
-                                                        {status}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        ) : (
-                                            <span onClick={() => handleEdit(item.id, "status", item.status)}
-                                                className="cursor-pointer text-red-500 hover:underline">
-                                                {item.status}
-                                            </span>
-                                        )}
-                                    </td>
+                                    editingUser?.id === item.id && editingUser?.field === "status" ? (
+                                        <select
+                                            value={editedValue || item.status}
+                                            onChange={(e) => setEditedValue(e.target.value)}
+                                            onBlur={() => handleSave(item.id)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") {
+                                                    handleSave(item.id);
+                                                }
+                                            }}
+                                            className="appearance-auto text-black border-gray-300 rounded-md p-1"
+                                        >
+                                            {statusOptions.map((status) => (
+                                                <option key={status} value={status}>
+                                                    {status}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <span
+                                            onClick={() => handleEdit(item.id, "status", item.status)}
+                                            className="cursor-pointer text-red-500 hover:underline"
+                                        >
+                                            {item.status}
+                                        </span>
+                                    )
                                 ),
                             },
                             {
                                 key: 'role',
                                 label: 'Atribuição',
                                 render: (item) => (
-                                    <td>
-                                        {editingUser?.id === item.id && editingUser?.field === "role" ? (
-                                            <select
-                                                value={editedValue || item.role}
-                                                onChange={(e) => setEditedValue(e.target.value)}
-                                                onBlur={() => handleSave(item.id)}
-                                                className="appearance-auto text-black border-gray-300 rounded-md p-1"
-                                            >
-                                                {roleOptions.map((role) => (
-                                                    <option key={role} value={role}>
-                                                        {role === "SUPER_ADMIN"
-                                                            ? "Super administrador"
-                                                            : role === "ADMIN"
-                                                                ? "Administrador"
-                                                                : role === "EMPLOYEE"
-                                                                    ? "Empregado"
-                                                                    : null}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        ) : (
-                                            <span onClick={() => handleEdit(item.id, "role", item.role)}
-                                                className="cursor-pointer text-backgroundButton hover:underline">
-                                                {item.role === "SUPER_ADMIN"
-                                                    ? "Super administrador"
-                                                    : item.role === "ADMIN"
-                                                        ? "Administrador"
-                                                        : item.role === "EMPLOYEE"
-                                                            ? "Empregado"
-                                                            : null}
-                                            </span>
-                                        )}
-                                    </td>
+                                    editingUser?.id === item.id && editingUser?.field === "role" ? (
+                                        <select
+                                            value={editedValue || item.role}
+                                            onChange={(e) => setEditedValue(e.target.value)}
+                                            onBlur={() => handleSave(item.id)}
+                                            className="appearance-auto text-black border-gray-300 rounded-md p-1"
+                                        >
+                                            {roleOptions.map((role) => (
+                                                <option key={role} value={role}>
+                                                    {role === "SUPER_ADMIN"
+                                                        ? "Super administrador"
+                                                        : role === "ADMIN"
+                                                            ? "Administrador"
+                                                            : role === "EMPLOYEE"
+                                                                ? "Empregado"
+                                                                : null}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <span
+                                            onClick={() => handleEdit(item.id, "role", item.role)}
+                                            className="cursor-pointer text-backgroundButton hover:underline"
+                                        >
+                                            {item.role === "SUPER_ADMIN"
+                                                ? "Super administrador"
+                                                : item.role === "ADMIN"
+                                                    ? "Administrador"
+                                                    : item.role === "EMPLOYEE"
+                                                        ? "Empregado"
+                                                        : null}
+                                        </span>
+                                    )
                                 ),
                             },
                             {
@@ -264,9 +264,9 @@ export default function All_users() {
                                 render: (item) => (
                                     <>
                                         {!item.last_access ? (
-                                            <td>Sem acesso</td>
+                                            <span>Sem acesso</span>
                                         ) :
-                                            <td>{moment(item.last_access).format('DD/MM/YYYY HH:mm')}</td>
+                                            <span>{moment(item.last_access).format('DD/MM/YYYY HH:mm')}</span>
                                         }
                                     </>
                                 ),

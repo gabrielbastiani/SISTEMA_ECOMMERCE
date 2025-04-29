@@ -56,21 +56,21 @@ const TimeFilterModal: React.FC<DateFilterModalProps> = ({ isOpen, onClose, onDa
 
     return (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md mx-auto relative">
-                <button onClick={onClose} className="absolute top-2 right-2 text-gray-500 hover:text-gray-700">
+            <div className="bg-background text-foreground transition-colors duration-300 rounded-lg p-6 w-full max-w-md mx-auto relative">
+                <button onClick={onClose} className="absolute top-2 right-2 hover:text-gray-700">
                     <AiOutlineClose size={24} />
                 </button>
                 <div className="mt-6">
-                    <h3 className="font-semibold text-black mb-2">Intervalo Personalizado</h3>
+                    <h3 className="font-semibold mb-2">Intervalo Personalizado</h3>
 
                     <div className="grid grid-cols-2 gap-2 mb-4">
-                        <button onClick={setToday} className="bg-backgroundButton text-black py-1 px-3 rounded">Hoje</button>
-                        <button onClick={setYesterday} className="bg-backgroundButton text-black py-1 px-3 rounded">Ontem</button>
-                        <button onClick={setLast7Days} className="bg-backgroundButton text-black py-1 px-3 rounded">Últimos 7 dias</button>
-                        <button onClick={setLast30Days} className="bg-backgroundButton text-black py-1 px-3 rounded">Últimos 30 dias</button>
-                        <button onClick={setLast6Months} className="bg-backgroundButton text-black py-1 px-3 rounded">Últimos 6 meses</button>
-                        <button onClick={setCurrentWeek} className="bg-backgroundButton text-black py-1 px-3 rounded">Semana atual</button>
-                        <button onClick={setCurrentMonth} className="bg-backgroundButton text-black py-1 px-3 rounded">Mês atual</button>
+                        <button onClick={setToday} className="bg-backgroundButton py-1 px-3 rounded">Hoje</button>
+                        <button onClick={setYesterday} className="bg-backgroundButton py-1 px-3 rounded">Ontem</button>
+                        <button onClick={setLast7Days} className="bg-backgroundButton py-1 px-3 rounded">Últimos 7 dias</button>
+                        <button onClick={setLast30Days} className="bg-backgroundButton py-1 px-3 rounded">Últimos 30 dias</button>
+                        <button onClick={setLast6Months} className="bg-backgroundButton py-1 px-3 rounded">Últimos 6 meses</button>
+                        <button onClick={setCurrentWeek} className="bg-backgroundButton py-1 px-3 rounded">Semana atual</button>
+                        <button onClick={setCurrentMonth} className="bg-backgroundButton py-1 px-3 rounded">Mês atual</button>
                     </div>
 
                     <div className="flex flex-col md:flex-row gap-4 items-center">

@@ -11,13 +11,13 @@ interface SearchInputProps {
 const SearchInput: React.FC<SearchInputProps> = ({ value, onChange, onReset, active_buttons_searchInput_notification, active_buttons_searchInput_comments }) => {
 
     const filterValuesNotification = [
-        { label: "Usuário", value: "user" },
-        { label: "Formulário de Contato", value: "contact_form" },
-        { label: "Postagem", value: "post" },
-        { label: "Newsletter", value: "newsletter" },
-        { label: "Exportar Dados", value: "export_data" },
-        { label: "Comentário", value: "comment" },
-        { label: "Categoria", value: "category" }
+        { label: "Usuário", value: "USER" },
+        { label: "Formulário de Contato", value: "CONTACT_FORM" },
+        { label: "Postagem", value: "PRODUCT" },
+        { label: "Newsletter", value: "NEWSLETTER" },
+        { label: "Exportar Dados", value: "REPORT" },
+        { label: "Comentário", value: "CONTACT_ORDER" },
+        { label: "Categoria", value: "CATEGORY" }
     ];
 
     const filterValuesComment = [

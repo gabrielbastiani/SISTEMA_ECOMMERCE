@@ -32,6 +32,7 @@ const publicPaths = [
 // Configuração de permissões por role
 const rolePermissions: Record<UserRole, string[]> = {
     SUPER_ADMIN: [
+        '/central_notifications',
         '/user/add_user',
         '/user/all_users',
         '/configurations/seo_pages',
@@ -43,6 +44,7 @@ const rolePermissions: Record<UserRole, string[]> = {
         '/'
     ],
     ADMIN: [
+        'central_notifications',
         '/user/add_user',
         '/user/all_users',
         '/configurations/seo_pages',
@@ -54,6 +56,7 @@ const rolePermissions: Record<UserRole, string[]> = {
         '/',
     ],
     EMPLOYEE: [
+        'central_notifications',
         '/unauthorized',
         '/user/profile',
         '/',

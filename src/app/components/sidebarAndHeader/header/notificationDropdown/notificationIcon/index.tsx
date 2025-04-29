@@ -14,21 +14,21 @@ import {
 
 export const NotificationIcon = ({ type }: { type: string }) => {
     switch (type) {
-        case "contact_form":
+        case "CONTACT_FORM":
             return <MdConnectWithoutContact size={30} color="black" />;
-        case "user":
+        case "USER":
             return <FaUser size={30} color="black" />;
-        case "post":
+        case "PRODUCT":
             return <MdPostAdd size={30} color="black" />;
-        case "newsletter":
+        case "NEWSLETTER":
             return <FaRegNewspaper size={30} color="black" />;
-        case "export_data":
+        case "REPORT":
             return <FaFileExport size={30} color="black" />;
-        case "comment":
+        case "MARKETING":
             return <FaRegCommentDots size={30} color="black" />;
-        case "category":
+        case "CATEGORY":
             return <MdCategory size={30} color="black" />;
-        case "tag":
+        case "ORDER":
             return <FaTags size={30} color="black" />;
         default:
             return <MdNotifications size={30} color="black" />;

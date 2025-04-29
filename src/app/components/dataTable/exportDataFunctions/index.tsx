@@ -68,7 +68,7 @@ const ExportDataFunctions: React.FC<ExportDataProps<any>> = ({ data, customNames
     
         try {
             const response = await apiClient.post('/export_data', {
-                userEcommerce_id: user?.id, // Campo corrigido
+                userEcommerce_id: user?.id,
                 tableName: table_data,
                 columns: columnsKeys,
                 format: "xlsx",

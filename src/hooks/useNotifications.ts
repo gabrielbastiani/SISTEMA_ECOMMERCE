@@ -37,7 +37,7 @@ export function useNotifications(userEcommerce_id?: string) {
 
     const markAsRead = async (id: string) => {
         try {
-            await apiClient.put(`/notifications/mark-read?notificationUser_id=${id}`);
+            await apiClient.put(`/user/notifications/userEcommerce/mark-read?notificationUserEcommerce_id=${id}`);
             setNotifications(prev =>
                 prev.map(notification =>
                     notification.id === id ? { ...notification, read: true } : notification
@@ -53,7 +53,7 @@ export function useNotifications(userEcommerce_id?: string) {
         try {
             if (!userEcommerce_id) return;
 
-            await apiClient.put(`/notifications/mark-all-read?userEcommerce_id=${userEcommerce_id}`);
+            await apiClient.put(`/user/notifications/userEcommerce/mark-all-read?userEcommerce_id=${userEcommerce_id}`);
             setNotifications(prev =>
                 prev.map(notification => ({ ...notification, read: true }))
             );
