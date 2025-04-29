@@ -65,31 +65,36 @@ const ExportDataFunctions: React.FC<ExportDataProps<any>> = ({ data, customNames
             acc[column.key] = selectedColumns[column.key].customName || column.key;
             return acc;
         }, {} as { [key: string]: string });
-
+    
         try {
             const response = await apiClient.post('/export_data', {
-                userEcommerce_id: user?.id,
+                userEcommerce_id: user?.id, // Campo corrigido
                 tableName: table_data,
                 columns: columnsKeys,
                 format: "xlsx",
                 customColumnNames,
-            }, { responseType: 'blob' });
-
+            }, { 
+                responseType: 'blob' 
+            });
+    
+            const filename = response.headers['content-disposition']
+                ?.split('filename=')[1]
+                || `${name_file_export}.xlsx`;
+    
             const url = window.URL.createObjectURL(new Blob([response.data]));
-
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${name_file_export}.xlsx`;
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-
+    
             toast.success("Dados exportados com sucesso");
             handleCloseModalExportData();
-
+    
         } catch (error) {
-            console.error(error);
-            toast.error("Erro ao exportar os dados");
+            console.error('Erro detalhado:', error);
+            toast.error("Erro ao exportar dados. Verifique os parâmetros.");
         }
     };
 
