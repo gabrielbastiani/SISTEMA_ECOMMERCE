@@ -71,8 +71,7 @@ export function SidebarAndHeader({ children }: Content) {
                 title: 'Usuários',
                 name: 'users',
                 items: [
-                    { title: 'Usuários CMS', path: '/user/all_users' },
-                    { title: 'Usuários Ecommerce', path: '/user/users_blog' },
+                    { title: 'Usuários E-commerce', path: '/user/all_users' },
                     { title: 'Adicionar Novo Usuário', path: '/user/add_user' },
                     { title: 'Editar perfil', path: '/user/profile' }
                 ]
@@ -141,8 +140,7 @@ export function SidebarAndHeader({ children }: Content) {
                 title: 'Usuários',
                 name: 'users',
                 items: [
-                    { title: 'Usuários CMS', path: '/user/all_users' },
-                    { title: 'Usuários Ecommerce', path: '/user/users_blog' },
+                    { title: 'Usuários E-commerce', path: '/user/all_users' },
                     { title: 'Adicionar Novo Usuário', path: '/user/add_user' },
                     { title: 'Editar perfil', path: '/user/profile' }
                 ]
