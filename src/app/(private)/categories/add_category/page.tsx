@@ -309,7 +309,7 @@ export default function ManageCategoriesMobile() {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full px-6 py-3 bg-backgroundButton text-[#FFFFFF] rounded hover:bg-hoverButtonBackground transition duration-300"
+                                className="w-full px-6 py-3 bg-green-500 text-[#FFFFFF] rounded hover:bg-green-600 transition duration-300"
                             >
                                 {loading ? "Cadastrando..." : "Cadastrar Categoria"}
                             </button>
