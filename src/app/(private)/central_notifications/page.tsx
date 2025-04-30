@@ -93,11 +93,11 @@ export default function Central_notifications() {
 
                 <TitlePage title="NOTIFICAÇÕES" />
 
-                <h2 className="mb-6">Você poderá visualizar todas as Notificações realizadas para o seu blog</h2>
+                <h2 className="mb-6 text-foreground">Você poderá visualizar todas as notificações realizadas</h2>
 
                 <button
                     onClick={markAllAsRead}
-                    className="mb-4 px-6 py-3 bg-backgroundButton text-[#FFFFFF] rounded-md hover:bg-hoverButtonBackground"
+                    className="mb-4 px-6 py-3 bg-red-500 text-[#FFFFFF] rounded-md"
                 >
                     Marcar todas como lidas
                 </button>
@@ -111,14 +111,14 @@ export default function Central_notifications() {
                                 label: "Tipo",
                                 render: (item) => (
                                     <span>
-                                        {item.type === "USER" ? <FaUser size={30} color="white" /> :
-                                            item.type === "CONTACT_FORM" ? <MdConnectWithoutContact size={30} color="white" /> :
-                                                item.type === "PRODUCT" ? <MdPostAdd size={30} color="white" /> :
-                                                    item.type === "NEWSLETTER" ? <FaRegNewspaper size={30} color="white" /> :
-                                                        item.type === "REPORT" ? <FaFileExport size={30} color="white" /> :
-                                                            item.type === "ORDER" ? <FaRegCommentDots size={30} color="white" /> :
-                                                                item.type === "MARKETING" ? <FaTags size={30} color="white" /> :
-                                                                    item.type === "CATEGORY" ? <MdCategory size={30} color="white" /> : null}
+                                        {item.type === "USER" ? <FaUser size={30} /> :
+                                            item.type === "CONTACT_FORM" ? <MdConnectWithoutContact size={30} /> :
+                                                item.type === "PRODUCT" ? <MdPostAdd size={30} /> :
+                                                    item.type === "NEWSLETTER" ? <FaRegNewspaper size={30} /> :
+                                                        item.type === "REPORT" ? <FaFileExport size={30} /> :
+                                                            item.type === "ORDER" ? <FaRegCommentDots size={30} /> :
+                                                                item.type === "MARKETING" ? <FaTags size={30} /> :
+                                                                    item.type === "CATEGORY" ? <MdCategory size={30} /> : null}
                                     </span>
                                 ),
                             },

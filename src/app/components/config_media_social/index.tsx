@@ -77,7 +77,7 @@ export default function Config_media_social() {
 
     return (
         <>
-            <h1 className="text-[#FFFFFF] text-3xl mb-4">Redes sociais do blog</h1>
+            <h1 className="text-[#FFFFFF] text-3xl mb-4">Redes sociais da loja</h1>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                     <label className="relative w-[80px] h-[80px] rounded-lg cursor-pointer flex justify-center bg-gray-200 overflow-hidden">

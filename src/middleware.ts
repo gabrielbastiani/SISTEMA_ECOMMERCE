@@ -32,6 +32,12 @@ const publicPaths = [
 // Configuração de permissões por role
 const rolePermissions: Record<UserRole, string[]> = {
     SUPER_ADMIN: [
+        '/marketing_publication/all_marketing_publication',
+        '/marketing_publication/add_marketing_publication',
+        '/marketing_publication/config_interval_banner',
+        '/contacts_form/all_contacts/[contact_id]',
+        '/contacts_form/all_contacts',
+        '/newsletter',
         '/central_notifications',
         '/user/add_user',
         '/user/all_users',
@@ -44,7 +50,13 @@ const rolePermissions: Record<UserRole, string[]> = {
         '/'
     ],
     ADMIN: [
-        'central_notifications',
+        '/marketing_publication/all_marketing_publication',
+        '/marketing_publication/add_marketing_publication',
+        '/marketing_publication/config_interval_banner',
+        '/contacts_form/all_contacts/[contact_id]',
+        '/contacts_form/all_contacts',
+        '/newsletter',
+        '/central_notifications',
         '/user/add_user',
         '/user/all_users',
         '/configurations/seo_pages',
