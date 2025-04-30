@@ -125,8 +125,8 @@ export default function All_marketing_publication() {
                         timeFilterButton={true}
                         active_buttons_searchInput_comments={false}
                         checkbox_delete={true}
-                        generate_excel_delete="/marketing_publication/download_excel_delete_marketing?user_id"
-                        delete_bulk_data="/marketing_publication/bulk_delete_publications?user_id"
+                        generate_excel_delete="/marketing_publication/download_excel_delete_marketing?userEcommerce_id"
+                        delete_bulk_data="/marketing_publication/bulk_delete_publications?userEcommerce_id"
                         modal_delete_bulk={true}
                         active_buttons_searchInput_notification={false}
                         active_export_data={true}
