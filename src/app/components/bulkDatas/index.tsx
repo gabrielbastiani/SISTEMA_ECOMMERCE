@@ -120,7 +120,7 @@ export function BulkDatas({ link_donwload, name_file, link_register_data }: Bulk
                 <button
                     type="submit"
                     disabled={isLoading}
-                    className={`px-6 py-3 bg-backgroundButton text-[#FFFFFF] rounded-md hover:bg-hoverButtonBackground transition duration-300 ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                    className={`px-6 py-3 bg-orange-500 text-[#FFFFFF] rounded-md hover:bg-orange-600 transition duration-300 ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                     {isLoading ? "Carregando..." : "Carregar Arquivo"}
                 </button>
