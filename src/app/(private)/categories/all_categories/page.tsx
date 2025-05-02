@@ -184,9 +184,9 @@ export default function All_categories() {
                         timeFilterButton={true}
                         active_buttons_searchInput_comments={false}
                         checkbox_delete={true}
-                        generate_excel_delete="/category/download_excel_delete_category?userEcommerce_id"
-                        delete_bulk_data="/category/bulk_delete_category?userEcommerce_id"
-                        modal_delete_bulk={true}
+                        generate_excel_delete=""
+                        delete_bulk_data=""
+                        modal_delete_bulk={false}
                         active_buttons_searchInput_notification={false}
                         active_export_data={true}
                         name_file_export="Categorias"
@@ -270,7 +270,7 @@ export default function All_categories() {
                                                         <div className="flex justify-around">
                                                             <button
                                                                 onClick={handleUpdateImage}
-                                                                className="bg-backgroundButton text-[#FFFFFF] py-2 px-4 rounded-lg hover:bg-hoverButtonBackground transition-colors"
+                                                                className="bg-green-500 text-[#FFFFFF] py-2 px-4 rounded-lg hover:bg-green-600 transition-colors"
                                                             >
                                                                 Atualizar Imagem
                                                             </button>

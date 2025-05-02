@@ -335,7 +335,7 @@ export default function All_marketing_publication() {
                                 label: 'Editar',
                                 render: (item) => (
                                     <button
-                                        className='m-5 p-1 bg-red-600 text-[#FFFFFF] text-xs rounded hover:bg-hoverButtonBackground transition duration-300'
+                                        className='m-5 p-1 bg-red-500 text-[#FFFFFF] text-xs rounded hover:bg-red-600 transition duration-300'
                                         onClick={() => router.push(`/marketing_publication/all_marketing_publication/${item.id}`)}
                                     >
                                         Editar
