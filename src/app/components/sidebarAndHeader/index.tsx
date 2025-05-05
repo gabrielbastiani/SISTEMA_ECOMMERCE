@@ -86,20 +86,11 @@ export function SidebarAndHeader({ children }: Content) {
                 ]
             },
             {
-                title: 'Tags',
-                name: 'tags',
+                title: 'Produtos',
+                name: 'products',
                 items: [
-                    { title: 'Todas as tags', path: '/tags/all_tags' },
-                    { title: 'Adicionar nova tag', path: '/tags/add_tag' }
-                ]
-            },
-            {
-                title: 'Artigos',
-                name: 'posts',
-                items: [
-                    { title: 'Todos os posts', path: '/posts/all_posts' },
-                    { title: 'Adicionar novo post', path: '/posts/add_post' },
-                    { title: 'Comentários', path: '/posts/comments' }
+                    { title: 'Todos os produtos', path: '/products/all_products' },
+                    { title: 'Adicionar novo produto', path: '/products/add_product' },
                 ]
             },
             {
@@ -154,6 +145,14 @@ export function SidebarAndHeader({ children }: Content) {
                 ]
             },
             {
+                title: 'Produtos',
+                name: 'products',
+                items: [
+                    { title: 'Todos os produtos', path: '/products/all_products' },
+                    { title: 'Adicionar novo produto', path: '/products/add_product' },
+                ]
+            },
+            {
                 title: 'Newsletter',
                 name: 'newsletter',
                 items: [
@@ -167,14 +166,6 @@ export function SidebarAndHeader({ children }: Content) {
                     { title: 'Todas as categorias', path: '/categories/all_categories' },
                     { title: 'Adicionar nova categoria', path: '/categories/add_category' },
                     { title: 'Adicionar nova categoria', path: '/categories/add_category_mobile' }
-                ]
-            },
-            {
-                title: 'Tags',
-                name: 'tags',
-                items: [
-                    { title: 'Todas as tags', path: '/tags/all_tags' },
-                    { title: 'Adicionar nova tag', path: '/tags/add_tag' }
                 ]
             },
             {
