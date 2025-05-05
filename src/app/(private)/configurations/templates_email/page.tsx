@@ -2,11 +2,11 @@
 
 import { Suspense } from 'react';
 import { useState } from "react";
-import DataTable from '@/app/components/dataTable'; 
-import { Section } from '@/app/components/section'; 
-import { SidebarAndHeader } from '@/app/components/sidebarAndHeader'; 
-import { TitlePage } from '@/app/components/section/titlePage'; 
-import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce'; 
+import DataTable from '@/app/components/dataTable';
+import { Section } from '@/app/components/section';
+import { SidebarAndHeader } from '@/app/components/sidebarAndHeader';
+import { TitlePage } from '@/app/components/section/titlePage';
+import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce';
 import moment from "moment";
 import { useRouter } from 'next/navigation';
 
@@ -69,6 +69,14 @@ export default function Templates_email() {
                 <TitlePage title="TEMPLATES DE EMAIL" />
 
                 <Suspense fallback={<div>Carregando...</div>}>
+
+                    <button
+                        className="bg-green-500 text-[#FFFFFF] p-5 rounded-md mb-7"
+                        onClick={() => router.push(`/configurations/templates_email/add_templates_email`)}
+                    >
+                        Adicionar template de email
+                    </button>
+
                     <DataTable
                         timeFilterButton={false}
                         checkbox_delete={false}

@@ -55,6 +55,9 @@ const rolePermissions: Record<UserRole, string[]> = {
         '/'
     ],
     ADMIN: [
+        '/configurations/templates_email/add_templates_email',
+        '/configurations/templates_email/[templates_email_id]',
+        '/configurations/templates_email',
         '/categories/all_categories',
         '/categories/add_category',
         '/marketing_publication/all_marketing_publication',
