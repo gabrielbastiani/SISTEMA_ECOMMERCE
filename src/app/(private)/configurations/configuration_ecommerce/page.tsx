@@ -14,6 +14,9 @@ import { z } from "zod";
 import Config_media_social from "@/app/components/config_media_social";
 import { Editor } from "@tinymce/tinymce-react";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const TOKEN_TINY = process.env.NEXT_PUBLIC_TINYMCE_API_KEY;
+
 const BRAZILIAN_STATES = [
     { value: "AC", label: "Acre" },
     { value: "AL", label: "Alagoas" },
@@ -83,9 +86,6 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function Configuration_ecommerce() {
-
-    const API_URL = process.env.NEXT_PUBLIC_API_URL;
-    const TOKEN_TINY = process.env.NEXT_PUBLIC_TINYMCE_API_KEY;
 
     const editorRef = useRef<any>(null);
     const [id, setId] = useState<string>();
