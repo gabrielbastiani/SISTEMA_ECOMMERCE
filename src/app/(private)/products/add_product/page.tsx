@@ -88,21 +88,34 @@ interface ProductFormData {
   }>;
 }
 
+interface RelationFormData {
+  parentId: string;
+  childId: string;
+  relationType: 'VARIANT' | 'SIMPLE';
+  sortOrder?: number;
+  isRequired: boolean;
+}
+
 export default function Add_product() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<ProductFormData>(initialFormData);
+  const [relations, setRelations] = useState<RelationFormData[]>([]);
+  const [allProducts, setAllProducts] = useState<{ id: string; name: string }[]>([]);
 
-  // Carregar categorias
   useEffect(() => {
-    const loadCategories = async () => {
-      const apiClient = setupAPIClientEcommerce();
-      const res = await apiClient.get('/category/cms');
-      setCategories(res.data.all_categories_disponivel);
-    }
-    loadCategories()
-  }, [])
+    const loadAux = async () => {
+      const api = setupAPIClientEcommerce();
+      const [cats, prods] = await Promise.all([
+        api.get('/category/cms'),
+        api.get('/get/products_allow')
+      ]);
+      setCategories(cats.data.all_categories_disponivel);
+      setAllProducts(prods.data.allow_products);
+    };
+    loadAux();
+  }, []);
 
   // Upload de imagens principal
   const { getRootProps: getMainImagesRootProps, getInputProps: getMainImagesInputProps } = useDropzone({
@@ -110,7 +123,20 @@ export default function Add_product() {
     onDrop: (acceptedFiles) => {
       setFormData(prev => ({ ...prev, images: [...prev.images, ...acceptedFiles] }))
     }
-  })
+  });
+
+  const addRelation = () => {
+    setRelations(prev => [
+      ...prev,
+      {
+        parentId: "",
+        childId: "",
+        relationType: "VARIANT",
+        sortOrder: 0,
+        isRequired: false
+      }
+    ]);
+  };
 
   // Submit do formulário
   const handleSubmit = async (e: React.FormEvent) => {
@@ -162,6 +188,19 @@ export default function Add_product() {
         }))
       ));
 
+      formPayload.append(
+        'relations',
+        JSON.stringify(
+          relations.map(r => ({
+            parentId: r.parentId,
+            childId: r.childId,
+            relationType: r.relationType,
+            sortOrder: r.sortOrder ? Number(r.sortOrder) : undefined,
+            isRequired: r.isRequired,
+          }))
+        )
+      );
+
       // vídeos globais
       formData.videos.forEach(v => formPayload.append('videoUrls', v.url));
 
@@ -175,12 +214,12 @@ export default function Add_product() {
         variant.images.forEach(file => {
           const renamed = new File(
             [file],
-            `${index}___${file.name}`, 
+            `${index}___${file.name}`,
             { type: file.type }
           );
           formPayload.append('variantImageFiles', renamed);
         });
-      });      
+      });
 
       // 5) Chama o endpoint correto
       await apiClient.post('/product/create', formPayload, {
@@ -188,7 +227,7 @@ export default function Add_product() {
       });
 
       toast.success('Produto criado com sucesso!');
-      
+
       setFormData(initialFormData);
 
     } catch (err) {
@@ -551,6 +590,98 @@ export default function Add_product() {
                 </AccordionItem>
               ))}
             </Accordion>
+          </div>
+
+          {/* --- Relações entre Produtos --- */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border-2 border-black text-black">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Relações de Produto</h3>
+              <Button onClick={addRelation}
+                startContent={<PlusIcon />} size="sm" className='bg-green-600 text-white'>
+                Adicionar Relação
+              </Button>
+            </div>
+
+            {relations.map((rel, idx) => (
+              <div key={idx} className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-2 items-end">
+                <Select
+                  className='bg-white text-black'
+                  placeholder="Produto Pai"
+                  value={rel.parentId}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                    const value = e.target.value;
+                    const arr = [...relations];
+                    arr[idx].parentId = value;
+                    setRelations(arr);
+                  }}
+                >
+                  {allProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </Select>
+
+                <Select
+                  className='bg-white text-black'
+                  placeholder="Produto Filho"
+                  value={rel.childId}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                    const value = e.target.value;
+                    const arr = [...relations];
+                    arr[idx].childId = value;
+                    setRelations(arr);
+                  }}
+                >
+                  {allProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </Select>
+
+                <Select
+                  className='bg-white text-black'
+                  placeholder="Tipo de Relação"
+                  value={rel.relationType}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                    const value = e.target.value as "VARIANT" | "SIMPLE";
+                    const arr = [...relations];
+                    arr[idx].relationType = value;
+                    setRelations(arr);
+                  }}
+                >
+                  <SelectItem value="VARIANT">VARIANT</SelectItem>
+                  <SelectItem value="SIMPLE">SIMPLE</SelectItem>
+                </Select>
+
+                <Input
+                  type="number"
+                  value={rel.sortOrder?.toString() ?? ''}
+                  onChange={e => {
+                    const value = parseInt(e.target.value, 10) || 0;
+                    const arr = [...relations];
+                    arr[idx].sortOrder = value;
+                    setRelations(arr);
+                  }}
+                />
+
+                <label className="flex items-center space-x-1">
+                  <input
+                    className='text-black'
+                    type="checkbox"
+                    checked={rel.isRequired}
+                    onChange={e => {
+                      const arr = [...relations];
+                      arr[idx].isRequired = e.target.checked;
+                      setRelations(arr);
+                    }}
+                  />
+                  <span>Obrigatório</span>
+                </label>
+
+                <Button
+                  size="sm"
+                  color="danger"
+                  isIconOnly
+                  onClick={() => setRelations(r => r.filter((_, i) => i !== idx))}
+                >
+                  <TrashIcon className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
           </div>
 
           {/* Botão de Submit */}
