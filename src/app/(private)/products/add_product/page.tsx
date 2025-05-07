@@ -14,8 +14,51 @@ import {
 } from '@heroicons/react/24/outline'
 import { Category } from 'Types/types';
 import { Editor } from "@tinymce/tinymce-react";
+import { toast } from 'react-toastify';
 
 const TOKEN_TINY = process.env.NEXT_PUBLIC_TINYMCE_API_KEY;
+
+const initialFormData: ProductFormData = {
+  name: '',
+  slug: '',
+  price_per: '',
+  price_of: '',
+  metaTitle: '',
+  metaDescription: '',
+  keywords: '',
+  brand: '',
+  ean: '',
+  skuMaster: '',
+  weight: '',
+  length: '',
+  width: '',
+  height: '',
+  status: 'DISPONIVEL',
+  categories: [],
+  description: '',
+  images: [],
+  videos: [],
+  variants: [],
+  productDescriptions: [],
+};
+
+interface VideoInput {
+  url: string;
+  thumbnail?: string;
+}
+interface VariantFormData {
+  sku: string;
+  price_per: string;
+  price_of?: string;
+  ean?: string;
+  stock?: string;
+  allowBackorders?: boolean;
+  sortOrder?: string;
+  mainPromotionId?: string;
+  variantAttributes: Array<{ key: string; value: string }>;
+  images: File[];
+  videos: VideoInput[];
+}
 
 interface ProductFormData {
   name: string
@@ -34,42 +77,22 @@ interface ProductFormData {
   height?: string
   status?: 'DISPONIVEL' | 'INDISPONIVEL'
   categories: string[]
-  description: string[]
-  images: File[]
-  variants: Array<{
-    sku: string
-    price_of?: string
-    price_per: string
-    stock?: string
-    allowBackorders?: boolean
-    sortOrder?: string
-    ean?: string
-    mainPromotionId?: string
-    variantAttributes: Array<{
-      key: string
-      value: string
-    }>
-    images: File[]
-  }>
+  description: string;
+  images: File[];
+  videos: VideoInput[];
+  variants: VariantFormData[];
   productDescriptions: Array<{
-    title: string
-    description: string
-    status?: 'DISPONIVEL' | 'INDISPONIVEL'
-  }>
+    title: string;
+    description: string;
+    status?: 'DISPONIVEL' | 'INDISPONIVEL';
+  }>;
 }
 
 export default function Add_product() {
-  const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState<ProductFormData>({
-    name: '',
-    price_per: '',
-    categories: [],
-    images: [],
-    variants: [],
-    productDescriptions: [],
-    description: []
-  })
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState<ProductFormData>(initialFormData);
 
   // Carregar categorias
   useEffect(() => {
@@ -91,87 +114,111 @@ export default function Add_product() {
 
   // Submit do formulário
   const handleSubmit = async (e: React.FormEvent) => {
-    const apiClient = setupAPIClientEcommerce();
-    e.preventDefault()
-    setLoading(true)
-  
+    e.preventDefault();
+    setLoading(true);
+
     try {
+      const apiClient = setupAPIClientEcommerce();
       const formPayload = new FormData();
-  
-      // 1. Construir o objeto de dados corretamente
-      const productData = {
-        name: formData.name,
-        description: formData.description,
-        slug: formData.slug,
-        price_per: Number(formData.price_per),
-        price_of: formData.price_of ? Number(formData.price_of) : undefined,
-        metaTitle: formData.metaTitle,
-        metaDescription: formData.metaDescription,
-        keywords: formData.keywords,
-        brand: formData.brand,
-        ean: formData.ean,
-        skuMaster: formData.skuMaster,
-        weight: formData.weight ? Number(formData.weight) : undefined,
-        length: formData.length ? Number(formData.length) : undefined,
-        width: formData.width ? Number(formData.width) : undefined,
-        height: formData.height ? Number(formData.height) : undefined,
-        status: formData.status || 'DISPONIVEL',
-        categories: formData.categories,
-        productDescriptions: formData.productDescriptions,
-        productRelations: [],
-        videos: []
-      };
-  
-      // 2. Adicionar dados principais como JSON
-      formPayload.append('data', JSON.stringify(productData));
-  
-      // 3. Adicionar imagens principais
-      formData.images.forEach((file) => {
-        formPayload.append('images', file);
-      });
-  
-      // 4. Adicionar variantes corretamente
-      formData.variants.forEach((variant, index) => {
-        const variantData = {
-          ...variant,
-          price_per: Number(variant.price_per),
-          price_of: variant.price_of ? Number(variant.price_of) : undefined,
-          stock: variant.stock ? Number(variant.stock) : 0,
-          sortOrder: variant.sortOrder ? Number(variant.sortOrder) : 0
-        };
-        
-        formPayload.append(`variants[${index}]`, JSON.stringify(variantData));
-        
-        // Adicionar imagens da variante
-        variant.images.forEach((file) => {
-          formPayload.append(`variants[${index}].images`, file);
-        });
+
+      // 1) Campos simples
+      formPayload.append('name', formData.name);
+      formPayload.append('slug', formData.slug || '');
+      formPayload.append('description', formData.description);
+      formPayload.append('price_per', formData.price_per);
+      formPayload.append('price_of', formData.price_of || '');
+      formPayload.append('metaTitle', formData.metaTitle || '');
+      formPayload.append('metaDescription', formData.metaDescription || '');
+      formPayload.append('keywords', JSON.stringify(formData.keywords?.split(',').map(k => k.trim()) || []));
+      formPayload.append('brand', formData.brand || '');
+      formPayload.append('ean', formData.ean || '');
+      formPayload.append('skuMaster', formData.skuMaster || '');
+      formPayload.append('weight', formData.weight || '');
+      formPayload.append('length', formData.length || '');
+      formPayload.append('width', formData.width || '');
+      formPayload.append('height', formData.height || '');
+      formPayload.append('status', formData.status || 'DISPONIVEL');
+
+      // 2) Arrays que o backend vai fazer JSON.parse(...)
+      formPayload.append('categoryIds', JSON.stringify(formData.categories));
+      formPayload.append('descriptionBlocks', JSON.stringify(
+        formData.productDescriptions.map(d => ({
+          title: d.title,
+          description: d.description
+        }))
+      ));
+      formPayload.append('variants', JSON.stringify(
+        formData.variants.map(v => ({
+          sku: v.sku,
+          price_per: Number(v.price_per),
+          price_of: v.price_of ? Number(v.price_of) : undefined,
+          ean: v.ean || undefined,
+          stock: v.stock ? Number(v.stock) : 0,
+          allowBackorders: v.allowBackorders || false,
+          sortOrder: v.sortOrder ? Number(v.sortOrder) : 0,
+          mainPromotionId: v.mainPromotionId || undefined,
+          attributes: v.variantAttributes,  // <— envia para o service criar VariantAttribute
+          videoUrls: v.videos.map(x => x.url),  // <— URLs para ProductVideo
+        }))
+      ));
+
+      // vídeos globais
+      formData.videos.forEach(v => formPayload.append('videoUrls', v.url));
+
+      // 3) Arquivos de imagem do produto
+      formData.images.forEach(file => {
+        formPayload.append('imageFiles', file);
       });
 
-      console.log(productData)
-  
-      await apiClient.post('/create/product', formPayload);
-  
-      // ... resto do código
-    } catch (error) {
-      console.error('Erro:', error)
-      // Adicionar feedback para o usuário
-      alert('Erro ao cadastrar produto! Verifique os dados e tente novamente.');
+      // 4) Arquivos de imagem de variantes
+      formData.variants.forEach((variant, index) => {
+        variant.images.forEach(file => {
+          const renamed = new File(
+            [file],
+            `${index}___${file.name}`, 
+            { type: file.type }
+          );
+          formPayload.append('variantImageFiles', renamed);
+        });
+      });      
+
+      // 5) Chama o endpoint correto
+      await apiClient.post('/product/create', formPayload, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      toast.success('Produto criado com sucesso!');
+      
+      setFormData(initialFormData);
+
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao cadastrar produto! Verifique os dados e tente novamente.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // Manipuladores de campos
   const addVariant = () => {
     setFormData(prev => ({
       ...prev,
-      variants: [...prev.variants, {
-        sku: '',
-        price_per: '',
-        variantAttributes: [],
-        images: []
-      }]
+      variants: [
+        ...prev.variants,
+        {
+          sku: '',
+          price_per: '',
+          price_of: '',
+          ean: '',
+          stock: '',
+          allowBackorders: false,
+          sortOrder: '',
+          mainPromotionId: '',
+          variantAttributes: [],
+          images: [],
+          videos: [],
+        }
+      ]
     }))
   }
 
@@ -293,7 +340,7 @@ export default function Add_product() {
           <div className="bg-white p-6 rounded-lg shadow-sm border-2 border-black text-black">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Descrições Detalhadas</h3>
-              <Button onClick={addDescription} startContent={<PlusIcon />} size="sm">
+              <Button onClick={addDescription} startContent={<PlusIcon />} size="sm" className='bg-green-600 text-white'>
                 Adicionar Descrição
               </Button>
             </div>
@@ -329,9 +376,9 @@ export default function Add_product() {
                   apiKey={TOKEN_TINY}
                   value={desc.description}
                   onEditorChange={(content) => {
-                    const newDescriptions = [...formData.productDescriptions]
-                    newDescriptions[index].description = content
-                    setFormData({ ...formData, productDescriptions: newDescriptions })
+                    const descs = [...formData.productDescriptions];
+                    descs[index].description = content;
+                    setFormData({ ...formData, productDescriptions: descs });
                   }}
                   init={{
                     height: 300,
@@ -364,6 +411,7 @@ export default function Add_product() {
               />
 
               <Textarea
+                className='mb-7'
                 placeholder="Meta Descrição"
                 value={formData.metaDescription || ''}
                 onChange={(e) => setFormData({ ...formData, metaDescription: e.target.value })}
@@ -375,6 +423,50 @@ export default function Add_product() {
                 onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
               />
             </div>
+          </div>
+
+          {/* Seção de Vídeos */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border-black border-2 text-black">
+            <h3 className="text-lg font-semibold mb-4">Vídeos</h3>
+            {formData.videos.map((vid, i) => (
+              <div key={i} className="flex items-center space-x-4 mb-4">
+                <input
+                  type="url"
+                  placeholder="URL do vídeo (YouTube)"
+                  value={vid.url}
+                  onChange={e => {
+                    const url = e.target.value;
+                    const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
+                    const thumbnail = idMatch
+                      ? `https://img.youtube.com/vi/${idMatch[1]}/0.jpg`
+                      : undefined;
+                    const vids = [...formData.videos];
+                    vids[i] = { url, thumbnail };
+                    setFormData({ ...formData, videos: vids });
+                  }}
+                  className="border p-2 rounded flex-1"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const vids = formData.videos.filter((_, idx) => idx !== i);
+                    setFormData({ ...formData, videos: vids });
+                  }}
+                  className="text-red-500"
+                >Remover</button>
+                {vid.thumbnail && (
+                  <img src={vid.thumbnail} className="w-24 h-16 object-cover rounded" />
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => setFormData(prev => ({
+                ...prev,
+                videos: [...prev.videos, { url: '', thumbnail: '' }]
+              }))}
+              className="text-indigo-600 font-medium"
+            >Adicionar Vídeo</button>
           </div>
 
           {/* Seção de Imagens */}
@@ -438,14 +530,18 @@ export default function Add_product() {
           <div className="bg-white p-6 rounded-lg shadow-sm text-black border-black border-2">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Variantes</h3>
-              <Button onClick={addVariant} startContent={<PlusIcon />} size="sm">
+              <Button onClick={addVariant} startContent={<PlusIcon />} size="sm" className='bg-green-600 text-white'>
                 Adicionar Variante
               </Button>
             </div>
 
             <Accordion selectionMode="multiple">
               {formData.variants.map((variant, index) => (
-                <AccordionItem key={index} title={`Variante ${index + 1}`}>
+                <AccordionItem key={index} title={
+                  <span className="text-black">
+                    Variante {index + 1}
+                  </span>
+                }>
                   <VariantForm
                     variant={variant}
                     index={index}
@@ -515,6 +611,60 @@ const VariantForm = ({ variant, index, formData, setFormData }: {
           }}
           required
         />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Input placeholder="Preço Original" type="number"
+          value={variant.price_of || ''}
+          onChange={e => {
+            const v = [...formData.variants];
+            v[index].price_of = e.target.value;
+            setFormData({ ...formData, variants: v });
+          }}
+        />
+        <Input placeholder="EAN" value={variant.ean || ''}
+          onChange={e => {
+            const v = [...formData.variants];
+            v[index].ean = e.target.value;
+            setFormData({ ...formData, variants: v });
+          }}
+        />
+      </div>
+
+      {/* Vídeos da variante */}
+      <div className="mt-4">
+        <h4 className="font-medium mb-2">Vídeos da Variante</h4>
+        {variant.videos.map((vid, vi) => (
+          <div key={vi} className="flex items-center space-x-2 mb-2">
+            <input
+              type="url"
+              placeholder="URL do vídeo"
+              value={vid.url}
+              onChange={e => {
+                const url = e.target.value;
+                const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
+                const thumbnail = idMatch
+                  ? `https://img.youtube.com/vi/${idMatch[1]}/0.jpg`
+                  : undefined;
+                const vdos = [...formData.variants];
+                vdos[index].videos[vi] = { url, thumbnail };
+                setFormData({ ...formData, variants: vdos });
+              }}
+              className="border p-1 flex-1 rounded"
+            />
+            <button type="button" onClick={() => {
+              const vdos = [...formData.variants];
+              vdos[index].videos = vdos[index].videos.filter((_, idx) => idx !== vi);
+              setFormData({ ...formData, variants: vdos });
+            }} className="text-red-500">X</button>
+            {vid.thumbnail && <img src={vid.thumbnail} className="w-20 h-12 rounded" />}
+          </div>
+        ))}
+        <button type="button" onClick={() => {
+          const vdos = [...formData.variants];
+          vdos[index].videos.push({ url: '', thumbnail: '' });
+          setFormData({ ...formData, variants: vdos });
+        }} className="text-indigo-600">+ Adicionar Vídeo</button>
       </div>
 
       <div className="bg-gray-50 p-4 rounded-lg">
