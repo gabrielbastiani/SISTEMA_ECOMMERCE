@@ -6,8 +6,9 @@ import { TitlePage } from "@/app/components/section/titlePage"
 import { SidebarAndHeader } from "@/app/components/sidebarAndHeader"
 import { useState, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Accordion, AccordionItem, Button, Input, Select, SelectItem, Textarea } from '@nextui-org/react'
+import { Accordion, AccordionItem, Button, Input, Select, SelectItem, Textarea, Tabs, Tab, Tooltip, Checkbox } from '@nextui-org/react'
 import {
+  InformationCircleIcon,
   PlusIcon,
   TrashIcon,
   ArrowUpTrayIcon as UploadIcon
@@ -15,6 +16,7 @@ import {
 import { Category } from 'Types/types';
 import { Editor } from "@tinymce/tinymce-react";
 import { toast } from 'react-toastify';
+import { CollapsibleInfo } from '@/app/components/helpers_componentes/CollapsibleInfo';
 
 const TOKEN_TINY = process.env.NEXT_PUBLIC_TINYMCE_API_KEY;
 
@@ -39,7 +41,7 @@ const initialFormData: ProductFormData = {
   images: [],
   videos: [],
   variants: [],
-  productDescriptions: [],
+  productDescriptions: []
 };
 
 interface VideoInput {
@@ -89,10 +91,10 @@ interface ProductFormData {
 }
 
 interface RelationFormData {
-  parentId: string;
-  childId: string;
-  relationType: 'VARIANT' | 'SIMPLE';
-  sortOrder?: number;
+  parentId?: string;
+  childId?: string;
+  relationType: "VARIANT" | "SIMPLE";
+  sortOrder: number;
   isRequired: boolean;
 }
 
@@ -103,18 +105,22 @@ export default function Add_product() {
   const [formData, setFormData] = useState<ProductFormData>(initialFormData);
   const [relations, setRelations] = useState<RelationFormData[]>([]);
   const [allProducts, setAllProducts] = useState<{ id: string; name: string }[]>([]);
+  const [tab, setTab] = useState<'child' | 'parent'>('child');
 
   useEffect(() => {
-    const loadAux = async () => {
+    ; (async () => {
       const api = setupAPIClientEcommerce();
-      const [cats, prods] = await Promise.all([
-        api.get('/category/cms'),
-        api.get('/get/products_allow')
+      const [cats] = await Promise.all([
+        api.get("/category/cms"),
       ]);
       setCategories(cats.data.all_categories_disponivel);
-      setAllProducts(prods.data.allow_products);
-    };
-    loadAux();
+    })();
+  }, []);
+
+  useEffect(() => {
+    setupAPIClientEcommerce()
+      .get('/get/products_allow')
+      .then(r => setAllProducts(r.data.allow_products))
   }, []);
 
   // Upload de imagens principal
@@ -125,22 +131,42 @@ export default function Add_product() {
     }
   });
 
-  const addRelation = () => {
-    setRelations(prev => [
+  const updateRelation = <K extends keyof RelationFormData>(
+    idx: number,
+    field: K,
+    value: RelationFormData[K]
+  ) => {
+    const arr = [...relations];
+    arr[idx] = { ...arr[idx], [field]: value };
+    setRelations(arr);
+  };
+  const addRelation = () =>
+    setRelations((prev) => [
       ...prev,
       {
-        parentId: "",
-        childId: "",
+        parentId: undefined,
+        childId: undefined,
         relationType: "VARIANT",
         sortOrder: 0,
-        isRequired: false
-      }
+        isRequired: false,
+      },
     ]);
-  };
+
+  const update = <K extends keyof RelationFormData>(i: number, k: K, v: RelationFormData[K]) => {
+    const a = [...relations]
+    a[i] = { ...a[i], [k]: v }
+    setRelations(a)
+  }
+  const add = () => setRelations(r => [...r, { relationType: 'VARIANT', sortOrder: 0, isRequired: false }])
+  const remove = (i: number) => setRelations(r => r.filter((_, j) => j !== i))
 
   // Submit do formulário
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (relations.some((r) => !r.parentId && !r.childId)) {
+      toast.error("Em cada relação, escolha Produto Pai ou Filho.");
+      return;
+    }
     setLoading(true);
 
     try {
@@ -164,8 +190,6 @@ export default function Add_product() {
       formPayload.append('width', formData.width || '');
       formPayload.append('height', formData.height || '');
       formPayload.append('status', formData.status || 'DISPONIVEL');
-
-      // 2) Arrays que o backend vai fazer JSON.parse(...)
       formPayload.append('categoryIds', JSON.stringify(formData.categories));
       formPayload.append('descriptionBlocks', JSON.stringify(
         formData.productDescriptions.map(d => ({
@@ -188,18 +212,7 @@ export default function Add_product() {
         }))
       ));
 
-      formPayload.append(
-        'relations',
-        JSON.stringify(
-          relations.map(r => ({
-            parentId: r.parentId,
-            childId: r.childId,
-            relationType: r.relationType,
-            sortOrder: r.sortOrder ? Number(r.sortOrder) : undefined,
-            isRequired: r.isRequired,
-          }))
-        )
-      );
+      formPayload.append('relations', JSON.stringify(relations));
 
       // vídeos globais
       formData.videos.forEach(v => formPayload.append('videoUrls', v.url));
@@ -565,6 +578,8 @@ export default function Add_product() {
             </div>
           </div>
 
+          <CollapsibleInfo />
+
           {/* Seção de Variantes */}
           <div className="bg-white p-6 rounded-lg shadow-sm text-black border-black border-2">
             <div className="flex justify-between items-center mb-4">
@@ -592,96 +607,138 @@ export default function Add_product() {
             </Accordion>
           </div>
 
-          {/* --- Relações entre Produtos --- */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border-2 border-black text-black">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Relações de Produto</h3>
-              <Button onClick={addRelation}
-                startContent={<PlusIcon />} size="sm" className='bg-green-600 text-white'>
-                Adicionar Relação
-              </Button>
-            </div>
+          {/* --- Relações de Produto --- */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border">
+            <h3 className="text-lg font-semibold text-black mb-3">Variantes relacionadas com produtos</h3>
+            <Tabs
+              selectedKey={tab}
+              onSelectionChange={(v) => setTab(v as 'child' | 'parent')}
+              classNames={{
+                tab: 'text-red-500'
+              }}
+            >
+              <Tab
+                key="child"
+                title="Cadastrar COMO FILHO">
+                {/* Explicação geral */}
+                <p className="mb-4 text-sm text-gray-600">
+                  Aqui você escolhe um produto existente como “pai” e faz deste novo produto seu <strong>filho</strong>.
+                  Útil quando você quer agrupar opções variantes ou simples A ={'>'} B.
+                </p>
+              </Tab>
+              <Tab
+                key="parent"
+                title="Cadastrar COMO PAI"
+              >
+                <p className="mb-4 text-sm text-gray-600">
+                  Aqui você seleciona um ou mais produtos já cadastrados como “filhos” do produto atual.
+                  Use quando este produto novo for o principal (ex.: base) e outros forem opções derivadas.
+                </p>
+              </Tab>
+            </Tabs>
 
-            {relations.map((rel, idx) => (
-              <div key={idx} className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-2 items-end">
-                <Select
-                  className='bg-white text-black'
-                  placeholder="Produto Pai"
-                  value={rel.parentId}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                    const value = e.target.value;
-                    const arr = [...relations];
-                    arr[idx].parentId = value;
-                    setRelations(arr);
-                  }}
+            {/* Relações */}
+            {relations.map((r, i) => (
+              <div key={i} className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-3 items-end">
+                {/* Se a aba for child, bloqueia childId */}
+                <select
+                  className="border p-2 rounded bg-white text-black"
+                  disabled={tab === 'parent'}
+                  value={tab === 'child' ? r.parentId : r.childId}
+                  onChange={e => update(i, tab === 'child' ? 'parentId' : 'childId', e.target.value)}
                 >
-                  {allProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                </Select>
+                  <option value="">
+                    {tab === 'child' ? 'Selecione Produto Pai' : 'Selecione Produto Filho'}
+                  </option>
+                  {allProducts.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
 
-                <Select
-                  className='bg-white text-black'
-                  placeholder="Produto Filho"
-                  value={rel.childId}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                    const value = e.target.value;
-                    const arr = [...relations];
-                    arr[idx].childId = value;
-                    setRelations(arr);
-                  }}
-                >
-                  {allProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                </Select>
+                {/* RelationType */}
+                <div className="relative">
+                  <select
+                    className="border p-2 rounded bg-white text-black"
+                    value={r.relationType}
+                    onChange={e => update(i, 'relationType', e.target.value as any)}
+                  >
+                    <option value="VARIANT">VARIANT</option>
+                    <option value="SIMPLE">SIMPLE</option>
+                  </select>
+                  <Tooltip content={
+                    <div className="max-w-xs p-2 text-sm text-red-600 bg-white">
+                      <strong>VARIANT</strong>: Agrupa produtos como “alternativas” (ex.: Standard vs Pro).<br />
+                      <strong>SIMPLE</strong>: Agrupa cores/tamanhos sem SKU extra.
+                    </div>
+                  }>
+                    <InformationCircleIcon className="w-5 h-5 text-blue-700 absolute right-2 top-1/2 -translate-y-1/2" />
+                  </Tooltip>
+                </div>
 
-                <Select
-                  className='bg-white text-black'
-                  placeholder="Tipo de Relação"
-                  value={rel.relationType}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                    const value = e.target.value as "VARIANT" | "SIMPLE";
-                    const arr = [...relations];
-                    arr[idx].relationType = value;
-                    setRelations(arr);
-                  }}
-                >
-                  <SelectItem value="VARIANT">VARIANT</SelectItem>
-                  <SelectItem value="SIMPLE">SIMPLE</SelectItem>
-                </Select>
-
-                <Input
-                  type="number"
-                  value={rel.sortOrder?.toString() ?? ''}
-                  onChange={e => {
-                    const value = parseInt(e.target.value, 10) || 0;
-                    const arr = [...relations];
-                    arr[idx].sortOrder = value;
-                    setRelations(arr);
-                  }}
-                />
-
-                <label className="flex items-center space-x-1">
-                  <input
-                    className='text-black'
-                    type="checkbox"
-                    checked={rel.isRequired}
-                    onChange={e => {
-                      const arr = [...relations];
-                      arr[idx].isRequired = e.target.checked;
-                      setRelations(arr);
-                    }}
+                {/* Sort Order */}
+                <div className="relative">
+                  <Input
+                    className='text-black border-none focus:outline-none pr-8' // Adicione pr-8 e focus:outline-none
+                    type="number"
+                    placeholder="Ordem"
+                    value={r.sortOrder.toString()}
+                    onChange={e => update(i, 'sortOrder', Number(e.target.value))}
                   />
-                  <span>Obrigatório</span>
-                </label>
+                  <Tooltip
+                    content={
+                      <div className="max-w-xs p-2 text-sm text-red-600 bg-white">
+                        Define a ordem de exibição na página de produto
+                      </div>
+                    }
+                    placement="top-end"
+                    offset={10}
+                  >
+                    <InformationCircleIcon className="w-5 h-5 text-blue-700 absolute right-3 top-1/2 -translate-y-1/2" />
+                  </Tooltip>
+                </div>
 
+                {/* obrigatório */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    isSelected={r.isRequired}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      updateRelation(i, 'isRequired', e.target.checked)
+                    }
+                    className="text-black"
+                  />
+                  <label className='text-black'>Obrigatório</label>
+                  <Tooltip
+                    content={
+                      <div className="max-w-xs p-2 text-sm text-red-600 bg-white">
+                        Marca se a escolha desta relação é obrigatória na finalização da compra
+                      </div>
+                    }
+                  >
+                    <InformationCircleIcon className="w-5 h-5 text-blue-700" />
+                  </Tooltip>
+                </div>
+
+                {/* Remover */}
                 <Button
+                  className='text-red-500'
                   size="sm"
                   color="danger"
                   isIconOnly
-                  onClick={() => setRelations(r => r.filter((_, i) => i !== idx))}
+                  onClick={() => remove(i)}
                 >
                   <TrashIcon className="w-4 h-4" />
                 </Button>
               </div>
             ))}
+
+            <Button
+              className='text-indigo-600'
+              size="sm"
+              startContent={<PlusIcon className="w-5 h-5" />}
+              onClick={add}
+            >
+              Adicionar Relação
+            </Button>
           </div>
 
           {/* Botão de Submit */}

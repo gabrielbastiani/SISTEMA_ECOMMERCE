@@ -6,8 +6,10 @@
   :root {
     --background: 255 255 255;
     --foreground: 23 23 23;
-    --primary: 59 130 246;    /* Azul Tailwind */
-    --secondary: 139 92 246;  /* Violeta Tailwind */
+    --primary: 59 130 246;
+    /* Azul Tailwind */
+    --secondary: 139 92 246;
+    /* Violeta Tailwind */
     --font-geist-sans: 'Geist Sans', sans-serif;
     --font-geist-mono: 'Geist Mono', monospace;
   }
@@ -15,8 +17,10 @@
   .dark {
     --background: 10 10 10;
     --foreground: 237 237 237;
-    --primary: 30 58 138;     /* Azul escuro */
-    --secondary: 91 33 182;   /* Violeta escuro */
+    --primary: 30 58 138;
+    /* Azul escuro */
+    --secondary: 91 33 182;
+    /* Violeta escuro */
   }
 }
 
