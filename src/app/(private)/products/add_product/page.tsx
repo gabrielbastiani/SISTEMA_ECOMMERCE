@@ -35,6 +35,7 @@ const initialFormData: ProductFormData = {
   length: '',
   width: '',
   height: '',
+  stock: '',
   status: 'DISPONIVEL',
   categories: [],
   description: '',
@@ -56,7 +57,7 @@ interface VariantFormData {
   stock?: string;
   allowBackorders?: boolean;
   sortOrder?: string;
-  mainPromotionId?: string;
+  mainPromotion_id?: string;
   variantAttributes: Array<{ key: string; value: string }>;
   images: File[];
   videos: VideoInput[];
@@ -77,6 +78,8 @@ interface ProductFormData {
   length?: string
   width?: string
   height?: string
+  stock?: string
+  mainPromotion_id?: string;
   status?: 'DISPONIVEL' | 'INDISPONIVEL'
   categories: string[]
   description: string;
@@ -98,6 +101,8 @@ interface RelationFormData {
   isRequired: boolean;
 }
 
+type PromotionOption = { id: string; name: string };
+
 export default function Add_product() {
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -106,21 +111,25 @@ export default function Add_product() {
   const [relations, setRelations] = useState<RelationFormData[]>([]);
   const [allProducts, setAllProducts] = useState<{ id: string; name: string }[]>([]);
   const [tab, setTab] = useState<'child' | 'parent'>('child');
+  const [promotions, setPromotions] = useState<PromotionOption[]>([]);
 
   useEffect(() => {
-    ; (async () => {
-      const api = setupAPIClientEcommerce();
-      const [cats] = await Promise.all([
-        api.get("/category/cms"),
-      ]);
-      setCategories(cats.data.all_categories_disponivel);
-    })();
+    const api = setupAPIClientEcommerce();
+    api.get('/promotions')
+      .then(resp => setPromotions(resp.data))
+      .catch(err => console.error('Erro ao carregar promoções', err));
   }, []);
 
   useEffect(() => {
-    setupAPIClientEcommerce()
-      .get('/get/products_allow')
-      .then(r => setAllProducts(r.data.allow_products))
+    (async () => {
+      const api = setupAPIClientEcommerce();
+      const [cats, prods] = await Promise.all([
+        api.get('/category/cms'),
+        api.get('/get/products_allow')
+      ]);
+      setCategories(cats.data.all_categories_disponivel);
+      setAllProducts(prods.data.allow_products);
+    })();
   }, []);
 
   // Upload de imagens principal
@@ -140,17 +149,6 @@ export default function Add_product() {
     arr[idx] = { ...arr[idx], [field]: value };
     setRelations(arr);
   };
-  const addRelation = () =>
-    setRelations((prev) => [
-      ...prev,
-      {
-        parentId: undefined,
-        childId: undefined,
-        relationType: "VARIANT",
-        sortOrder: 0,
-        isRequired: false,
-      },
-    ]);
 
   const update = <K extends keyof RelationFormData>(i: number, k: K, v: RelationFormData[K]) => {
     const a = [...relations]
@@ -189,7 +187,9 @@ export default function Add_product() {
       formPayload.append('length', formData.length || '');
       formPayload.append('width', formData.width || '');
       formPayload.append('height', formData.height || '');
+      formPayload.append('stock', formData.stock || '');
       formPayload.append('status', formData.status || 'DISPONIVEL');
+      formPayload.append('mainPromotion_id', formData.mainPromotion_id || '');
       formPayload.append('categoryIds', JSON.stringify(formData.categories));
       formPayload.append('descriptionBlocks', JSON.stringify(
         formData.productDescriptions.map(d => ({
@@ -206,7 +206,7 @@ export default function Add_product() {
           stock: v.stock ? Number(v.stock) : 0,
           allowBackorders: v.allowBackorders || false,
           sortOrder: v.sortOrder ? Number(v.sortOrder) : 0,
-          mainPromotionId: v.mainPromotionId || undefined,
+          mainPromotion_id: v.mainPromotion_id || undefined,
           attributes: v.variantAttributes,  // <— envia para o service criar VariantAttribute
           videoUrls: v.videos.map(x => x.url),  // <— URLs para ProductVideo
         }))
@@ -233,6 +233,8 @@ export default function Add_product() {
           formPayload.append('variantImageFiles', renamed);
         });
       });
+
+      /* console.log(formData) */
 
       // 5) Chama o endpoint correto
       await apiClient.post('/product/create', formPayload, {
@@ -265,7 +267,7 @@ export default function Add_product() {
           stock: '',
           allowBackorders: false,
           sortOrder: '',
-          mainPromotionId: '',
+          mainPromotion_id: '',
           variantAttributes: [],
           images: [],
           videos: [],
@@ -323,6 +325,26 @@ export default function Add_product() {
                 <SelectItem className='text-black bg-white' key="DISPONIVEL" value="DISPONIVEL">Disponível</SelectItem>
                 <SelectItem className='text-black bg-white' key="INDISPONIVEL" value="INDISPONIVEL">Indisponível</SelectItem>
               </Select>
+
+              <div>
+                <label className="block mb-1 text-sm font-medium text-black">
+                  Promoção Principal (opcional)
+                </label>
+                <select
+                  className="w-full border border-gray-300 rounded p-2 bg-white text-black"
+                  value={formData.mainPromotion_id || ''}
+                  onChange={e =>
+                    setFormData({ ...formData, mainPromotion_id: e.target.value })
+                  }
+                >
+                  <option value="">— Sem promoção —</option>
+                  {promotions.map(promo => (
+                    <option key={promo.id} value={promo.id}>
+                      {promo.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <Input
                 type="number"
@@ -384,6 +406,13 @@ export default function Add_product() {
                 placeholder="Altura (cm)"
                 value={formData.height || ''}
                 onChange={(e) => setFormData({ ...formData, height: e.target.value })}
+              />
+
+              <Input
+                type="number"
+                placeholder="Estoque"
+                value={formData.stock || ''}
+                onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
               />
             </div>
           </div>
@@ -505,7 +534,9 @@ export default function Add_product() {
                     setFormData({ ...formData, videos: vids });
                   }}
                   className="text-red-500"
-                >Remover</button>
+                >
+                  Remover
+                </button>
                 {vid.thumbnail && (
                   <img src={vid.thumbnail} className="w-24 h-16 object-cover rounded" />
                 )}
@@ -601,6 +632,7 @@ export default function Add_product() {
                     index={index}
                     formData={formData}
                     setFormData={setFormData}
+                    promotions={promotions}
                   />
                 </AccordionItem>
               ))}
@@ -759,11 +791,12 @@ export default function Add_product() {
 }
 
 // Componente de Formulário para Variantes
-const VariantForm = ({ variant, index, formData, setFormData }: {
+const VariantForm = ({ variant, index, formData, setFormData, promotions }: {
   variant: ProductFormData['variants'][0]
   index: number
   formData: ProductFormData
   setFormData: React.Dispatch<React.SetStateAction<ProductFormData>>
+  promotions: PromotionOption[];
 }) => {
   const { getRootProps: getVariantImagesRootProps, getInputProps: getVariantImagesInputProps } = useDropzone({
     accept: { 'image/*': [] },
@@ -787,6 +820,23 @@ const VariantForm = ({ variant, index, formData, setFormData }: {
           }}
           required
         />
+
+        <select
+          className="border p-2 rounded bg-white text-black"
+          value={variant.mainPromotion_id || ''}
+          onChange={e => {
+            const v = [...formData.variants];
+            v[index].mainPromotion_id = e.target.value;
+            setFormData({ ...formData, variants: v });
+          }}
+        >
+          <option value="">— Sem promoção —</option>
+          {promotions.map((promo) => (
+            <option key={promo.id} value={promo.id}>
+              {promo.name}
+            </option>
+          ))}
+        </select>
 
         <Input
           type="number"
@@ -814,6 +864,13 @@ const VariantForm = ({ variant, index, formData, setFormData }: {
           onChange={e => {
             const v = [...formData.variants];
             v[index].ean = e.target.value;
+            setFormData({ ...formData, variants: v });
+          }}
+        />
+        <Input placeholder="Estoque" value={variant.stock || ''}
+          onChange={e => {
+            const v = [...formData.variants];
+            v[index].stock = e.target.value;
             setFormData({ ...formData, variants: v });
           }}
         />

@@ -94,6 +94,14 @@ export function SidebarAndHeader({ children }: Content) {
                 ]
             },
             {
+                title: 'Promoções',
+                name: 'promotions',
+                items: [
+                    { title: 'Todos as promoções', path: '' },
+                    { title: 'Adicionar nova promoção', path: '/promotions/add_promotion' },
+                ]
+            },
+            {
                 title: 'Marketing',
                 name: 'marketing_publication',
                 items: [
