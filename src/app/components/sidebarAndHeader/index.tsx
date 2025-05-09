@@ -97,7 +97,7 @@ export function SidebarAndHeader({ children }: Content) {
                 title: 'Promoções',
                 name: 'promotions',
                 items: [
-                    { title: 'Todos as promoções', path: '' },
+                    { title: 'Todos as promoções', path: '/promotions/all_promotions' },
                     { title: 'Adicionar nova promoção', path: '/promotions/add_promotion' },
                 ]
             },
@@ -161,6 +161,14 @@ export function SidebarAndHeader({ children }: Content) {
                 ]
             },
             {
+                title: 'Promoções',
+                name: 'promotions',
+                items: [
+                    { title: 'Todos as promoções', path: '/promotions/all_promotions' },
+                    { title: 'Adicionar nova promoção', path: '/promotions/add_promotion' },
+                ]
+            },
+            {
                 title: 'Newsletter',
                 name: 'newsletter',
                 items: [
@@ -174,14 +182,6 @@ export function SidebarAndHeader({ children }: Content) {
                     { title: 'Todas as categorias', path: '/categories/all_categories' },
                     { title: 'Adicionar nova categoria', path: '/categories/add_category' },
                     { title: 'Adicionar nova categoria', path: '/categories/add_category_mobile' }
-                ]
-            },
-            {
-                title: 'Artigos',
-                name: 'posts',
-                items: [
-                    { title: 'Todos os posts', path: '/posts/all_posts' },
-                    { title: 'Adicionar novo post', path: '/posts/add_post' }
                 ]
             },
             {
