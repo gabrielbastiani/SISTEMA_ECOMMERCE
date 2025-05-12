@@ -17,6 +17,7 @@ import { Category } from 'Types/types';
 import { Editor } from "@tinymce/tinymce-react";
 import { toast } from 'react-toastify';
 import { CollapsibleInfo } from '@/app/components/helpers_componentes/CollapsibleInfo';
+import { CurrencyInput } from '@/app/components/add_product/CurrencyInput';
 
 const TOKEN_TINY = process.env.NEXT_PUBLIC_TINYMCE_API_KEY;
 
@@ -125,7 +126,7 @@ export default function Add_product() {
       const api = setupAPIClientEcommerce();
       const [cats, prods] = await Promise.all([
         api.get('/category/cms'),
-        api.get('/get/products_allow')
+        api.get('/get/products')
       ]);
       setCategories(cats.data.all_categories_disponivel);
       setAllProducts(prods.data.allow_products);
@@ -298,68 +299,141 @@ export default function Add_product() {
             <h3 className="text-lg font-semibold mb-4 text-black">Informações Básicas</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-2 text-black">
-              <Input
-                placeholder="Nome do Produto"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
+              
+              <div className="flex items-center mb-1">
+                <Tooltip content={
+                  <div className="text-sm text-red-500 bg-white p-4">
+                    Escreva aqui o nome completo do seu produto principal.
+                  </div>
+                }>
+                  <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+                </Tooltip>
+                <Input
+                  placeholder="Nome do Produto"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
+              </div>
 
-              <Input
-                placeholder="Slug (opcional)"
-                value={formData.slug || ''}
-                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-              />
+              <div className="flex items-center mb-1">
+                <Tooltip content={
+                  <div className="text-sm text-red-500 bg-white p-4">
+                    Escreva aqui, o nome do produto principal novamente, <br />
+                    ou digite o nome do produto mais simplificado, esse nome,<br />
+                    aparecera na URL do navegador, EX: camiseta-de-cola-aberta.
+                  </div>
+                }>
+                  <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+                </Tooltip>
+                <Input
+                  placeholder="Slug (opcional)"
+                  value={formData.slug || ''}
+                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                />
+              </div>
 
-              <Input
-                placeholder="SKU Mestre"
-                value={formData.skuMaster || ''}
-                onChange={(e) => setFormData({ ...formData, skuMaster: e.target.value })}
-              />
+              <div className="flex items-center mb-1">
+                <Tooltip content={
+                  <div className="text-sm text-red-500 bg-white p-4">
+                    Digite aqui o codigo do seu produto.
+                  </div>
+                }>
+                  <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+                </Tooltip>
+                <Input
+                  placeholder="SKU Mestre"
+                  value={formData.skuMaster || ''}
+                  onChange={(e) => setFormData({ ...formData, skuMaster: e.target.value })}
+                />
+              </div>
 
-              <Select
-                placeholder="Status do Produto"
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-              >
-                <SelectItem className='text-black bg-white' key="DISPONIVEL" value="DISPONIVEL">Disponível</SelectItem>
-                <SelectItem className='text-black bg-white' key="INDISPONIVEL" value="INDISPONIVEL">Indisponível</SelectItem>
-              </Select>
+              <div className="flex items-center mb-1">
+                <Tooltip content={
+                  <div className="text-sm text-red-500 bg-white p-4">
+                    Seu produto vai ficar diponivel na loja ou não?
+                  </div>
+                }>
+                  <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+                </Tooltip>
+                <Select
+                  placeholder="Status do Produto"
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                >
+                  <SelectItem className='text-black bg-white' key="DISPONIVEL" value="DISPONIVEL">Disponível</SelectItem>
+                  <SelectItem className='text-black bg-white' key="INDISPONIVEL" value="INDISPONIVEL">Indisponível</SelectItem>
+                </Select>
+              </div>
 
               <div>
                 <label className="block mb-1 text-sm font-medium text-black">
                   Promoção Principal (opcional)
                 </label>
-                <select
-                  className="w-full border border-gray-300 rounded p-2 bg-white text-black"
-                  value={formData.mainPromotion_id || ''}
-                  onChange={e =>
-                    setFormData({ ...formData, mainPromotion_id: e.target.value })
-                  }
-                >
-                  <option value="">— Sem promoção —</option>
-                  {promotions.map(promo => (
-                    <option key={promo.id} value={promo.id}>
-                      {promo.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center mb-1">
+                  <Tooltip content={
+                    <div className="text-sm text-red-500 bg-white p-4">
+                      Vincule aqui, alguma promoção para esse produto.
+                    </div>
+                  }>
+                    <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+                  </Tooltip>
+                  <select
+                    className="w-full border border-gray-300 rounded p-2 bg-white text-black"
+                    value={formData.mainPromotion_id || ''}
+                    onChange={e =>
+                      setFormData({ ...formData, mainPromotion_id: e.target.value })
+                    }
+                  >
+                    <option value="">— Sem promoção —</option>
+                    {promotions.map(promo => (
+                      <option key={promo.id} value={promo.id}>
+                        {promo.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <Input
-                type="number"
-                placeholder="Preço de Venda"
-                value={formData.price_per.toString()}
-                onChange={(e) => setFormData({ ...formData, price_per: e.target.value })}
-                required
-              />
+              <div>
+                <label className="block text-sm font-medium">Preço de</label>
+                <div className="flex items-center mb-1">
+                  <Tooltip content={
+                    <div className="text-sm text-red-500 bg-white p-4">
+                      Digite aqui, um valor menor, por exemplo: R$5,00. <br />Ou o mesmo valor que vai ser inserido no campo "Preço por",<br /> campo seguinte.
+                    </div>
+                  }>
+                    <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+                  </Tooltip>
+                  <CurrencyInput
+                    value={Number(formData.price_per) || 0}
+                    onChange={num => setFormData({ ...formData, price_per: num.toString() })}
+                    placeholder="Preço de"
+                  />
+                </div>
+              </div>
 
-              <Input
-                type="number"
-                placeholder="Preço Original (opcional)"
-                value={formData.price_of || ''}
-                onChange={(e) => setFormData({ ...formData, price_of: e.target.value })}
-              />
+              <div>
+                <label className="block text-sm font-medium">Preço por</label>
+                <div className="flex items-center mb-1">
+                  <Tooltip content={
+                    <div className="text-sm text-red-500 bg-white p-4">
+                      Digite aqui, um valor maior, por exemplo: R$10,00. <br />
+                      Ou o mesmo valor que inserio no campo "Preço de",<br />
+                      campo seguinte.
+                    </div>
+                  }>
+                    <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+                  </Tooltip>
+                  <CurrencyInput
+                    value={Number(formData.price_of) || 0}
+                    onChange={num =>
+                      setFormData({ ...formData, price_of: num > 0 ? num.toString() : '' })
+                    }
+                    placeholder="Preço por"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -368,52 +442,117 @@ export default function Add_product() {
             <h3 className="text-lg font-semibold mb-4">Detalhes do Produto</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                placeholder="Marca"
-                value={formData.brand || ''}
-                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-              />
+              <div className="flex items-center mb-1">
+                <Tooltip content={
+                  <div className="text-sm text-red-500 bg-white p-4">
+                    Digite aqui, a marca desse produto.
+                  </div>
+                }>
+                  <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+                </Tooltip>
+                <Input
+                  placeholder="Marca"
+                  value={formData.brand || ''}
+                  onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                />
+              </div>
 
-              <Input
-                placeholder="EAN"
-                value={formData.ean || ''}
-                onChange={(e) => setFormData({ ...formData, ean: e.target.value })}
-              />
+              <div className="flex items-center mb-1">
+                <Tooltip content={
+                  <div className="text-sm text-red-500 bg-white p-4">
+                    Em resumo, o EAN é o “RG” do produto no varejo: um número único padronizado<br />
+                    globalmente que facilita vendas, estoque e logística.
+                  </div>
+                }>
+                  <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+                </Tooltip>
+                <Input
+                  placeholder="EAN"
+                  value={formData.ean || ''}
+                  onChange={(e) => setFormData({ ...formData, ean: e.target.value })}
+                />
+              </div>
 
-              <Input
-                type="number"
-                placeholder="Peso (kg)"
-                value={formData.weight || ''}
-                onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
-              />
+              <div className="flex items-center mb-1">
+                <Tooltip content={
+                  <div className="text-sm text-red-500 bg-white p-4">
+                    Digite aqui o peso total bruto do seu produto EX: 25,55
+                  </div>
+                }>
+                  <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+                </Tooltip>
+                <Input
+                  type="number"
+                  placeholder="Peso (kg)"
+                  value={formData.weight || ''}
+                  onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                />
+              </div>
 
-              <Input
-                type="number"
-                placeholder="Comprimento (cm)"
-                value={formData.length || ''}
-                onChange={(e) => setFormData({ ...formData, length: e.target.value })}
-              />
+              <div className="flex items-center mb-1">
+                <Tooltip content={
+                  <div className="text-sm text-red-500 bg-white p-4">
+                    Digite aqui o compromento total do seu produto EX: 45,32
+                  </div>
+                }>
+                  <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+                </Tooltip>
+                <Input
+                  type="number"
+                  placeholder="Comprimento (cm)"
+                  value={formData.length || ''}
+                  onChange={(e) => setFormData({ ...formData, length: e.target.value })}
+                />
+              </div>
 
-              <Input
-                type="number"
-                placeholder="Largura (cm)"
-                value={formData.width || ''}
-                onChange={(e) => setFormData({ ...formData, width: e.target.value })}
-              />
+              <div className="flex items-center mb-1">
+                <Tooltip content={
+                  <div className="text-sm text-red-500 bg-white p-4">
+                    Digite aqui a largura total do seu produto EX: 45,32
+                  </div>
+                }>
+                  <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+                </Tooltip>
+                <Input
+                  type="number"
+                  placeholder="Largura (cm)"
+                  value={formData.width || ''}
+                  onChange={(e) => setFormData({ ...formData, width: e.target.value })}
+                />
+              </div>
 
-              <Input
-                type="number"
-                placeholder="Altura (cm)"
-                value={formData.height || ''}
-                onChange={(e) => setFormData({ ...formData, height: e.target.value })}
-              />
+              <div className="flex items-center mb-1">
+                <Tooltip content={
+                  <div className="text-sm text-red-500 bg-white p-4">
+                    Digite aqui a altura total do seu produto EX: 45,32
+                  </div>
+                }>
+                  <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+                </Tooltip>
+                <Input
+                  type="number"
+                  placeholder="Altura (cm)"
+                  value={formData.height || ''}
+                  onChange={(e) => setFormData({ ...formData, height: e.target.value })}
+                />
+              </div>
 
-              <Input
-                type="number"
-                placeholder="Estoque"
-                value={formData.stock || ''}
-                onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-              />
+              <div className="flex items-center mb-1">
+                <Tooltip content={
+                  <div className="text-sm text-red-500 bg-white p-4">
+                    Digite aqui quantos produtos tem no estoque desse produto.
+                  </div>
+                }>
+                  <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+                </Tooltip>
+                <Input
+                  type="number"
+                  placeholder="Estoque"
+                  value={formData.stock || ''}
+                  onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                />
+              </div>
+
             </div>
           </div>
 
@@ -442,17 +581,33 @@ export default function Add_product() {
                   </Button>
                 </div>
 
-                <Input
-                  placeholder="Título"
-                  value={desc.title}
-                  onChange={(e) => {
-                    const newDescriptions = [...formData.productDescriptions]
-                    newDescriptions[index].title = e.target.value
-                    setFormData({ ...formData, productDescriptions: newDescriptions })
-                  }}
-                  className="mb-4"
-                />
+                <div className="flex items-center mb-1">
+                  <Tooltip content={
+                    <div className="text-sm text-red-500 bg-white p-4">
+                      Digite aqui o titulo dessa descrição EX: Imformações do Produto
+                    </div>
+                  }>
+                    <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+                  </Tooltip>
+                  <Input
+                    placeholder="Título"
+                    value={desc.title}
+                    onChange={(e) => {
+                      const newDescriptions = [...formData.productDescriptions]
+                      newDescriptions[index].title = e.target.value
+                      setFormData({ ...formData, productDescriptions: newDescriptions })
+                    }}
+                    className="mb-4"
+                  />
+                </div>
 
+                <Tooltip content={
+                  <div className="text-sm text-red-500 bg-white p-4">
+                    Aqui você precisa digitar uma descrição com relacionada com o titulo que acabou de digitar.
+                  </div>
+                }>
+                  <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+                </Tooltip>
                 <Editor
                   apiKey={TOKEN_TINY}
                   value={desc.description}
@@ -485,29 +640,71 @@ export default function Add_product() {
             <h3 className="text-lg font-semibold mb-4">SEO</h3>
 
             <div className="grid grid-cols-1 gap-4">
-              <Input
-                placeholder="Meta Título"
-                value={formData.metaTitle || ''}
-                onChange={(e) => setFormData({ ...formData, metaTitle: e.target.value })}
-              />
+              <div className="flex items-center mb-1">
+                <Tooltip content={
+                  <div className="text-sm text-red-500 bg-white p-4">
+                    Aqui você precisa digitar um titulo semantico para para o melhor<br />
+                    rankeamento nos motores de busca como Google por exemplo.
+                  </div>
+                }>
+                  <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+                </Tooltip>
+                <Input
+                  placeholder="Meta Título"
+                  value={formData.metaTitle || ''}
+                  onChange={(e) => setFormData({ ...formData, metaTitle: e.target.value })}
+                />
+              </div>
 
-              <Textarea
-                className='mb-7'
-                placeholder="Meta Descrição"
-                value={formData.metaDescription || ''}
-                onChange={(e) => setFormData({ ...formData, metaDescription: e.target.value })}
-              />
+              <div className="flex items-center mb-1">
+                <Tooltip content={
+                  <div className="text-sm text-red-500 bg-white p-4">
+                    Digite aqui, uma pequena descrição semantica para que apareça nas<br />
+                    buscas dos motores de busca com o Google por exemplo.
+                  </div>
+                }>
+                  <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+                </Tooltip>
+                <Textarea
+                  className='mb-7'
+                  placeholder="Meta Descrição"
+                  value={formData.metaDescription || ''}
+                  onChange={(e) => setFormData({ ...formData, metaDescription: e.target.value })}
+                />
+              </div>
 
-              <Input
-                placeholder="Palavras-chave (separadas por vírgula)"
-                value={formData.keywords || ''}
-                onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
-              />
+              <div className="flex items-center mb-1">
+                <Tooltip content={
+                  <div className="text-sm text-red-500 bg-white p-4">
+                    Palavras chaves são as principalis palavras com relação a um assunto,<br />
+                    nesse caso, insira palavras que considera importante para esse produto.<br />
+                    Digite as palavras e separe elas por virgula, EX: caixa de som, som potente e etc...
+                  </div>
+                }>
+                  <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+                </Tooltip>
+                <Input
+                  placeholder="Palavras-chave (separadas por vírgula)"
+                  value={formData.keywords || ''}
+                  onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
+                />
+              </div>
+
             </div>
           </div>
 
           {/* Seção de Vídeos */}
           <div className="bg-white p-6 rounded-lg shadow-sm border-black border-2 text-black">
+            <div className="flex items-center mb-1">
+              <Tooltip content={
+                <div className="text-sm text-red-500 bg-white p-4">
+                  Insira links dos videos que apresentam esse produto, dicas, apresentação etc...<br />
+                  Aconselhamos que hospede seus videos em alguma conta no youtube.
+                </div>
+              }>
+                <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+              </Tooltip>
+            </div>
             <h3 className="text-lg font-semibold mb-4">Vídeos</h3>
             {formData.videos.map((vid, i) => (
               <div key={i} className="flex items-center space-x-4 mb-4">
@@ -549,11 +746,22 @@ export default function Add_product() {
                 videos: [...prev.videos, { url: '', thumbnail: '' }]
               }))}
               className="text-indigo-600 font-medium"
-            >Adicionar Vídeo</button>
+            >
+              Adicionar Vídeo
+            </button>
           </div>
 
           {/* Seção de Imagens */}
           <div className="bg-white p-6 rounded-lg shadow-sm text-black border-black border-2">
+            <div className="flex items-center mb-1">
+              <Tooltip content={
+                <div className="text-sm text-red-500 bg-white p-4">
+                  Insira no máximo 20 imagens para o seu produto.
+                </div>
+              }>
+                <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+              </Tooltip>
+            </div>
             <h3 className="text-lg font-semibold mb-4">Imagens do Produto</h3>
 
             <div {...getMainImagesRootProps()} className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer">
@@ -587,6 +795,16 @@ export default function Add_product() {
 
           {/* Seção de Categorias */}
           <div className="bg-white p-6 rounded-lg shadow-sm text-black border-black border-2">
+            <div className="flex items-center mb-1">
+              <Tooltip content={
+                <div className="text-sm text-red-500 bg-white p-4">
+                  Selecione a, ou as categorias que serão vinculadas a esse produto<br />
+                  para que o seu cliente encontre de forma mais facil seu produto em sua loja.
+                </div>
+              }>
+                <InformationCircleIcon className="w-4 h-4 text-blue-700" />
+              </Tooltip>
+            </div>
             <h3 className="text-lg font-semibold mb-4">Categorias</h3>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -838,28 +1056,35 @@ const VariantForm = ({ variant, index, formData, setFormData, promotions }: {
           ))}
         </select>
 
-        <Input
-          type="number"
-          placeholder="Preço da Variante"
-          value={variant.price_per.toString()}
-          onChange={(e) => {
-            const newVariants = [...formData.variants]
-            newVariants[index].price_per = e.target.value
-            setFormData({ ...formData, variants: newVariants })
-          }}
-          required
-        />
+        <div>
+          <label className="block text-sm font-medium">Preço de</label>
+          <CurrencyInput
+            value={Number(variant.price_per) || 0}
+            onChange={num => {
+              const v = [...formData.variants];
+              v[index].price_per = num.toString();
+              setFormData({ ...formData, variants: v });
+            }}
+            placeholder="Preço de"
+          />
+        </div>
+
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Input placeholder="Preço Original" type="number"
-          value={variant.price_of || ''}
-          onChange={e => {
-            const v = [...formData.variants];
-            v[index].price_of = e.target.value;
-            setFormData({ ...formData, variants: v });
-          }}
-        />
+        <div>
+          <label className="block text-sm font-medium">Preço por</label>
+          <CurrencyInput
+            value={Number(variant.price_of) || 0}
+            onChange={num => {
+              const v = [...formData.variants];
+              v[index].price_of = num > 0 ? num.toString() : '';
+              setFormData({ ...formData, variants: v });
+            }}
+            placeholder="Preço por"
+          />
+        </div>
+
         <Input placeholder="EAN" value={variant.ean || ''}
           onChange={e => {
             const v = [...formData.variants];

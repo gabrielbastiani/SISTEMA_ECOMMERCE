@@ -34,3 +34,87 @@ export interface ProductVariant {
     mainPromotion_id: string;
     created_at: string;
 }
+
+export interface VideoInput {
+    url: string;
+    thumbnail?: string;
+}
+
+export interface VariantFormData {
+    sku: string;
+    price_per: string;
+    price_of?: string;
+    ean?: string;
+    stock?: string;
+    allowBackorders?: boolean;
+    sortOrder?: string;
+    mainPromotion_id?: string;
+    variantAttributes: Array<{ key: string; value: string }>;
+    images: File[];
+    videos: VideoInput[];
+}
+
+export interface ProductFormData {
+    name: string
+    slug?: string
+    price_per: string
+    price_of?: string
+    metaTitle?: string
+    metaDescription?: string
+    keywords?: string
+    brand?: string
+    ean?: string
+    skuMaster?: string
+    weight?: string
+    length?: string
+    width?: string
+    height?: string
+    stock?: string
+    mainPromotion_id?: string;
+    status?: 'DISPONIVEL' | 'INDISPONIVEL'
+    categories: string[]
+    description: string;
+    images: File[];
+    videos: VideoInput[];
+    variants: VariantFormData[];
+    productDescriptions: Array<{
+        title: string;
+        description: string;
+        status?: 'DISPONIVEL' | 'INDISPONIVEL';
+    }>;
+}
+
+export interface RelationFormData {
+    parentId?: string;
+    childId?: string;
+    relationType: "VARIANT" | "SIMPLE";
+    sortOrder: number;
+    isRequired: boolean;
+}
+
+export type PromotionOption = { id: string; name: string };
+
+export const initialFormData: ProductFormData = {
+    name: '',
+    slug: '',
+    price_per: '',
+    price_of: '',
+    metaTitle: '',
+    metaDescription: '',
+    keywords: '',
+    brand: '',
+    ean: '',
+    skuMaster: '',
+    weight: '',
+    length: '',
+    width: '',
+    height: '',
+    stock: '',
+    status: 'DISPONIVEL',
+    categories: [],
+    description: '',
+    images: [],
+    videos: [],
+    variants: [],
+    productDescriptions: []
+};
