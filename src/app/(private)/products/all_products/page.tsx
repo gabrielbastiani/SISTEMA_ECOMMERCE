@@ -9,13 +9,14 @@ import { TitlePage } from '@/app/components/section/titlePage';
 import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce';
 import { zodResolver } from "@hookform/resolvers/zod";
 import moment from "moment";
-import { Key, useContext, useState } from "react";
+import { useContext, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import { z } from "zod";
 import { MdNotInterested } from "react-icons/md";
 import noImage from '../../../../../public/no-image.png';
 import { AuthContext } from '@/app/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -31,6 +32,7 @@ interface ProductProps {
     status?: string;
     view?: number;
     created_at: string | number | Date;
+    edit?: string;
     categories?: Array<{
         category: {
             name: string;
@@ -44,6 +46,15 @@ interface ProductProps {
     variants?: Array<{
         sku: string;
     }>;
+    childProduct?: Array<{
+        name: string;
+    }>;
+    parentRelations?: Array<{
+        parentProduct: {
+            id: string;
+            name: string;
+        };
+    }>;
 }
 
 const statusOptions = ["DISPONIVEL", "INDISPONIVEL"];
@@ -55,6 +66,9 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function All_products() {
+
+    const router = useRouter();
+
     const { user } = useContext(AuthContext);
     const apiClient = setupAPIClientEcommerce();
 
@@ -89,12 +103,14 @@ export default function All_products() {
                 updatedField = { status: editedValue };
             }
 
-            await apiClient.put(`/product/${id}`, updatedField);
+            const data = { ...updatedField, id: id };
 
-            setAllproducts((prevProducts) =>
-                prevProducts.map((product) =>
-                    product.id === id ? { ...product, ...updatedField } : product
-                )
+            console.log(data)
+
+            await apiClient.put(`/product/update`, data);
+
+            setAllproducts((prevProduct) =>
+                prevProduct.map((product) => (product.id === id ? { ...product, ...updatedField } : product))
             );
 
             setEditingProduct(null);
@@ -151,6 +167,7 @@ export default function All_products() {
                             skuMaster: "Código do produto",
                             status: "Status",
                             categories: "Categorias",
+                            parentRelations: "Qtd. Pais",
                             created_at: "Data de cadastro"
                         }}
                         customNamesOrder={{
@@ -225,6 +242,10 @@ export default function All_products() {
                                 label: "Nome",
                             },
                             {
+                                key: "brand",
+                                label: "Marca"
+                            },
+                            {
                                 key: 'categories',
                                 label: 'Categorias',
                                 render: (item: ProductProps) => (
@@ -249,8 +270,55 @@ export default function All_products() {
                                 ),
                             },
                             {
+                                key: "stock",
+                                label: "Estoque"
+                            },
+                            {
+                                key: "price_per",
+                                label: "Preço",
+                                render: (item) => (
+                                    <span>
+                                        {new Intl.NumberFormat('pt-BR', {
+                                            style: 'currency',
+                                            currency: 'BRL'
+                                        }).format(item.price_per || 0)}
+                                    </span>
+                                ),
+                            },
+                            {
+                                key: "variants",
+                                label: "Variantes",
+                                render: (item: ProductProps) => (
+                                    <>
+                                        <span>{item.variants?.length}</span>
+                                    </>
+                                )
+                            },
+                            {
+                                key: 'parentRelations',
+                                label: 'Produtos Pais',
+                                render: (item) => (
+                                    <span>
+                                        {item.parentRelations?.length || 0}
+                                    </span>
+                                ),
+                            },
+                            {
+                                key: 'childProduct',
+                                label: 'Produtos Filhos',
+                                render: (item) => (
+                                    <span>
+                                        {item.childProduct?.length || 0}
+                                    </span>
+                                ),
+                            },
+                            {
+                                key: "view",
+                                label: "Visualizaçãoes"
+                            },
+                            {
                                 key: 'status',
-                                label: 'Status',
+                                label: 'Permitir Venda?',
                                 render: (item) => (
                                     <span>
                                         {editingProduct?.id === item.id && editingProduct?.field === "status" ? (
@@ -281,11 +349,23 @@ export default function All_products() {
                             },
                             {
                                 key: "created_at",
-                                label: "Data de Criação",
+                                label: "Data de Cadastro",
                                 render: (item) => (
                                     <span>{moment(item.created_at).format('DD/MM/YYYY HH:mm')}</span>
                                 ),
-                            }
+                            },
+                            {
+                                key: 'edit',
+                                label: 'Editar',
+                                render: (item) => (
+                                    <button
+                                        className='m-5 p-1 bg-red-500 text-[#FFFFFF] text-xs rounded hover:bg-red-600 transition duration-300'
+                                        onClick={() => router.push(`/products/${item.id}`)}
+                                    >
+                                        Editar
+                                    </button>
+                                ),
+                            },
                         ]}
                     />
                 </Suspense>
