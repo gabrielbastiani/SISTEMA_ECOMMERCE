@@ -18,6 +18,7 @@ import { Editor } from "@tinymce/tinymce-react";
 import { toast } from 'react-toastify';
 import { CollapsibleInfo } from '@/app/components/helpers_componentes/CollapsibleInfo';
 import { CurrencyInput } from '@/app/components/add_product/CurrencyInput';
+import Image from 'next/image';
 
 const TOKEN_TINY = process.env.NEXT_PUBLIC_TINYMCE_API_KEY;
 
@@ -299,7 +300,7 @@ export default function Add_product() {
             <h3 className="text-lg font-semibold mb-4 text-black">Informações Básicas</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-2 text-black">
-              
+
               <div className="flex items-center mb-1">
                 <Tooltip content={
                   <div className="text-sm text-red-500 bg-white p-4">
@@ -773,10 +774,12 @@ export default function Add_product() {
             <div className="grid grid-cols-3 gap-4 mt-4">
               {formData.images.map((file, index) => (
                 <div key={index} className="relative group">
-                  <img
+                  <Image
                     src={URL.createObjectURL(file)}
-                    alt={file.name}
-                    className="w-full h-32 object-cover rounded-lg"
+                    alt={file.name || "imagem-produto"}
+                    className="object-cover rounded-lg"
+                    height={210}
+                    width={210}
                   />
                   <button
                     type="button"
@@ -1197,10 +1200,12 @@ const VariantForm = ({ variant, index, formData, setFormData, promotions }: {
         <div className="grid grid-cols-3 gap-2 mt-4">
           {variant.images.map((file, fileIndex) => (
             <div key={fileIndex} className="relative group">
-              <img
+              <Image
                 src={URL.createObjectURL(file)}
-                alt={file.name}
-                className="w-full h-24 object-cover rounded"
+                alt={file.name || "produto-imagem"}
+                className="object-cover rounded"
+                height={210}
+                width={210}
               />
               <button
                 type="button"

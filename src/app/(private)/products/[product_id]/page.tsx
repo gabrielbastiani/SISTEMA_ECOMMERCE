@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import { useState, useEffect, FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -24,6 +24,10 @@ import { ArrowUpTrayIcon as UploadIcon } from "@heroicons/react/24/outline";
 import { useDropzone } from "react-dropzone";
 import { Editor } from "@tinymce/tinymce-react";
 import { CollapsibleInfo } from "@/app/components/helpers_componentes/CollapsibleInfo";
+import Image from "next/image";
+import { CurrencyInputUpdate } from "@/app/components/add_product/CurrencyInputUpdate";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 type PromotionOption = { id: string; name: string };
 type RelationType = "VARIANT" | "SIMPLE";
@@ -32,7 +36,7 @@ type StatusProduct = "DISPONIVEL" | "INDISPONIVEL";
 interface VideoInput { url: string; thumbnail?: string }
 
 interface VariantFormData {
-    id?: string; // Adicionar ID opcional
+    id?: string;
     sku: string;
     price_per: string;
     price_of?: string;
@@ -80,25 +84,6 @@ interface ProductFormData {
     videos: VideoInput[];
     productDescriptions: Array<{ title: string; description: string }>;
     variants: VariantFormData[];
-}
-
-interface APIProductRelation {
-    id: string;
-    parentProduct_id: string;
-    childProduct_id: string;
-    relationType: "VARIANT" | "SIMPLE";
-    sortOrder: number;
-    isRequired: boolean;
-    childProduct?: {
-        id: string;
-        name: string;
-        // ... outros campos
-    };
-    parentProduct?: {
-        id: string;
-        name: string;
-        // ... outros campos
-    };
 }
 
 const emptyVideo: VideoInput = { url: "", thumbnail: "" };
@@ -150,9 +135,12 @@ const DropzoneVariant = ({ index, formData, setFormData }: any) => {
                 {/* Imagens existentes */}
                 {formData.variants[index].existingImages.map((img: any, i: number) => (
                     <div key={i} className="relative group">
-                        <img
-                            src={img.url}
-                            className="w-full h-24 object-cover rounded"
+                        <Image
+                            src={`${API_URL}/files/${img.url}`}
+                            className="object-cover rounded"
+                            width={210}
+                            height={210}
+                            alt={img.altText || "imagem-variante"}
                         />
                         <Button
                             onClick={() => {
@@ -161,7 +149,7 @@ const DropzoneVariant = ({ index, formData, setFormData }: any) => {
                                 setFormData({ ...formData, variants: newVariants });
                             }}
                         >
-                            <TrashIcon className="w-4 h-4" />
+                            <TrashIcon color="red" className="w-4 h-4" />
                         </Button>
                     </div>
                 ))}
@@ -180,7 +168,7 @@ const DropzoneVariant = ({ index, formData, setFormData }: any) => {
                                 setFormData({ ...formData, variants: newVariants });
                             }}
                         >
-                            <TrashIcon className="w-4 h-4" />
+                            <TrashIcon color="red" className="w-4 h-4" />
                         </Button>
                     </div>
                 ))}
@@ -194,6 +182,7 @@ export default function UpdateProduct() {
     const { product_id } = useParams<{ product_id: string }>() as { product_id: string };
     const router = useRouter();
 
+    const [initialProductData, setInitialProductData] = useState<any>(null);
     const [formData, setFormData] = useState<ProductFormData>(initialFormData);
     const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
     const [allProducts, setAllProducts] = useState<{ id: string; name: string }[]>([]);
@@ -212,16 +201,25 @@ export default function UpdateProduct() {
     useEffect(() => {
         async function load() {
             const api = setupAPIClientEcommerce();
-            const [prodRes, catRes, prodAllowRes, promoRes] = await Promise.all([
-                api.get(`/product/cms/get?product_id=${product_id}`),
-                api.get("/category/cms"),
+            const [prodAllowRes, promoRes] = await Promise.all([
                 api.get("/get/products"),
                 api.get("/promotions"),
             ]);
 
+            // 1. Carregar categorias primeiro
+            const catRes = await api.get("/category/cms");
+            const allCategories = catRes.data.all_categories_disponivel;
+
+            // 2. Carregar dados do produto
+            const prodRes = await api.get(`/product/cms/get?product_id=${product_id}`);
             const p = prodRes.data;
 
-            console.log(p)
+            // 3. Extrair IDs corretamente de category_id (não de category.id)
+            const productCategoryIds = p.categories
+                .map((c: any) => String(c.category_id)) // Alteração crítica aqui
+                .filter((id: any) => allCategories.some((cat: { id: any; }) => cat.id === id));
+
+            setInitialProductData(p);
 
             setFormData({
                 ...p,
@@ -242,17 +240,29 @@ export default function UpdateProduct() {
                 height: p.height?.toString() || "",
                 stock: p.stock?.toString() || "",
                 mainPromotion_id: p.mainPromotion_id || "",
-                categories: p.categories.map((c: any) => c.categoryId),
+                categories: productCategoryIds,
                 description: p.description,
                 existingImages: p.images.map((img: any) => ({
                     url: img.url,
                     altText: img.altText,
                 })),
                 newImages: [],
-                videos: p.videos.map((v: any) => ({
-                    url: v.url,
-                    thumbnail: `https://img.youtube.com/vi/${v.url.split("v=")[1]}/0.jpg`,
-                })),
+                videos: p.videos.map((v: any) => {
+                    const url = v.url;
+                    let videoId;
+
+                    // Extrair ID para URLs do YouTube
+                    if (url.includes('youtube.com/watch?v=')) {
+                        videoId = url.split('v=')[1].split('&')[0];
+                    } else if (url.includes('youtu.be/')) {
+                        videoId = url.split('youtu.be/')[1].split('?')[0];
+                    }
+
+                    return {
+                        url,
+                        thumbnail: videoId ? `https://img.youtube.com/vi/${videoId}/0.jpg` : ''
+                    };
+                }),
                 productDescriptions: p.productsDescriptions.map((d: any) => ({
                     title: d.title,
                     description: d.description,
@@ -297,7 +307,7 @@ export default function UpdateProduct() {
                 })),
             });
 
-            setCategories(catRes.data.all_categories_disponivel);
+            setCategories(allCategories);
             setAllProducts(prodAllowRes.data.allow_products);
             setPromotions(promoRes.data.map((p: { id: any; name: any; }) => ({
                 id: String(p.id),
@@ -355,112 +365,108 @@ export default function UpdateProduct() {
             const api = setupAPIClientEcommerce();
             const fd = new FormData();
 
-            // Campos principais
+            // Debug: Verificar dados antes de enviar
+            console.log("Dados do Formulário:", formData);
+
+            const globalVideoUrls = formData.videos.map(v => v.url);
+
+            // Campos principais (convertendo tipos numéricos)
             fd.append("id", product_id);
             fd.append("name", formData.name);
             fd.append("slug", formData.slug || "");
             fd.append("metaTitle", formData.metaTitle || "");
             fd.append("metaDescription", formData.metaDescription || "");
-            fd.append("keywords", JSON.stringify(formData.keywords || null));
+            fd.append("keywords", formData.keywords?.join(",") || "");
             fd.append("skuMaster", formData.skuMaster || "");
             fd.append("status", formData.status);
-            fd.append("price_per", formData.price_per);
-            fd.append("price_of", formData.price_of || "");
+            fd.append("price_per", formData.price_per ? Number(formData.price_per).toString() : "");
+            fd.append("price_of", formData.price_of ? Number(formData.price_of).toString() : "");
             fd.append("brand", formData.brand || "");
             fd.append("ean", formData.ean || "");
-            fd.append("weight", formData.weight || "");
-            fd.append("length", formData.length || "");
-            fd.append("width", formData.width || "");
-            fd.append("height", formData.height || "");
-            fd.append("stock", formData.stock || "");
+            fd.append("weight", formData.weight || "0");
+            fd.append("length", formData.length || "0");
+            fd.append("width", formData.width || "0");
+            fd.append("height", formData.height || "0");
+            fd.append("stock", formData.stock || "0");
             fd.append("mainPromotion_id", formData.mainPromotion_id || "");
             fd.append("categoryIds", JSON.stringify(formData.categories));
             fd.append("descriptionBlocks", JSON.stringify(
                 formData.productDescriptions.map(d => ({
                     title: d.title,
                     description: d.description,
-                }))
+                })) || []
             ));
-            fd.append("description", formData.description);
+            fd.append("description", formData.description || "Sem descrição");
 
-            // Vídeos globais
-            formData.videos.forEach(v => fd.append("videoUrls", v.url));
+            // Vídeos globais (garantir array mesmo vazio)
+            fd.append("videoUrls", JSON.stringify(globalVideoUrls));
 
-            // Imagens principais (novas)
-            formData.newImages.forEach(f => fd.append("imageFiles", f));
+            // Imagens principais (novas) com nome correto
+            formData.newImages.forEach((file, index) => {
+                fd.append(`imageFiles`, file); // Nome compatível com o esperado pelo backend
+            });
 
-            // Variantes
-            fd.append("variants", JSON.stringify(
-                formData.variants.map(v => ({
-                    sku: v.sku,
-                    price_per: Number(v.price_per),
-                    price_of: v.price_of ? Number(v.price_of) : undefined,
-                    ean: v.ean,
-                    stock: v.stock ? Number(v.stock) : undefined,
-                    allowBackorders: v.allowBackorders,
-                    sortOrder: v.sortOrder ? Number(v.sortOrder) : undefined,
-                    mainPromotion_id: v.mainPromotion_id,
-                    attributes: v.variantAttributes,
-                    videoUrls: v.videos.map(x => x.url),
-                }))
-            ));
+            // Variantes (corrigir estrutura de dados)
+            const variantsPayload = formData.variants.map(v => ({
+                id: v.id || undefined,
+                sku: v.sku,
+                price_per: Number(v.price_per),
+                price_of: v.price_of ? Number(v.price_of) : null,
+                ean: v.ean || null,
+                stock: v.stock ? Number(v.stock) : 0,
+                allowBackorders: Boolean(v.allowBackorders),
+                sortOrder: v.sortOrder ? Number(v.sortOrder) : 0,
+                mainPromotion_id: v.mainPromotion_id || null,
+                attributes: v.variantAttributes,
+                videoUrls: v.videos.map(x => x.url)
+            }));
+            fd.append("variants", JSON.stringify(variantsPayload));
 
-            // Imagens de variantes
-            // Substitua o código problemático por:
+            // Imagens de variantes (nomeação correta)
             formData.variants.forEach((variant, idx) => {
-    // Enviar novas imagens
     variant.newImages.forEach((file: File) => {
-        const f2 = new File([file], `${idx}___${file.name}`, { type: file.type });
-        fd.append("variantImageFiles", f2);
+        // Criar novo File com nome modificado
+        const renamedFile = new File([file], `${idx}___${file.name}`, { 
+            type: file.type,
+            lastModified: file.lastModified
+        });
+        fd.append(`variantImageFiles`, renamedFile); // Nome do campo sem índice
     });
-
-    // Gerenciar imagens existentes e deletadas
-    if (variant.id) {
-        const initialVariant = p.variants.find((v: any) => v.id === variant.id);
-        if (initialVariant) {
-            const keptImageIds = variant.existingImages.map(img => img.id);
-            const allOriginalIds = initialVariant.images.map((img: any) => img.id);
-            
-            const imagesToDelete = allOriginalIds.filter((id: string) => 
-                !keptImageIds.includes(id)
-            );
-            
-            fd.append(`deletedVariantImages-${variant.id}`, JSON.stringify(imagesToDelete));
-        }
-    }
 });
 
-// Imagens existentes mantidas
-fd.append("existingVariantImages", JSON.stringify(
-    formData.variants.flatMap(v => 
-        v.existingImages.map(img => ({
-            id: img.id,
-            url: img.url,
-            variantId: v.id || 'new' // Lidar com novas variantes
-        }))
-    )
-));
+            // Relações (validar estrutura)
+            const relationsPayload = relations.map(r => ({
+                parentId: tab === 'child' ? r.parentId : product_id,
+                childId: tab === 'child' ? product_id : r.childId,
+                relationType: r.relationType,
+                sortOrder: Number(r.sortOrder),
+                isRequired: Boolean(r.isRequired),
+            }));
+            fd.append("relations", JSON.stringify(relationsPayload));
 
-            // Relações
-            fd.append("relations", JSON.stringify(
-                relations.map(r => ({
-                    parentId: tab === 'child' ? r.parentId : product_id,
-                    childId: tab === 'child' ? product_id : r.childId,
-                    relationType: r.relationType,
-                    sortOrder: r.sortOrder,
-                    isRequired: r.isRequired,
-                }))
-            ));
+            const keptImageUrls = formData.existingImages.map(img => img.url);
+            const initialImages = initialProductData.images.map((img: any) => img.url);
+            const deletedMainImages = initialImages.filter((url: string) => !keptImageUrls.includes(url));
+
+            deletedMainImages.forEach((url: string | Blob) => {
+                fd.append("deletedMainImages", url);
+            });
+
+            // Debug: Verificar FormData antes do envio
+            const formDataEntries = Array.from(fd.entries());
+            console.log("Conteúdo do FormData:", formDataEntries);
 
             await api.put("/product/update", fd, {
-                headers: { "Content-Type": "multipart/form-data" },
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
             });
 
             toast.success("Produto atualizado com sucesso!");
-            router.push("/products");
+            /* router.push("/products"); */
         } catch (err) {
-            console.error(err);
-            toast.error("Erro ao atualizar produto!");
+            console.error("Erro detalhado:", err);
+            toast.error("Erro ao atualizar produto! Verifique o console.");
         }
         setLoading(false);
     }
@@ -472,108 +478,186 @@ fd.append("existingVariantImages", JSON.stringify(
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* — Informações Básicas — */}
                     <div className="bg-white p-6 rounded-lg shadow border">
-                        <h3 className="font-semibold mb-4">Informações Básicas</h3>
+                        <h3 className="font-semibold mb-4 text-black">Informações Básicas</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Input
-                                className="bg-white text-black"
-                                label="Nome"
-                                value={formData.name}
-                                onChange={e => updateField("name", e.target.value)}
-                                required
-                            />
-                            <Input
-                                className="bg-white text-black"
-                                label="Slug"
-                                value={formData.slug}
-                                onChange={e => updateField("slug", e.target.value)}
-                            />
-                            <Input
-                                className="bg-white text-black"
-                                label="SKU Mestre"
-                                value={formData.skuMaster}
-                                onChange={e => updateField("skuMaster", e.target.value)}
-                            />
-                            <Select
-                                className="bg-white text-black"
-                                label="Status"
-                                value={formData.status}
-                                onChange={v => updateField("status", v as unknown as StatusProduct)}
-                            >
-                                <SelectItem value="DISPONIVEL">Disponível</SelectItem>
-                                <SelectItem value="INDISPONIVEL">Indisponível</SelectItem>
-                            </Select>
-                            <Input
-                                className="bg-white text-black"
-                                label="Preço de Venda"
-                                type="number"
-                                value={formData.price_per}
-                                onChange={e => updateField("price_per", e.target.value)}
-                                required
-                            />
-                            <Input
-                                className="bg-white text-black"
-                                label="Preço Original"
-                                type="number"
-                                value={formData.price_of}
-                                onChange={e => updateField("price_of", e.target.value)}
-                            />
+                            <div>
+                                <label className="block mb-1 text-sm font-medium text-black">
+                                    Nome do produto
+                                </label>
+                                <Input
+                                    className="bg-white text-black p-5"
+                                    placeholder="Nome do produto"
+                                    value={formData.name}
+                                    onChange={e => updateField("name", e.target.value)}
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block mb-1 text-sm font-medium text-black">
+                                    Slug do produto
+                                </label>
+                                <Input
+                                    className="bg-white text-black"
+                                    placeholder="Slug"
+                                    value={formData.slug}
+                                    onChange={e => updateField("slug", e.target.value)}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block mb-1 text-sm font-medium text-black">
+                                    SKU Mestre
+                                </label>
+                                <Input
+                                    className="bg-white text-black"
+                                    placeholder="SKU Mestre"
+                                    value={formData.skuMaster}
+                                    onChange={e => updateField("skuMaster", e.target.value)}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block mb-1 text-sm font-medium text-black">
+                                    Status
+                                </label>
+                                <Select
+                                    className="bg-white text-black"
+                                    selectedKeys={new Set([formData.status])}
+                                    onSelectionChange={(keys) => {
+                                        const value = Array.from(keys)[0]?.toString() as StatusProduct || "DISPONIVEL";
+                                        updateField("status", value);
+                                    }}
+                                >
+                                    <SelectItem key="DISPONIVEL" value="DISPONIVEL" className="bg-white text-black">
+                                        Disponível
+                                    </SelectItem>
+                                    <SelectItem key="INDISPONIVEL" value="INDISPONIVEL" className="bg-white text-black">
+                                        Indisponível
+                                    </SelectItem>
+                                </Select>
+                            </div>
+
+                            <div>
+                                <label className="block mb-1 text-sm font-medium text-black">
+                                    Preço De
+                                </label>
+                                <CurrencyInputUpdate
+                                    value={formData.price_per ? Number(formData.price_per) : null}
+                                    onChange={(val) => updateField("price_per", val?.toString() || "")}
+                                    placeholder="Preço De"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block mb-1 text-sm font-medium text-black">
+                                    Preço Por
+                                </label>
+                                <CurrencyInputUpdate
+                                    value={formData.price_of ? Number(formData.price_of) : null}
+                                    onChange={(val) => updateField("price_of", val?.toString() || "")}
+                                    placeholder="Preço Por"
+                                />
+                            </div>
+
                         </div>
                     </div>
 
                     {/* — Detalhes do Produto — */}
                     <div className="bg-white p-6 rounded-lg shadow border">
-                        <h3 className="font-semibold mb-4">Detalhes do Produto</h3>
+                        <h3 className="font-semibold mb-4 text-black">Detalhes do Produto</h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <Input
-                                className="bg-white text-black"
-                                label="Marca"
-                                value={formData.brand}
-                                onChange={e => updateField("brand", e.target.value)}
-                            />
-                            <Input
-                                className="bg-white text-black"
-                                label="EAN"
-                                value={formData.ean}
-                                onChange={e => updateField("ean", e.target.value)}
-                            />
-                            <Input
-                                className="bg-white text-black"
-                                label="Peso (kg)"
-                                type="number"
-                                value={formData.weight}
-                                onChange={e => updateField("weight", e.target.value)}
-                            />
-                            <Input
-                                className="bg-white text-black"
-                                label="Comprimento (cm)"
-                                type="number"
-                                value={formData.length}
-                                onChange={e => updateField("length", e.target.value)}
-                            />
-                            <Input
-                                className="bg-white text-black"
-                                label="Largura (cm)"
-                                type="number"
-                                value={formData.width}
-                                onChange={e => updateField("width", e.target.value)}
-                            />
-                            <Input
-                                className="bg-white text-black"
-                                label="Altura (cm)"
-                                type="number"
-                                value={formData.height}
-                                onChange={e => updateField("height", e.target.value)}
-                            />
-                            <Input
-                                className="bg-white text-black"
-                                label="Estoque"
-                                type="number"
-                                value={formData.stock}
-                                onChange={e => updateField("stock", e.target.value)}
-                            />
+                            <div>
+                                <label className="block mb-1 text-sm font-medium text-black">
+                                    Marca
+                                </label>
+                                <Input
+                                    className="bg-white text-black"
+                                    placeholder="Marca"
+                                    value={formData.brand}
+                                    onChange={e => updateField("brand", e.target.value)}
+                                />
+                            </div>
 
                             <div>
-                                <label className="block text-sm mb-1">Promoção Principal</label>
+                                <label className="block mb-1 text-sm font-medium text-black">
+                                    EAN
+                                </label>
+                                <Input
+                                    className="bg-white text-black"
+                                    placeholder="EAN"
+                                    value={formData.ean}
+                                    onChange={e => updateField("ean", e.target.value)}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block mb-1 text-sm font-medium text-black">
+                                    Peso (kg)
+                                </label>
+                                <Input
+                                    className="bg-white text-black"
+                                    placeholder="Peso (kg)"
+                                    type="number"
+                                    value={formData.weight}
+                                    onChange={e => updateField("weight", e.target.value)}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block mb-1 text-sm font-medium text-black">
+                                    Comprimento (cm)
+                                </label>
+                                <Input
+                                    className="bg-white text-black"
+                                    placeholder="Comprimento (cm)"
+                                    type="number"
+                                    value={formData.length}
+                                    onChange={e => updateField("length", e.target.value)}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block mb-1 text-sm font-medium text-black">
+                                    Largura (cm)
+                                </label>
+                                <Input
+                                    className="bg-white text-black"
+                                    placeholder="Largura (cm)"
+                                    type="number"
+                                    value={formData.width}
+                                    onChange={e => updateField("width", e.target.value)}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block mb-1 text-sm font-medium text-black">
+                                    Altura (cm)
+                                </label>
+                                <Input
+                                    className="bg-white text-black"
+                                    placeholder="Altura (cm)"
+                                    type="number"
+                                    value={formData.height}
+                                    onChange={e => updateField("height", e.target.value)}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block mb-1 text-sm font-medium text-black">
+                                    Estoque
+                                </label>
+                                <Input
+                                    className="bg-white text-black"
+                                    placeholder="Estoque"
+                                    type="number"
+                                    value={formData.stock}
+                                    onChange={e => updateField("stock", e.target.value)}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm mb-1 text-black">Promoção Principal</label>
                                 <Select
                                     className="bg-white text-black"
                                     placeholder="Sem promoção"
@@ -589,7 +673,7 @@ fd.append("existingVariantImages", JSON.stringify(
                                             key={promotion.id}
                                             value={promotion.id}
                                             textValue={promotion.name}
-                                            className="text-black"
+                                            className="text-black bg-white"
                                         >
                                             {promotion.name}
                                         </SelectItem>
@@ -602,8 +686,9 @@ fd.append("existingVariantImages", JSON.stringify(
                     {/* — Descrições Detalhadas — */}
                     <div className="bg-white p-6 rounded-lg shadow border">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-semibold">Descrições Detalhadas</h3>
+                            <h3 className="font-semibold text-black">Descrições Detalhadas</h3>
                             <Button
+                                className="bg-green-600 text-white"
                                 size="sm"
                                 startContent={<PlusIcon />}
                                 onClick={() =>
@@ -622,7 +707,7 @@ fd.append("existingVariantImages", JSON.stringify(
                         {formData.productDescriptions.map((desc, i) => (
                             <div key={i} className="mb-4 p-4 border rounded">
                                 <div className="flex justify-between mb-2">
-                                    <span className="font-medium">Descrição {i + 1}</span>
+                                    <span className="font-medium text-black">Descrição {i + 1}</span>
                                     <Button
                                         size="sm"
                                         isIconOnly
@@ -633,19 +718,25 @@ fd.append("existingVariantImages", JSON.stringify(
                                             }))
                                         }
                                     >
-                                        <TrashIcon className="w-4 h-4" />
+                                        <TrashIcon className="w-4 h-4" color="red" />
                                     </Button>
                                 </div>
-                                <Input
-                                    className="mb-2 bg-white text-black"
-                                    placeholder="Título"
-                                    value={desc.title}
-                                    onChange={e => {
-                                        const arr = [...formData.productDescriptions];
-                                        arr[i].title = e.target.value;
-                                        setFormData(f => ({ ...f, productDescriptions: arr }));
-                                    }}
-                                />
+                                <div>
+                                    <label className="block mb-1 text-sm font-medium text-black">
+                                        Titulo
+                                    </label>
+                                    <Input
+                                        className="mb-2 bg-white text-black"
+                                        placeholder="Título"
+                                        value={desc.title}
+                                        onChange={e => {
+                                            const arr = [...formData.productDescriptions];
+                                            arr[i].title = e.target.value;
+                                            setFormData(f => ({ ...f, productDescriptions: arr }));
+                                        }}
+                                    />
+                                </div>
+
                                 <Editor
                                     apiKey={process.env.NEXT_PUBLIC_TINYMCE_API_KEY}
                                     value={desc.description}
@@ -667,30 +758,54 @@ fd.append("existingVariantImages", JSON.stringify(
 
                     {/* — SEO — */}
                     <div className="bg-white p-6 rounded-lg shadow border">
-                        <h3 className="font-semibold mb-3">SEO</h3>
-                        <Input
-                            className="mb-4 bg-white text-black"
-                            placeholder="Meta título"
-                            value={formData.metaTitle}
-                            onChange={e => updateField("metaTitle", e.target.value)}
-                        />
-                        <Textarea
-                            className="bg-white text-black"
-                            placeholder="Meta descrição"
-                            value={formData.metaDescription}
-                            onChange={e => updateField("metaDescription", e.target.value)}
-                        />
+                        <h3 className="font-semibold mb-3 text-black">SEO</h3>
+                        <div>
+                            <label className="block mb-1 text-sm font-medium text-black">
+                                Meta título
+                            </label>
+                            <Input
+                                className="mb-4 bg-white text-black"
+                                placeholder="Meta título"
+                                value={formData.metaTitle}
+                                onChange={e => updateField("metaTitle", e.target.value)}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block mb-1 text-sm font-medium text-black">
+                                Meta descrição
+                            </label>
+                            <Textarea
+                                className="bg-white text-black"
+                                placeholder="Meta descrição"
+                                value={formData.metaDescription}
+                                onChange={e => updateField("metaDescription", e.target.value)}
+                            />
+                        </div>
+
+                        <div className="mt-10">
+                            <label className="block mb-1 text-sm font-medium text-black">
+                                Palavras chaves
+                            </label>
+                            <Input
+                                className="bg-white text-black"
+                                placeholder="Palavras-chave (separadas por vírgula)"
+                                value={formData.keywords}
+                                onChange={e => updateField("keywords", e.target.value)}
+                            />
+                        </div>
                     </div>
 
                     {/* — Vídeos — */}
                     <div className="bg-white p-6 rounded-lg shadow border">
-                        <h3 className="font-semibold mb-2">Vídeos</h3>
+                        <h3 className="font-semibold mb-2 text-black">Vídeos</h3>
                         {formData.videos.map((v, i) => (
                             <div key={i} className="flex items-center gap-2 mb-2">
                                 <input
                                     type="url"
-                                    className="border p-2 rounded flex-1"
+                                    className="border p-2 rounded flex-1 text-black"
                                     value={v.url}
+                                    pattern="^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+"
                                     onChange={e => {
                                         const arr = [...formData.videos];
                                         const url = e.target.value;
@@ -712,32 +827,35 @@ fd.append("existingVariantImages", JSON.stringify(
                                         }))
                                     }
                                 >
-                                    <TrashIcon className="w-4 h-4" />
+                                    <TrashIcon className="w-4 h-4" color="red" />
                                 </Button>
                             </div>
                         ))}
-                        <Button size="sm" startContent={<PlusIcon />} onClick={() => setFormData(f => ({ ...f, videos: [...f.videos, emptyVideo] }))}>
+                        <Button className="text-indigo-600 font-medium" size="sm" startContent={<PlusIcon color="red" />} onClick={() => setFormData(f => ({ ...f, videos: [...f.videos, emptyVideo] }))}>
                             Adicionar Vídeo
                         </Button>
                     </div>
 
                     {/* — Imagens — */}
                     <div className="bg-white p-6 rounded-lg shadow border">
-                        <h3 className="font-semibold mb-2">Imagens</h3>
+                        <h3 className="font-semibold mb-2 text-black">Imagens</h3>
                         <div
                             {...getRootProps()}
                             className="border-2 border-dashed p-6 text-center cursor-pointer"
                         >
                             <input {...getInputProps()} />
                             <UploadIcon className="w-8 h-8 mx-auto text-gray-400" />
-                            <p>Arraste ou clique para adicionar</p>
+                            <p className="text-gray-400">Arraste ou clique para adicionar</p>
                         </div>
                         <div className="grid grid-cols-4 gap-4 mt-4">
                             {formData.existingImages.map((img, i) => (
                                 <div key={`existing-${i}`} className="relative group">
-                                    <img
-                                        src={img.url}
-                                        className="w-full h-24 object-cover rounded"
+                                    <Image
+                                        src={`${API_URL}/files/${img.url}`}
+                                        className="object-cover rounded"
+                                        height={210}
+                                        width={210}
+                                        alt={img.altText || "imagem-produto"}
                                     />
                                     <Button
                                         size="sm"
@@ -748,15 +866,18 @@ fd.append("existingVariantImages", JSON.stringify(
                                             setFormData(f => ({ ...f, existingImages: arr }));
                                         }}
                                     >
-                                        <TrashIcon className="w-4 h-4" />
+                                        <TrashIcon color="red" className="w-4 h-4" />
                                     </Button>
                                 </div>
                             ))}
-                            {formData.newImages.map((f, i) => (
+                            {formData.newImages.map((f: Blob | MediaSource, i: number) => (
                                 <div key={`new-${i}`} className="relative group">
-                                    <img
+                                    <Image
                                         src={URL.createObjectURL(f)}
-                                        className="w-full h-24 object-cover rounded"
+                                        className="object-cover rounded"
+                                        width={210}
+                                        height={210}
+                                        alt="imagem-variante"
                                     />
                                     <Button
                                         size="sm"
@@ -769,7 +890,7 @@ fd.append("existingVariantImages", JSON.stringify(
                                             }))
                                         }
                                     >
-                                        <TrashIcon className="w-4 h-4" />
+                                        <TrashIcon color="red" className="w-4 h-4" />
                                     </Button>
                                 </div>
                             ))}
@@ -778,22 +899,22 @@ fd.append("existingVariantImages", JSON.stringify(
 
                     {/* — Categorias — */}
                     <div className="bg-white p-6 rounded-lg shadow border">
-                        <h3 className="font-semibold mb-2">Categorias</h3>
+                        <h3 className="font-semibold mb-2 text-black">Categorias</h3>
                         <div className="grid grid-cols-3 gap-2">
-                            {categories.map(c => (
-                                <label key={c.id} className="flex items-center gap-2">
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.categories.includes(c.id)}
-                                        onChange={e => {
-                                            const arr = formData.categories.includes(c.id)
-                                                ? formData.categories.filter(x => x !== c.id)
-                                                : [...formData.categories, c.id];
-                                            updateField("categories", arr);
+                            {categories.map(category => (
+                                <div key={category.id} className="flex items-center gap-2">
+                                    <Checkbox
+                                        isSelected={formData.categories.includes(category.id)}
+                                        onValueChange={(isChecked) => {
+                                            const updated = isChecked
+                                                ? [...formData.categories, category.id]
+                                                : formData.categories.filter(id => id !== category.id);
+                                            updateField("categories", updated);
                                         }}
-                                    />
-                                    {c.name}
-                                </label>
+                                    >
+                                        <span className="text-black">{category.name}</span>
+                                    </Checkbox>
+                                </div>
                             ))}
                         </div>
                     </div>
@@ -803,8 +924,9 @@ fd.append("existingVariantImages", JSON.stringify(
                     {/* — Variantes — */}
                     <div className="bg-white p-6 rounded-lg shadow border">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-semibold">Variantes</h3>
+                            <h3 className="font-semibold text-black">Variantes</h3>
                             <Button
+                                className="text-white bg-green-600"
                                 size="sm"
                                 startContent={<PlusIcon />}
                                 onClick={() => {
@@ -820,8 +942,8 @@ fd.append("existingVariantImages", JSON.stringify(
                                             sortOrder: "",
                                             mainPromotion_id: "",
                                             variantAttributes: [],
-                                            existingImages: [], // Corrigido
-                                            newImages: [],      // Corrigido
+                                            existingImages: [],
+                                            newImages: [],
                                             videos: [],
                                         }],
                                     }));
@@ -833,33 +955,94 @@ fd.append("existingVariantImages", JSON.stringify(
                         <Accordion selectionMode="multiple">
                             {formData.variants.map((variant, vi) => (
                                 <AccordionItem
+                                    style={{ color: "black" }}
                                     key={vi}
                                     aria-label={`Variante ${vi + 1}`}
-                                    title={`Variante ${vi + 1}`}
+                                    title={
+                                        <span className="text-black">
+                                            {`Variante ${vi + 1}`}
+                                        </span>
+                                    }
                                 >
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                        <Input
-                                            placeholder="SKU"
-                                            value={variant.sku}
-                                            onChange={e => {
-                                                const arr = [...formData.variants];
-                                                arr[vi].sku = e.target.value;
-                                                setFormData(f => ({ ...f, variants: arr }));
-                                            }}
-                                            required
-                                        />
-                                        <Input
-                                            placeholder="Preço"
-                                            type="number"
-                                            value={variant.price_per}
-                                            onChange={e => {
-                                                const arr = [...formData.variants];
-                                                arr[vi].price_per = e.target.value;
-                                                setFormData(f => ({ ...f, variants: arr }));
-                                            }}
-                                            required
-                                        />
+                                        <div>
+                                            <label className="block mb-1 text-sm font-medium text-black">
+                                                SKU Variante
+                                            </label>
+                                            <Input
+                                                placeholder="SKU"
+                                                value={variant.sku}
+                                                onChange={e => {
+                                                    const arr = [...formData.variants];
+                                                    arr[vi].sku = e.target.value;
+                                                    setFormData(f => ({ ...f, variants: arr }));
+                                                }}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block mb-1 text-sm font-medium text-black">
+                                                Preço De
+                                            </label>
+                                            <CurrencyInputUpdate
+                                                placeholder="Preço De"
+                                                value={variant.price_per ? Number(variant.price_per) : null}
+                                                onChange={(val) => {
+                                                    const arr = [...formData.variants];
+                                                    arr[vi].price_per = val?.toString() || "";
+                                                    setFormData({ ...formData, variants: arr });
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block mb-1 text-sm font-medium text-black">
+                                                Preço Por
+                                            </label>
+                                            <CurrencyInputUpdate
+                                                placeholder="Preço Por"
+                                                value={variant.price_of ? Number(variant.price_of) : null}
+                                                onChange={(val) => {
+                                                    const arr = [...formData.variants];
+                                                    arr[vi].price_of = val?.toString() || "";
+                                                    setFormData({ ...formData, variants: arr });
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block mb-1 text-sm font-medium text-black">
+                                                EAN Variante
+                                            </label>
+                                            <Input
+                                                className="bg-white text-black"
+                                                placeholder="EAN Variante"
+                                                value={variant.ean}
+                                                onChange={e => {
+                                                    const arr = [...formData.variants];
+                                                    arr[vi].ean = e.target.value;
+                                                    setFormData(f => ({ ...f, variants: arr }));
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block mb-1 text-sm font-medium text-black">
+                                                Estoque Variantes
+                                            </label>
+                                            <Input
+                                                className="bg-white text-black"
+                                                placeholder="Estoque Variantes"
+                                                type="number"
+                                                value={variant.stock}
+                                                onChange={e => updateField("stock", e.target.value)}
+                                            />
+                                        </div>
+
                                         <Checkbox
+                                            className="text-black"
+                                            style={{ color: "black" }}
                                             isSelected={variant.allowBackorders}
                                             onValueChange={(checked) => {
                                                 const arr = [...formData.variants];
@@ -872,7 +1055,7 @@ fd.append("existingVariantImages", JSON.stringify(
                                     </div>
 
                                     <div className="mb-4">
-                                        <h4 className="font-medium mb-2">Atributos</h4>
+                                        <h4 className="font-medium mb-2 text-black">Atributos</h4>
                                         {variant.variantAttributes.map((at, ai) => (
                                             <div key={ai} className="flex gap-2 mb-2">
                                                 <Input
@@ -898,11 +1081,11 @@ fd.append("existingVariantImages", JSON.stringify(
                                                     arr[vi].variantAttributes.splice(ai, 1);
                                                     setFormData(f => ({ ...f, variants: arr }));
                                                 }}>
-                                                    <TrashIcon className="w-4 h-4" />
+                                                    <TrashIcon color="red" className="w-4 h-4" />
                                                 </Button>
                                             </div>
                                         ))}
-                                        <Button size="sm" startContent={<PlusIcon />} onClick={() => {
+                                        <Button className="text-indigo-600" size="sm" startContent={<PlusIcon color="red" />} onClick={() => {
                                             const arr = [...formData.variants];
                                             arr[vi].variantAttributes.push({ key: "", value: "" });
                                             setFormData(f => ({ ...f, variants: arr }));
@@ -912,12 +1095,12 @@ fd.append("existingVariantImages", JSON.stringify(
                                     </div>
 
                                     <div className="mb-4">
-                                        <h4 className="font-medium mb-2">Imagens da Variante</h4>
+                                        <h4 className="font-medium mb-2 text-black">Imagens da Variante</h4>
                                         <DropzoneVariant index={vi} formData={formData} setFormData={setFormData} />
                                     </div>
 
                                     <div className="mb-4">
-                                        <h4 className="font-medium mb-2">Vídeos da Variante</h4>
+                                        <h4 className="font-medium mb-2 text-black">Vídeos da Variante</h4>
                                         {variant.videos.map((vid, vj) => (
                                             <div key={vj} className="flex items-center gap-2 mb-2">
                                                 <input
@@ -944,11 +1127,11 @@ fd.append("existingVariantImages", JSON.stringify(
                                                         setFormData(f => ({ ...f, variants: arr }));
                                                     }}
                                                 >
-                                                    <TrashIcon className="w-4 h-4" />
+                                                    <TrashIcon color="red" className="w-4 h-4" />
                                                 </Button>
                                             </div>
                                         ))}
-                                        <Button size="sm" startContent={<PlusIcon />} onClick={() => {
+                                        <Button className="text-indigo-600" size="sm" startContent={<PlusIcon />} onClick={() => {
                                             const arr = [...formData.variants];
                                             arr[vi].videos.push(emptyVideo);
                                             setFormData(f => ({ ...f, variants: arr }));
@@ -963,18 +1146,31 @@ fd.append("existingVariantImages", JSON.stringify(
 
                     {/* — Relações — */}
                     <div className="bg-white p-6 rounded-lg shadow border">
-                        <h3 className="font-semibold mb-3">Relações de Produtos</h3>
+                        <h3 className="font-semibold mb-3 text-black">Relações de Produtos</h3>
                         <Tabs
                             selectedKey={tab}
                             onSelectionChange={(k) => setTab(k as "child" | "parent")}
+                            classNames={{
+                                tabList: "gap-4 p-0",
+                                tab: "px-4 h-8 data-[selected=true]:bg-black data-[selected=true]:text-white",
+                                cursor: "hidden"
+                            }}
                         >
-                            <Tab key="child" title="Como Filho" />
-                            <Tab key="parent" title="Como Pai" />
+                            <Tab
+                                key="child"
+                                title="Como Filho"
+                                className="text-gray-500 bg-gray-100 transition-all"
+                            />
+                            <Tab
+                                key="parent"
+                                title="Como Pai"
+                                className="text-gray-500 bg-gray-100 transition-all"
+                            />
                         </Tabs>
 
                         {relations.map((r, ri) => {
                             // Encontra o produto relacionado baseado na aba
-                            const relatedProduct = allProducts.find(p =>
+                            allProducts.find(p =>
                                 tab === 'child' ? p.id === r.parentId : p.id === r.childId
                             );
 
@@ -983,7 +1179,7 @@ fd.append("existingVariantImages", JSON.stringify(
 
                                     {/* Select de Relacionamento */}
                                     <Select
-                                        label={tab === 'child' ? "Produto Pai" : "Produto Filho"}
+                                        placeholder={tab === 'child' ? "Produto Pai" : "Produto Filho"}
                                         selectedKeys={
                                             new Set([
                                                 (tab === 'child'
@@ -1000,7 +1196,8 @@ fd.append("existingVariantImages", JSON.stringify(
                                                 newId
                                             );
                                         }}
-                                        className="col-span-2"
+                                        className="col-span-2 text-black bg-white"
+                                        style={{ color: "black" }}
                                         isDisabled={!allProducts.length}
                                     >
                                         {allProducts.map(product => (
@@ -1008,7 +1205,7 @@ fd.append("existingVariantImages", JSON.stringify(
                                                 key={product.id}
                                                 value={product.id}
                                                 textValue={product.name}
-                                                className="text-black"
+                                                className="bg-white text-black"
                                             >
                                                 {product.name} ({product.id})
                                             </SelectItem>
@@ -1017,20 +1214,22 @@ fd.append("existingVariantImages", JSON.stringify(
 
                                     {/* Tipo de Relação */}
                                     <Select
-                                        label="Tipo"
+                                        className="bg-white text-black"
+                                        placeholder="Tipo"
                                         selectedKeys={[r.relationType]}
                                         onSelectionChange={(keys) =>
                                             updateRelation(ri, 'relationType', Array.from(keys)[0] as RelationType)
                                         }
                                     >
-                                        <SelectItem key="VARIANT" value="VARIANT">Variante</SelectItem>
-                                        <SelectItem key="SIMPLE" value="SIMPLE">Simples</SelectItem>
+                                        <SelectItem className="bg-white text-black" key="VARIANT" value="VARIANT">Variante</SelectItem>
+                                        <SelectItem className="bg-white text-black" key="SIMPLE" value="SIMPLE">Simples</SelectItem>
                                     </Select>
 
                                     {/* Ordem */}
                                     <Input
+                                        className="bg-white text-black"
                                         type="number"
-                                        label="Ordem"
+                                        placeholder="Ordem"
                                         value={r.sortOrder.toString()}
                                         onChange={(e) =>
                                             updateRelation(ri, 'sortOrder', Number(e.target.value))
@@ -1039,6 +1238,7 @@ fd.append("existingVariantImages", JSON.stringify(
 
                                     {/* Obrigatório */}
                                     <Checkbox
+                                        className="bg-white text-black"
                                         isSelected={r.isRequired}
                                         onValueChange={(checked) =>
                                             updateRelation(ri, 'isRequired', checked)
@@ -1053,13 +1253,13 @@ fd.append("existingVariantImages", JSON.stringify(
                                         color="danger"
                                         onClick={() => removeRelation(ri)}
                                     >
-                                        <TrashIcon className="h-4 w-4" />
+                                        <TrashIcon color="red" className="h-4 w-4" />
                                     </Button>
                                 </div>
                             );
                         })}
 
-                        <Button size="sm" startContent={<PlusIcon />} onClick={addRelation}>
+                        <Button className="text-white bg-green-600" size="sm" startContent={<PlusIcon />} onClick={addRelation}>
                             Adicionar Relação
                         </Button>
                     </div>
