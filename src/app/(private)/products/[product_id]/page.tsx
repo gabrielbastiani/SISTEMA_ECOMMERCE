@@ -79,7 +79,9 @@ interface ProductFormData {
     mainPromotion_id?: string;
     categories: string[];
     description: string;
-    existingImages: Array<{ url: string; altText?: string }>;
+    existingImages: Array<{
+        id: any; url: string; altText?: string
+    }>;
     newImages: File[];
     videos: VideoInput[];
     productDescriptions: Array<{ title: string; description: string }>;
@@ -117,7 +119,12 @@ const initialFormData: ProductFormData = {
 const DropzoneVariant = ({ index, formData, setFormData }: any) => {
     const onDrop = (files: File[]) => {
         const newVariants = [...formData.variants];
-        newVariants[index].newImages = [...newVariants[index].newImages, ...files];
+        const renamedFiles = files.map(file =>
+            new File([file], `${index}___${file.name}`, {
+                type: file.type
+            })
+        );
+        newVariants[index].newImages = [...newVariants[index].newImages, ...renamedFiles];
         setFormData({ ...formData, variants: newVariants });
     };
 
@@ -249,18 +256,13 @@ export default function UpdateProduct() {
                 newImages: [],
                 videos: p.videos.map((v: any) => {
                     const url = v.url;
-                    let videoId;
-
-                    // Extrair ID para URLs do YouTube
-                    if (url.includes('youtube.com/watch?v=')) {
-                        videoId = url.split('v=')[1].split('&')[0];
-                    } else if (url.includes('youtu.be/')) {
-                        videoId = url.split('youtu.be/')[1].split('?')[0];
-                    }
-
+                    // Usar a mesma regex do input
+                    const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
                     return {
                         url,
-                        thumbnail: videoId ? `https://img.youtube.com/vi/${videoId}/0.jpg` : ''
+                        thumbnail: idMatch
+                            ? `https://img.youtube.com/vi/${idMatch[1]}/0.jpg`
+                            : ''
                     };
                 }),
                 productDescriptions: p.productsDescriptions.map((d: any) => ({
@@ -361,112 +363,117 @@ export default function UpdateProduct() {
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
         setLoading(true);
+
         try {
             const api = setupAPIClientEcommerce();
             const fd = new FormData();
 
-            // Debug: Verificar dados antes de enviar
-            console.log("Dados do Formulário:", formData);
-
-            const globalVideoUrls = formData.videos.map(v => v.url);
-
-            // Campos principais (convertendo tipos numéricos)
+            // 1. Campos básicos
             fd.append("id", product_id);
             fd.append("name", formData.name);
             fd.append("slug", formData.slug || "");
-            fd.append("metaTitle", formData.metaTitle || "");
-            fd.append("metaDescription", formData.metaDescription || "");
-            fd.append("keywords", formData.keywords?.join(",") || "");
-            fd.append("skuMaster", formData.skuMaster || "");
             fd.append("status", formData.status);
-            fd.append("price_per", formData.price_per ? Number(formData.price_per).toString() : "");
-            fd.append("price_of", formData.price_of ? Number(formData.price_of).toString() : "");
-            fd.append("brand", formData.brand || "");
-            fd.append("ean", formData.ean || "");
-            fd.append("weight", formData.weight || "0");
-            fd.append("length", formData.length || "0");
-            fd.append("width", formData.width || "0");
-            fd.append("height", formData.height || "0");
-            fd.append("stock", formData.stock || "0");
-            fd.append("mainPromotion_id", formData.mainPromotion_id || "");
-            fd.append("categoryIds", JSON.stringify(formData.categories));
+
             fd.append("descriptionBlocks", JSON.stringify(
                 formData.productDescriptions.map(d => ({
                     title: d.title,
                     description: d.description,
                 })) || []
             ));
-            fd.append("description", formData.description || "Sem descrição");
 
-            // Vídeos globais (garantir array mesmo vazio)
-            fd.append("videoUrls", JSON.stringify(globalVideoUrls));
+            // 2. Campos numéricos com tratamento especial
+            const numericFields = {
+                price_per: formData.price_per,
+                price_of: formData.price_of,
+                weight: formData.weight,
+                length: formData.length,
+                width: formData.width,
+                height: formData.height,
+                stock: formData.stock
+            };
 
-            // Imagens principais (novas) com nome correto
-            formData.newImages.forEach((file, index) => {
-                fd.append(`imageFiles`, file); // Nome compatível com o esperado pelo backend
+            Object.entries(numericFields).forEach(([key, value]) => {
+                fd.append(key, value ? Number(value).toString() : "0");
             });
 
-            // Variantes (corrigir estrutura de dados)
-            const variantsPayload = formData.variants.map(v => ({
-                id: v.id || undefined,
-                sku: v.sku,
-                price_per: Number(v.price_per),
-                price_of: v.price_of ? Number(v.price_of) : null,
-                ean: v.ean || null,
-                stock: v.stock ? Number(v.stock) : 0,
-                allowBackorders: Boolean(v.allowBackorders),
-                sortOrder: v.sortOrder ? Number(v.sortOrder) : 0,
-                mainPromotion_id: v.mainPromotion_id || null,
-                attributes: v.variantAttributes,
-                videoUrls: v.videos.map(x => x.url)
-            }));
-            fd.append("variants", JSON.stringify(variantsPayload));
+            fd.append("mainPromotion_id", formData.mainPromotion_id || "");
 
-            // Imagens de variantes (nomeação correta)
-            formData.variants.forEach((variant, idx) => {
-    variant.newImages.forEach((file: File) => {
-        // Criar novo File com nome modificado
-        const renamedFile = new File([file], `${idx}___${file.name}`, { 
-            type: file.type,
-            lastModified: file.lastModified
-        });
-        fd.append(`variantImageFiles`, renamedFile); // Nome do campo sem índice
-    });
-});
+            // 4. Demais campos
+            fd.append("metaTitle", formData.metaTitle || "");
+            fd.append("metaDescription", formData.metaDescription || "");
+            fd.append("keywords", JSON.stringify(formData.keywords || []));
+            fd.append("skuMaster", formData.skuMaster || "");
+            fd.append("brand", formData.brand || "");
+            fd.append("ean", formData.ean || "");
+            fd.append("categoryIds", JSON.stringify(formData.categories));
 
-            // Relações (validar estrutura)
+            // 5. Vídeos - Mantém os existentes e adiciona novos
+            const currentVideos = formData.videos.filter(v => v.url !== "");
+            fd.append("videoUrls", JSON.stringify(currentVideos.map(v => v.url)));
+
+            // 6. Imagens existentes
+            const currentImages = formData.existingImages.filter(img => img.url !== "");
+            fd.append("imageUrls", JSON.stringify(currentImages.map(img => img.url)));
+
+            // 7. Novas imagens
+            formData.newImages.forEach(file => {
+                fd.append("imageFiles", file);
+            });
+
+            // 7. Variantes (só envia se houver conteúdo)
+            if (formData.variants.length > 0) {
+                const variantsPayload = formData.variants.map(v => ({
+                    id: v.id,
+                    sku: v.sku,
+                    price_per: Number(v.price_per) || 0,
+                    price_of: Number(v.price_of) || null,
+                    ean: v.ean || "",
+                    stock: Number(v.stock) || 0,
+                    allowBackorders: Boolean(v.allowBackorders),
+                    sortOrder: Number(v.sortOrder) || 0,
+                    attributes: v.variantAttributes,
+                    videoUrls: v.videos.map(x => x.url)
+                }));
+
+                fd.append("variants", JSON.stringify(variantsPayload));
+
+                // Imagens de variantes
+                formData.variants.forEach((variant, idx) => {
+                    variant.newImages.forEach(file => {
+                        const renamedFile = new File(
+                            [file],
+                            `${idx}___${file.name}`,
+                            { type: file.type }
+                        );
+                        fd.append("variantImageFiles", renamedFile);
+                    });
+                });
+            }
+
+            // 8. Relações (formato corrigido)
             const relationsPayload = relations.map(r => ({
-                parentId: tab === 'child' ? r.parentId : product_id,
-                childId: tab === 'child' ? product_id : r.childId,
+                parentId: r.parentId || product_id,
+                childId: r.childId || product_id,
                 relationType: r.relationType,
                 sortOrder: Number(r.sortOrder),
                 isRequired: Boolean(r.isRequired),
             }));
+
             fd.append("relations", JSON.stringify(relationsPayload));
 
-            const keptImageUrls = formData.existingImages.map(img => img.url);
-            const initialImages = initialProductData.images.map((img: any) => img.url);
-            const deletedMainImages = initialImages.filter((url: string) => !keptImageUrls.includes(url));
-
-            deletedMainImages.forEach((url: string | Blob) => {
-                fd.append("deletedMainImages", url);
-            });
-
-            // Debug: Verificar FormData antes do envio
-            const formDataEntries = Array.from(fd.entries());
-            console.log("Conteúdo do FormData:", formDataEntries);
+            // 9. Debug final
+            console.log("Dados enviados:", Array.from(fd.entries()));
 
             await api.put("/product/update", fd, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                },
+                headers: { "Content-Type": "multipart/form-data" }
             });
 
             toast.success("Produto atualizado com sucesso!");
-            /* router.push("/products"); */
+            router.refresh();
+
         } catch (err) {
             console.error("Erro detalhado:", err);
-            toast.error("Erro ao atualizar produto! Verifique o console.");
+            toast.error("Falha na atualização. Verifique o console.");
         }
         setLoading(false);
     }
@@ -666,7 +673,7 @@ export default function UpdateProduct() {
                                         const key = Array.from(keys)[0]?.toString() || "";
                                         updateField("mainPromotion_id", key);
                                     }}
-                                    items={promotions} // Adicione esta linha
+                                    items={promotions}
                                 >
                                     {(promotion) => (
                                         <SelectItem
@@ -800,38 +807,61 @@ export default function UpdateProduct() {
                     <div className="bg-white p-6 rounded-lg shadow border">
                         <h3 className="font-semibold mb-2 text-black">Vídeos</h3>
                         {formData.videos.map((v, i) => (
-                            <div key={i} className="flex items-center gap-2 mb-2">
-                                <input
-                                    type="url"
-                                    className="border p-2 rounded flex-1 text-black"
-                                    value={v.url}
-                                    pattern="^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+"
-                                    onChange={e => {
-                                        const arr = [...formData.videos];
-                                        const url = e.target.value;
-                                        const idm = url.match(/v=([^&]+)/);
-                                        arr[i] = {
-                                            url,
-                                            thumbnail: idm ? `https://img.youtube.com/vi/${idm[1]}/0.jpg` : undefined,
-                                        };
-                                        setFormData(f => ({ ...f, videos: arr }));
-                                    }}
-                                />
-                                <Button
-                                    size="sm"
-                                    isIconOnly
-                                    onClick={() =>
-                                        setFormData(f => ({
-                                            ...f,
-                                            videos: f.videos.filter((_, idx) => idx !== i),
-                                        }))
-                                    }
-                                >
-                                    <TrashIcon className="w-4 h-4" color="red" />
-                                </Button>
+                            <div key={i} className="flex items-center gap-4 mb-4"> {/* Aumente o gap e alterei a margem */}
+                                {/* Thumbnail preview */}
+                                {v.thumbnail && (
+                                    <img
+                                        src={v.thumbnail}
+                                        className="w-24 h-16 object-cover rounded"
+                                        alt="Thumbnail do vídeo"
+                                    />
+                                )}
+
+                                <div className="flex items-center gap-2 flex-1">
+                                    <input
+                                        type="url"
+                                        className="border p-2 rounded flex-1 text-black"
+                                        value={v.url}
+                                        placeholder="URL do YouTube"
+                                        pattern="^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+"
+                                        onChange={e => {
+                                            const arr = [...formData.videos];
+                                            const url = e.target.value;
+                                            // Regex melhorada para capturar diferentes formatos de URLs do YouTube
+                                            const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
+                                            arr[i] = {
+                                                url,
+                                                thumbnail: idMatch
+                                                    ? `https://img.youtube.com/vi/${idMatch[1]}/0.jpg`
+                                                    : undefined,
+                                            };
+                                            setFormData(f => ({ ...f, videos: arr }));
+                                        }}
+                                    />
+                                    <Button
+                                        size="sm"
+                                        isIconOnly
+                                        onClick={() =>
+                                            setFormData(f => ({
+                                                ...f,
+                                                videos: f.videos.filter((_, idx) => idx !== i),
+                                            }))
+                                        }
+                                    >
+                                        <TrashIcon className="w-4 h-4" color="red" />
+                                    </Button>
+                                </div>
                             </div>
                         ))}
-                        <Button className="text-indigo-600 font-medium" size="sm" startContent={<PlusIcon color="red" />} onClick={() => setFormData(f => ({ ...f, videos: [...f.videos, emptyVideo] }))}>
+                        <Button
+                            className="text-indigo-600 font-medium"
+                            size="sm"
+                            startContent={<PlusIcon color="red" />}
+                            onClick={() => setFormData(f => ({
+                                ...f,
+                                videos: [...f.videos, { url: '', thumbnail: '' }] // Garantir estrutura inicial
+                            }))}
+                        >
                             Adicionar Vídeo
                         </Button>
                     </div>
