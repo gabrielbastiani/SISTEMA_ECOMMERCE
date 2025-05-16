@@ -221,8 +221,6 @@ export default function UpdateProduct() {
             const prodRes = await api.get(`/product/cms/get?product_id=${product_id}`);
             const p = prodRes.data;
 
-            console.log(p)
-
             // 3. Extrair IDs corretamente de category_id (não de category.id)
             const productCategoryIds = p.categories
                 .map((c: any) => String(c.category_id)) // Alteração crítica aqui
@@ -275,9 +273,8 @@ export default function UpdateProduct() {
                     title: d.title,
                     description: d.description,
                 })),
-                // No useEffect, substituir o mapeamento de variants por:
                 variants: p.variants.map((v: any) => ({
-                    id: v.id, // Adicionar ID da variante
+                    id: v.id,
                     sku: v.sku,
                     price_per: v.price_per.toString(),
                     price_of: v.price_of?.toString() || "",
@@ -294,11 +291,10 @@ export default function UpdateProduct() {
                             altText: img.altText
                         })),
                     newImages: [],
-                    // Corrigir mapeamento de atributos
-                    variantAttributes: v.attributes
-                        ? v.attributes.map((a: any) => ({ key: a.key, value: a.value }))
-                        : [],
-                    // Mapear imagens da variante filtrando pelo variant_id
+                    variantAttributes: v.variantAttribute.map((a: any) => ({ // Corrigido para variantAttribute
+                        key: a.key,
+                        value: a.value
+                    })),
                     images: p.images
                         .filter((img: any) => img.variant_id === v.id)
                         .map((img: any) => ({
@@ -418,8 +414,9 @@ export default function UpdateProduct() {
             fd.append("videoUrls", JSON.stringify(currentVideos.map(v => v.url)));
 
             // 6. Imagens existentes
-            const currentImages = formData.existingImages.filter(img => img.url !== "");
-            fd.append("imageUrls", JSON.stringify(currentImages.map(img => img.url)));
+            fd.append("imageUrls", JSON.stringify(
+                formData.existingImages.map(img => img.url) // Apenas imagens principais
+            ));
 
             // 7. Novas imagens
             formData.newImages.forEach(file => {
@@ -437,8 +434,9 @@ export default function UpdateProduct() {
                     stock: Number(v.stock) || 0,
                     allowBackorders: Boolean(v.allowBackorders),
                     sortOrder: Number(v.sortOrder) || 0,
-                    attributes: v.variantAttributes,
-                    videoUrls: v.videos.map(x => x.url)
+                    variantAttributes: v.variantAttributes,
+                    videoUrls: v.videos.map(x => x.url),
+                    imageUrls: v.existingImages.map(img => img.url)
                 }));
 
                 fd.append("variants", JSON.stringify(variantsPayload));
@@ -466,6 +464,16 @@ export default function UpdateProduct() {
             }));
 
             fd.append("relations", JSON.stringify(relationsPayload));
+
+            const hasEmptyAttributes = formData.variants.some(v =>
+                v.variantAttributes.some(attr => !attr.key.trim() || !attr.value.trim())
+            );
+
+            if (hasEmptyAttributes) {
+                toast.error("Por favor, preencha todos os campos dos atributos das variantes");
+                setLoading(false);
+                return;
+            }
 
             // 9. Debug final
             console.log("Dados enviados:", Array.from(fd.entries()));
@@ -1092,43 +1100,58 @@ export default function UpdateProduct() {
                                         </Checkbox>
                                     </div>
 
+                                    {/* Dentro do AccordionItem das variantes */}
                                     <div className="mb-4">
                                         <h4 className="font-medium mb-2 text-black">Atributos</h4>
                                         {variant.variantAttributes.map((at, ai) => (
                                             <div key={ai} className="flex gap-2 mb-2">
                                                 <Input
-                                                    placeholder="Chave"
+                                                    placeholder="Chave (ex: Cor, Tamanho)"
                                                     value={at.key}
                                                     onChange={e => {
                                                         const arr = [...formData.variants];
                                                         arr[vi].variantAttributes[ai].key = e.target.value;
                                                         setFormData(f => ({ ...f, variants: arr }));
                                                     }}
+                                                    className="flex-1"
                                                 />
                                                 <Input
-                                                    placeholder="Valor"
+                                                    placeholder="Valor (ex: Azul, 40mm)"
                                                     value={at.value}
                                                     onChange={e => {
                                                         const arr = [...formData.variants];
                                                         arr[vi].variantAttributes[ai].value = e.target.value;
                                                         setFormData(f => ({ ...f, variants: arr }));
                                                     }}
+                                                    className="flex-1"
                                                 />
-                                                <Button size="sm" isIconOnly onClick={() => {
-                                                    const arr = [...formData.variants];
-                                                    arr[vi].variantAttributes.splice(ai, 1);
-                                                    setFormData(f => ({ ...f, variants: arr }));
-                                                }}>
-                                                    <TrashIcon color="red" className="w-4 h-4" />
+                                                <Button
+                                                    size="sm"
+                                                    isIconOnly
+                                                    onClick={() => {
+                                                        const arr = [...formData.variants];
+                                                        arr[vi].variantAttributes.splice(ai, 1);
+                                                        setFormData(f => ({ ...f, variants: arr }));
+                                                    }}
+                                                    aria-label="Remover atributo"
+                                                >
+                                                    <TrashIcon className="w-4 h-4 text-red-500" />
                                                 </Button>
                                             </div>
                                         ))}
-                                        <Button className="text-indigo-600" size="sm" startContent={<PlusIcon color="red" />} onClick={() => {
-                                            const arr = [...formData.variants];
-                                            arr[vi].variantAttributes.push({ key: "", value: "" });
-                                            setFormData(f => ({ ...f, variants: arr }));
-                                        }}>
-                                            Adicionar Atributo
+                                        <Button
+                                            className="mt-2"
+                                            startContent={<PlusIcon className="w-4 h-4" />}
+                                            onClick={() => {
+                                                const arr = [...formData.variants];
+                                                arr[vi].variantAttributes.push({
+                                                    key: "",
+                                                    value: ""
+                                                });
+                                                setFormData(f => ({ ...f, variants: arr }));
+                                            }}
+                                        >
+                                            Adicionar Novo Atributo
                                         </Button>
                                     </div>
 
