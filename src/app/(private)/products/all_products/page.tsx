@@ -274,14 +274,14 @@ export default function All_products() {
                                 label: "Estoque"
                             },
                             {
-                                key: "price_per",
+                                key: "price_of",
                                 label: "Preço",
                                 render: (item) => (
                                     <span>
                                         {new Intl.NumberFormat('pt-BR', {
                                             style: 'currency',
                                             currency: 'BRL'
-                                        }).format(item.price_per || 0)}
+                                        }).format(item.price_of || 0)}
                                     </span>
                                 ),
                             },
@@ -290,7 +290,7 @@ export default function All_products() {
                                 label: "Variantes",
                                 render: (item: ProductProps) => (
                                     <>
-                                        <span>{item.variants?.length}</span>
+                                        <span className='m-9'>{item.variants?.length}</span>
                                     </>
                                 )
                             },
@@ -298,7 +298,7 @@ export default function All_products() {
                                 key: 'parentRelations',
                                 label: 'Produtos Pais',
                                 render: (item) => (
-                                    <span>
+                                    <span className='m-9'>
                                         {item.parentRelations?.length || 0}
                                     </span>
                                 ),
@@ -307,7 +307,7 @@ export default function All_products() {
                                 key: 'childProduct',
                                 label: 'Produtos Filhos',
                                 render: (item) => (
-                                    <span>
+                                    <span className='m-9'>
                                         {item.childProduct?.length || 0}
                                     </span>
                                 ),

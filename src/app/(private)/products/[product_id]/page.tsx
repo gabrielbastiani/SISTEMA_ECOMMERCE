@@ -221,6 +221,8 @@ export default function UpdateProduct() {
             const prodRes = await api.get(`/product/cms/get?product_id=${product_id}`);
             const p = prodRes.data;
 
+            console.log(p)
+
             // 3. Extrair IDs corretamente de category_id (não de category.id)
             const productCategoryIds = p.categories
                 .map((c: any) => String(c.category_id)) // Alteração crítica aqui
@@ -249,22 +251,26 @@ export default function UpdateProduct() {
                 mainPromotion_id: p.mainPromotion_id || "",
                 categories: productCategoryIds,
                 description: p.description,
-                existingImages: p.images.map((img: any) => ({
-                    url: img.url,
-                    altText: img.altText,
-                })),
+                existingImages: p.images
+                    .filter((img: any) => img.variant_id === null)
+                    .map((img: any) => ({
+                        id: img.id,
+                        url: img.url,
+                        altText: img.altText,
+                    })),
                 newImages: [],
-                videos: p.videos.map((v: any) => {
-                    const url = v.url;
-                    // Usar a mesma regex do input
-                    const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
-                    return {
-                        url,
-                        thumbnail: idMatch
-                            ? `https://img.youtube.com/vi/${idMatch[1]}/0.jpg`
-                            : ''
-                    };
-                }),
+                videos: p.videos
+                    .filter((vid: any) => vid.variant_id === null)
+                    .map((v: any) => {
+                        const url = v.url;
+                        const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
+                        return {
+                            url,
+                            thumbnail: idMatch
+                                ? `https://img.youtube.com/vi/${idMatch[1]}/0.jpg`
+                                : ''
+                        };
+                    }),
                 productDescriptions: p.productsDescriptions.map((d: any) => ({
                     title: d.title,
                     description: d.description,
@@ -807,13 +813,15 @@ export default function UpdateProduct() {
                     <div className="bg-white p-6 rounded-lg shadow border">
                         <h3 className="font-semibold mb-2 text-black">Vídeos</h3>
                         {formData.videos.map((v, i) => (
-                            <div key={i} className="flex items-center gap-4 mb-4"> {/* Aumente o gap e alterei a margem */}
+                            <div key={i} className="flex items-center gap-4 mb-4">
                                 {/* Thumbnail preview */}
                                 {v.thumbnail && (
-                                    <img
+                                    <Image
                                         src={v.thumbnail}
                                         className="w-24 h-16 object-cover rounded"
                                         alt="Thumbnail do vídeo"
+                                        width={50}
+                                        height={50}
                                     />
                                 )}
 
@@ -1132,33 +1140,50 @@ export default function UpdateProduct() {
                                     <div className="mb-4">
                                         <h4 className="font-medium mb-2 text-black">Vídeos da Variante</h4>
                                         {variant.videos.map((vid, vj) => (
-                                            <div key={vj} className="flex items-center gap-2 mb-2">
-                                                <input
-                                                    type="url"
-                                                    className="border p-2 rounded flex-1"
-                                                    value={vid.url}
-                                                    onChange={e => {
-                                                        const arr = [...formData.variants];
-                                                        const url = e.target.value;
-                                                        const idm = url.match(/v=([^&]+)/);
-                                                        arr[vi].videos[vj] = {
-                                                            url,
-                                                            thumbnail: idm ? `https://img.youtube.com/vi/${idm[1]}/0.jpg` : undefined,
-                                                        };
-                                                        setFormData(f => ({ ...f, variants: arr }));
-                                                    }}
-                                                />
-                                                <Button
-                                                    size="sm"
-                                                    isIconOnly
-                                                    onClick={() => {
-                                                        const arr = [...formData.variants];
-                                                        arr[vi].videos.splice(vj, 1);
-                                                        setFormData(f => ({ ...f, variants: arr }));
-                                                    }}
-                                                >
-                                                    <TrashIcon color="red" className="w-4 h-4" />
-                                                </Button>
+                                            <div key={vj} className="flex items-center gap-4 mb-4">
+                                                {/* Thumbnail preview - igual ao do produto */}
+                                                {vid.thumbnail && (
+                                                    <Image
+                                                        src={vid.thumbnail}
+                                                        className="w-24 h-16 object-cover rounded"
+                                                        alt="Thumbnail do vídeo"
+                                                        width={96}
+                                                        height={64}
+                                                    />
+                                                )}
+
+                                                <div className="flex items-center gap-2 flex-1">
+                                                    <input
+                                                        type="url"
+                                                        className="border p-2 rounded flex-1 text-black"
+                                                        placeholder="URL do YouTube"
+                                                        pattern="^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+"
+                                                        value={vid.url}
+                                                        onChange={e => {
+                                                            const arr = [...formData.variants];
+                                                            const url = e.target.value;
+                                                            const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
+                                                            arr[vi].videos[vj] = {
+                                                                url,
+                                                                thumbnail: idMatch
+                                                                    ? `https://img.youtube.com/vi/${idMatch[1]}/0.jpg`
+                                                                    : undefined,
+                                                            };
+                                                            setFormData(f => ({ ...f, variants: arr }));
+                                                        }}
+                                                    />
+                                                    <Button
+                                                        size="sm"
+                                                        isIconOnly
+                                                        onClick={() => {
+                                                            const arr = [...formData.variants];
+                                                            arr[vi].videos.splice(vj, 1);
+                                                            setFormData(f => ({ ...f, variants: arr }));
+                                                        }}
+                                                    >
+                                                        <TrashIcon color="red" className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
                                             </div>
                                         ))}
                                         <Button className="text-indigo-600" size="sm" startContent={<PlusIcon />} onClick={() => {

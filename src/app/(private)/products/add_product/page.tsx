@@ -52,6 +52,7 @@ interface VideoInput {
   thumbnail?: string;
 }
 interface VariantFormData {
+  id: string;
   sku: string;
   price_per: string;
   price_of?: string;
@@ -115,6 +116,29 @@ export default function Add_product() {
   const [tab, setTab] = useState<'child' | 'parent'>('child');
   const [promotions, setPromotions] = useState<PromotionOption[]>([]);
 
+  const generateId = () => Math.random().toString(36).substr(2, 9);
+
+  const removeVariant = (index: number) => {
+    setFormData(prev => {
+      const newVariants = [...prev.variants];
+      const removedVariant = newVariants.splice(index, 1)[0];
+
+      // Limpa referências das imagens da variante removida
+      if (removedVariant.images) {
+        removedVariant.images.forEach(file => {
+          if (file instanceof File) {
+            URL.revokeObjectURL(URL.createObjectURL(file));
+          }
+        });
+      }
+
+      return {
+        ...prev,
+        variants: newVariants,
+      };
+    });
+  };
+
   useEffect(() => {
     const api = setupAPIClientEcommerce();
     api.get('/promotions')
@@ -169,16 +193,28 @@ export default function Add_product() {
     }
     setLoading(true);
 
+    const validVariants = formData.variants.filter(variant =>
+      variant.sku.trim() !== '' &&
+      variant.price_per.trim() !== ''
+    );
+
+    const formDataToSubmit = {
+      ...formData,
+      variants: validVariants,
+      images: [...formData.images],
+      categories: [...formData.categories]
+    };
+
     try {
       const apiClient = setupAPIClientEcommerce();
       const formPayload = new FormData();
 
       // 1) Campos simples
-      formPayload.append('name', formData.name);
-      formPayload.append('slug', formData.slug || '');
-      formPayload.append('description', formData.description);
-      formPayload.append('price_per', formData.price_per);
-      formPayload.append('price_of', formData.price_of || '');
+      formPayload.append('name', formDataToSubmit.name);
+      formPayload.append('slug', formDataToSubmit.slug || '');
+      formPayload.append('description', formDataToSubmit.description);
+      formPayload.append('price_per', formDataToSubmit.price_per);
+      formPayload.append('price_of', formDataToSubmit.price_of || '');
       formPayload.append('metaTitle', formData.metaTitle || '');
       formPayload.append('metaDescription', formData.metaDescription || '');
       formPayload.append('keywords', JSON.stringify(formData.keywords?.split(',').map(k => k.trim()) || []));
@@ -220,16 +256,16 @@ export default function Add_product() {
       formData.videos.forEach(v => formPayload.append('videoUrls', v.url));
 
       // 3) Arquivos de imagem do produto
-      formData.images.forEach(file => {
+      formDataToSubmit.images.forEach(file => {
         formPayload.append('imageFiles', file);
       });
 
       // 4) Arquivos de imagem de variantes
-      formData.variants.forEach((variant, index) => {
+      formDataToSubmit.variants.forEach((variant, index) => {
         variant.images.forEach(file => {
           const renamed = new File(
             [file],
-            `${index}___${file.name}`,
+            `${index}___${file.name}`, // Mantém o índice relativo às variantes válidas
             { type: file.type }
           );
           formPayload.append('variantImageFiles', renamed);
@@ -262,6 +298,7 @@ export default function Add_product() {
       variants: [
         ...prev.variants,
         {
+          id: generateId(),
           sku: '',
           price_per: '',
           price_of: '',
@@ -841,13 +878,33 @@ export default function Add_product() {
               </Button>
             </div>
 
-            <Accordion selectionMode="multiple">
+            <Accordion selectionMode="multiple" variant="splitted">
               {formData.variants.map((variant, index) => (
-                <AccordionItem key={index} title={
-                  <span className="text-black">
-                    Variante {index + 1}
-                  </span>
-                }>
+                <AccordionItem
+                  key={variant.id} // Usando ID único estático
+                  aria-label={variant.sku || `Variante ${index + 1}`}
+                  title={
+                    <div className="flex justify-between items-center w-full">
+                      <div className="flex items-center gap-2">
+                        <span className="text-black">
+                          {variant.sku || `Variante ${index + 1}`}
+                        </span>
+                      </div>
+                      <Button
+                        isIconOnly
+                        size="sm"
+                        className="bg-transparent hover:bg-gray-200"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          removeVariant(index)
+                        }}
+                      >
+                        <TrashIcon className="w-4 h-4 text-red-500" />
+                      </Button>
+                    </div>
+                  }
+                >
                   <VariantForm
                     variant={variant}
                     index={index}
@@ -1028,17 +1085,25 @@ const VariantForm = ({ variant, index, formData, setFormData, promotions }: {
     }
   })
 
+  const [localSku, setLocalSku] = useState(variant.sku);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const newVariants = [...formData.variants]
+      newVariants[index].sku = localSku
+      setFormData({ ...formData, variants: newVariants })
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [localSku])
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-black border-black border-2">
         <Input
           placeholder="SKU"
-          value={variant.sku}
-          onChange={(e) => {
-            const newVariants = [...formData.variants]
-            newVariants[index].sku = e.target.value
-            setFormData({ ...formData, variants: newVariants })
-          }}
+          value={localSku}
+          onChange={(e) => setLocalSku(e.target.value)}
           required
         />
 
