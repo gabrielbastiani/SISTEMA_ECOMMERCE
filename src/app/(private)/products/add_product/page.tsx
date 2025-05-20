@@ -50,6 +50,7 @@ const initialFormData: ProductFormData = {
 interface VideoInput {
   url: string;
   thumbnail?: string;
+  isPrimary: boolean;
 }
 interface VariantFormData {
   id: string;
@@ -61,7 +62,7 @@ interface VariantFormData {
   allowBackorders?: boolean;
   sortOrder?: string;
   mainPromotion_id?: string;
-  variantAttributes: Array<{ key: string; value: string }>;
+  variantAttributes: AttributeInput[];
   images: File[];
   videos: VideoInput[];
 }
@@ -104,6 +105,12 @@ interface RelationFormData {
   isRequired: boolean;
 }
 
+interface AttributeInput {
+  key: string;
+  value: string;
+  image?: File;
+}
+
 type PromotionOption = { id: string; name: string };
 
 export default function Add_product() {
@@ -115,6 +122,11 @@ export default function Add_product() {
   const [allProducts, setAllProducts] = useState<{ id: string; name: string }[]>([]);
   const [tab, setTab] = useState<'child' | 'parent'>('child');
   const [promotions, setPromotions] = useState<PromotionOption[]>([]);
+  const [variantVideos, setVariantVideos] = useState<VideoInput[]>([]);
+
+  const addVariantVideo = () => {
+  setVariantVideos([...variantVideos, { url: '', isPrimary: false }]);
+};
 
   const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -184,7 +196,6 @@ export default function Add_product() {
   const add = () => setRelations(r => [...r, { relationType: 'VARIANT', sortOrder: 0, isRequired: false }])
   const remove = (i: number) => setRelations(r => r.filter((_, j) => j !== i))
 
-  // Submit do formulário
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (relations.some((r) => !r.parentId && !r.childId)) {
@@ -193,99 +204,114 @@ export default function Add_product() {
     }
     setLoading(true);
 
-    const validVariants = formData.variants.filter(variant =>
-      variant.sku.trim() !== '' &&
-      variant.price_per.trim() !== ''
-    );
-
-    const formDataToSubmit = {
-      ...formData,
-      variants: validVariants,
-      images: [...formData.images],
-      categories: [...formData.categories]
-    };
-
     try {
       const apiClient = setupAPIClientEcommerce();
       const formPayload = new FormData();
 
-      // 1) Campos simples
-      formPayload.append('name', formDataToSubmit.name);
-      formPayload.append('slug', formDataToSubmit.slug || '');
-      formPayload.append('description', formDataToSubmit.description);
-      formPayload.append('price_per', formDataToSubmit.price_per);
-      formPayload.append('price_of', formDataToSubmit.price_of || '');
-      formPayload.append('metaTitle', formData.metaTitle || '');
-      formPayload.append('metaDescription', formData.metaDescription || '');
-      formPayload.append('keywords', JSON.stringify(formData.keywords?.split(',').map(k => k.trim()) || []));
-      formPayload.append('brand', formData.brand || '');
-      formPayload.append('ean', formData.ean || '');
-      formPayload.append('skuMaster', formData.skuMaster || '');
-      formPayload.append('weight', formData.weight || '');
-      formPayload.append('length', formData.length || '');
-      formPayload.append('width', formData.width || '');
-      formPayload.append('height', formData.height || '');
-      formPayload.append('stock', formData.stock || '');
-      formPayload.append('status', formData.status || 'DISPONIVEL');
-      formPayload.append('mainPromotion_id', formData.mainPromotion_id || '');
+      // 1. Campos básicos do produto
+      formPayload.append('name', formData.name);
+      formPayload.append('description', formData.description);
+      formPayload.append('price_per', formData.price_per);
+
+      // Campos opcionais
+      if (formData.slug) formPayload.append('slug', formData.slug);
+      if (formData.price_of) formPayload.append('price_of', formData.price_of);
+      if (formData.metaTitle) formPayload.append('metaTitle', formData.metaTitle);
+      if (formData.metaDescription) formPayload.append('metaDescription', formData.metaDescription);
+      if (formData.keywords) formPayload.append('keywords', JSON.stringify(formData.keywords.split(',').map(k => k.trim())));
+      if (formData.brand) formPayload.append('brand', formData.brand);
+      if (formData.ean) formPayload.append('ean', formData.ean);
+      if (formData.skuMaster) formPayload.append('skuMaster', formData.skuMaster);
+      if (formData.weight) formPayload.append('weight', formData.weight);
+      if (formData.length) formPayload.append('length', formData.length);
+      if (formData.width) formPayload.append('width', formData.width);
+      if (formData.height) formPayload.append('height', formData.height);
+      if (formData.stock) formPayload.append('stock', formData.stock);
+      if (formData.status) formPayload.append('status', formData.status);
+      if (formData.mainPromotion_id) formPayload.append('mainPromotion_id', formData.mainPromotion_id);
+
+      // 2. Campos complexos
       formPayload.append('categoryIds', JSON.stringify(formData.categories));
-      formPayload.append('descriptionBlocks', JSON.stringify(
+      formPayload.append('descriptions', JSON.stringify(
         formData.productDescriptions.map(d => ({
           title: d.title,
-          description: d.description
+          description: d.description,
+          status: d.status || 'DISPONIVEL'
+        }))
+      ));
+      formPayload.append('relations', JSON.stringify(
+        relations.map(r => ({
+          parentId: r.parentId,
+          childId: r.childId,
+          type: r.relationType || 'VARIANT',
+          sortOrder: r.sortOrder || 0,
+          isRequired: r.isRequired || false
         }))
       ));
       formPayload.append('variants', JSON.stringify(
-        formData.variants.map(v => ({
-          sku: v.sku,
-          price_per: Number(v.price_per),
-          price_of: v.price_of ? Number(v.price_of) : undefined,
-          ean: v.ean || undefined,
-          stock: v.stock ? Number(v.stock) : 0,
-          allowBackorders: v.allowBackorders || false,
-          sortOrder: v.sortOrder ? Number(v.sortOrder) : 0,
-          mainPromotion_id: v.mainPromotion_id || undefined,
-          attributes: v.variantAttributes,  // <— envia para o service criar VariantAttribute
-          videoUrls: v.videos.map(x => x.url),  // <— URLs para ProductVideo
-        }))
+        formData.variants
+          .filter(variant => variant.sku.trim() && variant.price_per.trim())
+          .map(variant => ({
+            sku: variant.sku,
+            price_per: Number(variant.price_per),
+            price_of: variant.price_of ? Number(variant.price_of) : undefined,
+            ean: variant.ean || undefined,
+            stock: variant.stock ? Number(variant.stock) : 0,
+            allowBackorders: variant.allowBackorders || false,
+            sortOrder: variant.sortOrder ? Number(variant.sortOrder) : 0,
+            mainPromotion_id: variant.mainPromotion_id || undefined,
+            images: variant.images.map((_, index) => ({
+              url: `variant-${variant.sku}-${index}`,
+              isPrimary: index === 0
+            })),
+            videos: variant.videos.map(vid => ({
+              url: vid.url,
+              isPrimary: vid.isPrimary || false
+            })),
+            attributes: variant.variantAttributes.map(attr => ({
+              key: attr.key,
+              value: attr.value,
+              isPrimaryImage: !!attr.image,
+              attributeImageUrl: attr.image ? `attribute-${variant.sku}-${attr.key}` : undefined
+            }))
+          }))
       ));
 
-      formPayload.append('relations', JSON.stringify(relations));
+      // 3. Arquivos
+      formData.images.forEach(file => formPayload.append('images', file));
 
-      // vídeos globais
-      formData.videos.forEach(v => formPayload.append('videoUrls', v.url));
+      formData.variants.forEach((variant, variantIndex) => {
+        variant.images.forEach((file, fileIndex) => {
+          const renamed = new File([file], `variant-${variantIndex}-${fileIndex}___${file.name}`);
+          formPayload.append('variantImages', renamed);
+        });
 
-      // 3) Arquivos de imagem do produto
-      formDataToSubmit.images.forEach(file => {
-        formPayload.append('imageFiles', file);
-      });
-
-      // 4) Arquivos de imagem de variantes
-      formDataToSubmit.variants.forEach((variant, index) => {
-        variant.images.forEach(file => {
-          const renamed = new File(
-            [file],
-            `${index}___${file.name}`, // Mantém o índice relativo às variantes válidas
-            { type: file.type }
-          );
-          formPayload.append('variantImageFiles', renamed);
+        variant.variantAttributes.forEach((attr, attrIndex) => {
+          if (attr.image) {
+            const renamed = new File(
+              [attr.image],
+              `attribute-${variantIndex}-${attrIndex}___${attr.image.name}`
+            );
+            formPayload.append('attributeImages', renamed);
+          }
         });
       });
 
-      /* console.log(formData) */
+      console.log(formPayload)
 
-      // 5) Chama o endpoint correto
+      // 4. Envio da requisição
       await apiClient.post('/product/create', formPayload, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        }
       });
 
       toast.success('Produto criado com sucesso!');
-
       setFormData(initialFormData);
 
-    } catch (err) {
-      console.error(err);
-      toast.error('Erro ao cadastrar produto! Verifique os dados e tente novamente.');
+    } catch (err: any) {
+      console.error('Erro detalhado:', err.response?.data || err.message);
+      toast.error(`Erro ao cadastrar: ${err.response?.data?.error || 'Verifique os dados e tente novamente'}`);
     } finally {
       setLoading(false);
     }
@@ -744,11 +770,11 @@ export default function Add_product() {
               </Tooltip>
             </div>
             <h3 className="text-lg font-semibold mb-4">Vídeos</h3>
-            {formData.videos.map((vid, i) => (
-              <div key={i} className="flex items-center space-x-4 mb-4">
+            {formData.videos.map((vid, videoIndex) => (
+              <div key={videoIndex} className="flex items-center space-x-4 mb-4">
                 <input
                   type="url"
-                  placeholder="URL do vídeo (YouTube)"
+                  placeholder="URL do vídeo"
                   value={vid.url}
                   onChange={e => {
                     const url = e.target.value;
@@ -756,16 +782,21 @@ export default function Add_product() {
                     const thumbnail = idMatch
                       ? `https://img.youtube.com/vi/${idMatch[1]}/0.jpg`
                       : undefined;
-                    const vids = [...formData.videos];
-                    vids[i] = { url, thumbnail };
-                    setFormData({ ...formData, videos: vids });
+                    const updatedVideos = [...formData.videos];
+                    updatedVideos[videoIndex] = {
+                      ...vid,
+                      url,
+                      thumbnail,
+                      isPrimary: vid.isPrimary
+                    };
+                    setFormData({ ...formData, videos: updatedVideos });
                   }}
                   className="border p-2 rounded flex-1"
                 />
                 <button
                   type="button"
                   onClick={() => {
-                    const vids = formData.videos.filter((_, idx) => idx !== i);
+                    const vids = formData.videos.filter((_, idx) => idx !== videoIndex);
                     setFormData({ ...formData, videos: vids });
                   }}
                   className="text-red-500"
@@ -781,7 +812,11 @@ export default function Add_product() {
               type="button"
               onClick={() => setFormData(prev => ({
                 ...prev,
-                videos: [...prev.videos, { url: '', thumbnail: '' }]
+                videos: [...prev.videos, {
+                  url: '',
+                  thumbnail: '',
+                  isPrimary: false // Adicionar valor padrão obrigatório
+                }]
               }))}
               className="text-indigo-600 font-medium"
             >
@@ -1069,33 +1104,60 @@ export default function Add_product() {
 }
 
 // Componente de Formulário para Variantes
-const VariantForm = ({ variant, index, formData, setFormData, promotions }: {
+const VariantForm = ({
+  variant,
+  index: variantIndex,
+  formData,
+  setFormData,
+  promotions
+}: {
   variant: ProductFormData['variants'][0]
   index: number
   formData: ProductFormData
   setFormData: React.Dispatch<React.SetStateAction<ProductFormData>>
   promotions: PromotionOption[];
 }) => {
+  const AttributeImageUploader = ({ attrIndex }: { attrIndex: number }) => {
+    const { getRootProps, getInputProps } = useDropzone({
+      accept: { 'image/*': [] },
+      onDrop: (acceptedFiles) => {
+        const newVariants = [...formData.variants];
+        newVariants[variantIndex].variantAttributes[attrIndex].image = acceptedFiles[0]; // Pega primeiro arquivo
+        setFormData({ ...formData, variants: newVariants });
+      },
+      multiple: false // Aceita apenas um arquivo
+    });
+
+    return (
+      <div {...getRootProps()} className="border-2 border-dashed p-2 rounded cursor-pointer">
+        <input {...getInputProps()} />
+        <p className="text-sm text-center text-gray-500">
+          Arraste imagens do atributo ou clique para selecionar
+        </p>
+      </div>
+    );
+  };
+
   const { getRootProps: getVariantImagesRootProps, getInputProps: getVariantImagesInputProps } = useDropzone({
     accept: { 'image/*': [] },
     onDrop: (acceptedFiles) => {
-      const newVariants = [...formData.variants]
-      newVariants[index].images = [...newVariants[index].images, ...acceptedFiles]
-      setFormData({ ...formData, variants: newVariants })
+      const newVariants = [...formData.variants];
+      newVariants[variantIndex].images = [...newVariants[variantIndex].images, ...acceptedFiles];
+      setFormData({ ...formData, variants: newVariants });
     }
-  })
+  });
 
   const [localSku, setLocalSku] = useState(variant.sku);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       const newVariants = [...formData.variants]
-      newVariants[index].sku = localSku
+      newVariants[variantIndex].sku = localSku
       setFormData({ ...formData, variants: newVariants })
     }, 300)
 
     return () => clearTimeout(timeoutId)
-  }, [localSku])
+  }, [localSku]);
 
   return (
     <div className="space-y-4">
@@ -1112,7 +1174,7 @@ const VariantForm = ({ variant, index, formData, setFormData, promotions }: {
           value={variant.mainPromotion_id || ''}
           onChange={e => {
             const v = [...formData.variants];
-            v[index].mainPromotion_id = e.target.value;
+            v[variantIndex].mainPromotion_id = e.target.value;
             setFormData({ ...formData, variants: v });
           }}
         >
@@ -1130,7 +1192,7 @@ const VariantForm = ({ variant, index, formData, setFormData, promotions }: {
             value={Number(variant.price_per) || 0}
             onChange={num => {
               const v = [...formData.variants];
-              v[index].price_per = num.toString();
+              v[variantIndex].price_per = num.toString();
               setFormData({ ...formData, variants: v });
             }}
             placeholder="Preço de"
@@ -1146,7 +1208,7 @@ const VariantForm = ({ variant, index, formData, setFormData, promotions }: {
             value={Number(variant.price_of) || 0}
             onChange={num => {
               const v = [...formData.variants];
-              v[index].price_of = num > 0 ? num.toString() : '';
+              v[variantIndex].price_of = num > 0 ? num.toString() : '';
               setFormData({ ...formData, variants: v });
             }}
             placeholder="Preço por"
@@ -1156,14 +1218,14 @@ const VariantForm = ({ variant, index, formData, setFormData, promotions }: {
         <Input placeholder="EAN" value={variant.ean || ''}
           onChange={e => {
             const v = [...formData.variants];
-            v[index].ean = e.target.value;
+            v[variantIndex].ean = e.target.value;
             setFormData({ ...formData, variants: v });
           }}
         />
         <Input placeholder="Estoque" value={variant.stock || ''}
           onChange={e => {
             const v = [...formData.variants];
-            v[index].stock = e.target.value;
+            v[variantIndex].stock = e.target.value;
             setFormData({ ...formData, variants: v });
           }}
         />
@@ -1172,79 +1234,122 @@ const VariantForm = ({ variant, index, formData, setFormData, promotions }: {
       {/* Vídeos da variante */}
       <div className="mt-4">
         <h4 className="font-medium mb-2">Vídeos da Variante</h4>
-        {variant.videos.map((vid, vi) => (
-          <div key={vi} className="flex items-center space-x-2 mb-2">
-            <input
-              type="url"
-              placeholder="URL do vídeo"
-              value={vid.url}
-              onChange={e => {
-                const url = e.target.value;
-                const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
-                const thumbnail = idMatch
-                  ? `https://img.youtube.com/vi/${idMatch[1]}/0.jpg`
-                  : undefined;
-                const vdos = [...formData.variants];
-                vdos[index].videos[vi] = { url, thumbnail };
-                setFormData({ ...formData, variants: vdos });
-              }}
-              className="border p-1 flex-1 rounded"
-            />
-            <button type="button" onClick={() => {
-              const vdos = [...formData.variants];
-              vdos[index].videos = vdos[index].videos.filter((_, idx) => idx !== vi);
-              setFormData({ ...formData, variants: vdos });
-            }} className="text-red-500">X</button>
-            {vid.thumbnail && <img src={vid.thumbnail} className="w-20 h-12 rounded" />}
-          </div>
+        {variant.videos.map((vid, videoIndex) => (
+          <input
+            key={videoIndex}
+            type="url"
+            placeholder="URL do vídeo"
+            value={vid.url}
+            onChange={e => {
+              const url = e.target.value;
+              const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
+              const thumbnail = idMatch?.length ? `https://img.youtube.com/vi/${idMatch[1]}/0.jpg` : undefined;
+
+              const updatedVariants = [...formData.variants];
+              updatedVariants[variantIndex].videos[videoIndex] = {
+                ...vid,
+                url,
+                thumbnail,
+                isPrimary: vid.isPrimary // Mantém o valor existente
+              };
+              setFormData({ ...formData, variants: updatedVariants });
+            }}
+          />
         ))}
-        <button type="button" onClick={() => {
-          const vdos = [...formData.variants];
-          vdos[index].videos.push({ url: '', thumbnail: '' });
-          setFormData({ ...formData, variants: vdos });
-        }} className="text-indigo-600">+ Adicionar Vídeo</button>
+        <button
+          type="button"
+          onClick={() => setFormData(prev => ({
+            ...prev,
+            videos: [...prev.videos, {
+              url: '',
+              thumbnail: '',
+              isPrimary: false // Adicionar valor padrão
+            }]
+          }))}
+          className="text-indigo-600 font-medium"
+        >
+          Adicionar Vídeo
+        </button>
       </div>
 
+      {/* Seção de Atributos */}
       <div className="bg-gray-50 p-4 rounded-lg">
         <h4 className="font-medium mb-2">Atributos da Variante</h4>
         {variant.variantAttributes.map((attr, attrIndex) => (
-          <div key={attrIndex} className="flex gap-2 mb-2">
-            <Input
-              placeholder="Chave (ex: cor)"
-              value={attr.key}
-              onChange={(e) => {
-                const newVariants = [...formData.variants]
-                newVariants[index].variantAttributes[attrIndex].key = e.target.value
-                setFormData({ ...formData, variants: newVariants })
-              }}
-            />
-            <Input
-              placeholder="Valor (ex: azul)"
-              value={attr.value}
-              onChange={(e) => {
-                const newVariants = [...formData.variants]
-                newVariants[index].variantAttributes[attrIndex].value = e.target.value
-                setFormData({ ...formData, variants: newVariants })
-              }}
-            />
-            <Button
-              size="sm"
-              isIconOnly
-              onClick={() => {
-                const newVariants = [...formData.variants]
-                newVariants[index].variantAttributes.splice(attrIndex, 1)
-                setFormData({ ...formData, variants: newVariants })
-              }}
-            >
-              <TrashIcon className="w-4 h-4" />
-            </Button>
+          <div key={attrIndex} className="mb-4 p-4 border rounded">
+            <div className="flex gap-2 mb-2">
+              <Input
+                placeholder="Chave (ex: cor)"
+                value={attr.key}
+                onChange={(e) => {
+                  const newVariants = [...formData.variants];
+                  newVariants[variantIndex].variantAttributes[attrIndex].key = e.target.value;
+                  setFormData({ ...formData, variants: newVariants });
+                }}
+              />
+              <Input
+                placeholder="Valor (ex: azul)"
+                value={attr.value}
+                onChange={(e) => {
+                  const newVariants = [...formData.variants];
+                  newVariants[variantIndex].variantAttributes[attrIndex].value = e.target.value;
+                  setFormData({ ...formData, variants: newVariants });
+                }}
+              />
+              <Button
+                size="sm"
+                isIconOnly
+                onClick={() => {
+                  const newVariants = [...formData.variants];
+                  newVariants[variantIndex].variantAttributes.splice(attrIndex, 1);
+                  setFormData({ ...formData, variants: newVariants });
+                }}
+              >
+                <TrashIcon className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Upload de imagens para o atributo */}
+            <div className="mt-2">
+
+              <AttributeImageUploader attrIndex={attrIndex} />
+
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                {attr.image && (
+                  <div className="relative group">
+                    <Image
+                      src={URL.createObjectURL(attr.image)}
+                      alt={attr.image.name}
+                      width={100}
+                      height={100}
+                      className="object-cover rounded"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newVariants = [...formData.variants];
+                        newVariants[variantIndex].variantAttributes[attrIndex].image = undefined;
+                        setFormData({ ...formData, variants: newVariants });
+                      }}
+                      className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100"
+                    >
+                      <TrashIcon className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         ))}
         <Button
           onClick={() => {
-            const newVariants = [...formData.variants]
-            newVariants[index].variantAttributes.push({ key: '', value: '' })
-            setFormData({ ...formData, variants: newVariants })
+            const newVariants = [...formData.variants];
+            newVariants[variantIndex].variantAttributes.push({
+              key: '',
+              value: '',
+              image: undefined // Usando a propriedade correta
+            });
+            setFormData({ ...formData, variants: newVariants });
           }}
           startContent={<PlusIcon />}
           size="sm"
@@ -1254,32 +1359,33 @@ const VariantForm = ({ variant, index, formData, setFormData, promotions }: {
         </Button>
       </div>
 
+      {/* Seção de Imagens da Variante */}
       <div className="bg-gray-50 p-4 rounded-lg">
         <h4 className="font-medium mb-2">Imagens da Variante</h4>
-        <div {...getVariantImagesRootProps()} className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer">
+        <div {...getVariantImagesRootProps()} className="border-2 border-dashed p-2 rounded cursor-pointer">
           <input {...getVariantImagesInputProps()} />
-          <UploadIcon className="w-6 h-6 mx-auto text-gray-400" />
-          <p className="text-sm mt-1">Arraste imagens ou clique para selecionar</p>
+          <p className="text-sm text-center text-gray-500">
+            Arraste imagens da variante ou clique para selecionar
+          </p>
         </div>
-
         <div className="grid grid-cols-3 gap-2 mt-4">
           {variant.images.map((file, fileIndex) => (
             <div key={fileIndex} className="relative group">
               <Image
                 src={URL.createObjectURL(file)}
-                alt={file.name || "produto-imagem"}
+                alt={file.name}
                 className="object-cover rounded"
-                height={210}
                 width={210}
+                height={210}
               />
               <button
                 type="button"
                 onClick={() => {
-                  const newVariants = [...formData.variants]
-                  newVariants[index].images.splice(fileIndex, 1)
-                  setFormData({ ...formData, variants: newVariants })
+                  const newVariants = [...formData.variants];
+                  newVariants[variantIndex].images.splice(fileIndex, 1);
+                  setFormData({ ...formData, variants: newVariants });
                 }}
-                className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100"
               >
                 <TrashIcon className="w-3 h-3" />
               </button>
