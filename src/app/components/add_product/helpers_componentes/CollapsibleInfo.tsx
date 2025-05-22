@@ -16,7 +16,7 @@ export function CollapsibleInfo() {
                 onClick={() => setOpen(o => !o)}
             >
                 <InformationCircleIcon className="w-5 h-5" />
-                <span>{open ? 'Ocultar Dicas' : 'Ver Dicas: Variantes x Relações'}</span>
+                <span className='text-orange-400'>{open ? 'Ocultar Dicas' : 'Ver Dicas: Variantes x Relações'}</span>
             </Button>
             {open && <VariantVsRelationInfo />}
         </div>

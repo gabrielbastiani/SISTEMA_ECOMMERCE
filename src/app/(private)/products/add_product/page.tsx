@@ -5,70 +5,14 @@ import { Section } from "@/app/components/section"
 import { TitlePage } from "@/app/components/section/titlePage"
 import { SidebarAndHeader } from "@/app/components/sidebarAndHeader"
 import { useState, useEffect } from 'react'
-import { useDropzone } from 'react-dropzone'
-import { Accordion, AccordionItem, Button, Input, Select, SelectItem, Textarea, Tabs, Tab, Tooltip, Checkbox } from '@nextui-org/react'
-import {
-  InformationCircleIcon,
-  PlusIcon,
-  TrashIcon,
-  ArrowUpTrayIcon as UploadIcon
-} from '@heroicons/react/24/outline'
-import { Category, PromotionOption, RelationFormData } from 'Types/types';
-import { Editor } from "@tinymce/tinymce-react";
+import { Button, Tabs, Tab } from '@nextui-org/react'
+import { Category, initialFormData, ProductFormData, PromotionOption, RelationFormData } from 'Types/types';
 import { toast } from 'react-toastify';
-import { CurrencyInput } from '@/app/components/add_product/CurrencyInput';
-import Image from 'next/image';
 import { ProductRelations } from '@/app/components/add_product/ProductRelations';
 import { VariantManager } from '@/app/components/add_product/VariantManager';
-import { MediaUploadComponent } from '@/app/components/add_product/MediaUploadComponent';
-
-const TOKEN_TINY = process.env.NEXT_PUBLIC_TINYMCE_API_KEY;
-
-type ProductFormData = {
-  name: string;
-  description: string;
-  slug: string;
-  brand: string;
-  ean: string;
-  skuMaster: string;
-  price_of: number;
-  price_per: number;
-  weight: number;
-  length: number;
-  width: number;
-  height: number;
-  stock: number;
-  status: StatusProduct;
-  mainPromotion_id: string;
-  variants: any[]
-  relations: any[]
-  mainImages: File[]
-  variantImages: File[]
-  attributeImages: File[]
-}
-
-const initialFormData: ProductFormData = {
-  name: '',
-  description: '',
-  variants: [],
-  relations: [],
-  mainImages: [],
-  variantImages: [],
-  attributeImages: [],
-  slug: '',
-  brand: '',
-  ean: '',
-  skuMaster: '',
-  price_of: 0,
-  price_per: 0,
-  weight: 0,
-  length: 0,
-  width: 0,
-  height: 0,
-  stock: 0,
-  status: 'DISPONIVEL',
-  mainPromotion_id: '',
-}
+import { BasicProductInfo } from '@/app/components/add_product/BasicProductInfo';
+import { ProductDescriptionEditor } from '@/app/components/add_product/ProductDescriptionEditor';
+import { CategorySelector } from '@/app/components/add_product/CategorySelector';
 
 export default function Add_product() {
 
@@ -140,178 +84,109 @@ export default function Add_product() {
       <Section>
         <TitlePage title="ADICIONAR PRODUTO" />
 
-        <Tabs aria-placeholder="Formulário de produto">
-          <Tab key="info" title="Informações Básicas">
-            <div className="space-y-6 max-w-3xl">
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  placeholder="Nome do Produto"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  isRequired
-                />
-
-                <div className="flex gap-2 items-end">
-                  <Input
-                    placeholder="Slug"
-                    value={formData.slug}
-                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                    description="URL amigável do produto"
-                  />
-                  <Button
-                    size="sm"
-                    onPress={() => {
-                      const generatedSlug = formData.name
-                        .toLowerCase()
-                        .replace(/[^a-z0-9]+/g, '-')
-                        .replace(/^-+|-+$/g, '');
-                      setFormData({ ...formData, slug: generatedSlug })
-                    }}
-                  >
-                    Gerar
-                  </Button>
-                </div>
+        <Tabs
+          aria-placeholder="Formulário de produto"
+          variant="underlined"
+          classNames={{
+            base: "w-full",
+            tabList: "gap-6 w-full relative rounded-none p-0 border-b border-divider",
+            cursor: "w-full bg-[#ff8800]",
+            tab: "max-w-fit px-0 h-12",
+            tabContent: "group-data-[selected=true]:text-[#ff8800] font-medium text-lg"
+          }}
+        >
+          <Tab
+            key="info"
+            title={
+              <div className="flex items-center space-x-2">
+                <span>Informações Básicas</span>
+                {formData.name && (
+                  <span className="text-[#ff8800]">•</span>
+                )}
               </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <Input
-                  placeholder="Marca"
-                  value={formData.brand}
-                  onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                />
-
-                <Input
-                  placeholder="EAN"
-                  value={formData.ean}
-                  onChange={(e) => setFormData({ ...formData, ean: e.target.value })}
-                />
-
-                <Input
-                  placeholder="SKU Master"
-                  value={formData.skuMaster}
-                  onChange={(e) => setFormData({ ...formData, skuMaster: e.target.value })}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <CurrencyInput
-                  placeholder="Preço De"
-                  value={formData.price_of || 0}
-                  onChange={(value) => setFormData({ ...formData, price_of: value })}
-                />
-
-                <CurrencyInput
-                  placeholder="Preço Por"
-                  value={formData.price_per}
-                  onChange={(value) => setFormData({ ...formData, price_per: value })}
-                />
-              </div>
-
-              <div className="grid grid-cols-4 gap-4">
-                <Input
-                  placeholder="Peso (kg)"
-                  type="number"
-                  value={formData.weight?.toString()}
-                  onChange={(e) => setFormData({ ...formData, weight: parseFloat(e.target.value) })}
-                  startContent={
-                    <div className="pointer-events-none flex items-center">
-                      <span className="text-default-400 text-small">kg</span>
-                    </div>
-                  }
-                />
-
-                <Input
-                  placeholder="Comprimento (cm)"
-                  type="number"
-                  value={formData.length?.toString()}
-                  onChange={(e) => setFormData({ ...formData, length: parseFloat(e.target.value) })}
-                  startContent={
-                    <div className="pointer-events-none flex items-center">
-                      <span className="text-default-400 text-small">cm</span>
-                    </div>
-                  }
-                />
-
-                <Input
-                  placeholder="Largura (cm)"
-                  type="number"
-                  value={formData.width?.toString()}
-                  onChange={(e) => setFormData({ ...formData, width: parseFloat(e.target.value) })}
-                  startContent={
-                    <div className="pointer-events-none flex items-center">
-                      <span className="text-default-400 text-small">cm</span>
-                    </div>
-                  }
-                />
-
-                <Input
-                  placeholder="Altura (cm)"
-                  type="number"
-                  value={formData.height?.toString()}
-                  onChange={(e) => setFormData({ ...formData, height: parseFloat(e.target.value) })}
-                  startContent={
-                    <div className="pointer-events-none flex items-center">
-                      <span className="text-default-400 text-small">cm</span>
-                    </div>
-                  }
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  placeholder="Estoque"
-                  type="number"
-                  min="0"
-                  value={formData.stock?.toString()}
-                  onChange={(e) => setFormData({ ...formData, stock: parseInt(e.target.value) })}
-                />
-
-                <Select
-                  placeholder="Status"
-                  selectedKeys={[formData.status]}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as StatusProduct })}
-                >
-                  <SelectItem key="DISPONIVEL">Disponível</SelectItem>
-                  <SelectItem key="INDISPONIVEL">Indisponível</SelectItem>
-                </Select>
-              </div>
-
-              <Select
-                placeholder="Promoção Principal"
-                selectedKeys={formData.mainPromotion_id ? [formData.mainPromotion_id] : []}
-                onChange={(e) => setFormData({ ...formData, mainPromotion_id: e.target.value })}
-              >
-                {promotions.map(promotion => (
-                  <SelectItem key={promotion.id} value={promotion.id}>
-                    {promotion.name}
-                  </SelectItem>
-                ))}
-              </Select>
-
-              <Textarea
-                placeholder="Descrição"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                minRows={5}
-              />
-
-              <MediaUploadComponent
-                label="Imagens Principais"
-                files={mainImages}
-                onUpload={setMainImages}
-                onRemove={(index) => setMainImages(mainImages.filter((_, i) => i !== index))}
-              />
-            </div>
-          </Tab>
-
-          <Tab key="variants" title="Variantes">
-            <VariantManager
-              variants={formData.variants}
-              onVariantsChange={(variants) => setFormData({ ...formData, variants })}
+            }
+            className="data-[selected=true]:border-b-2 data-[selected=true]:border-[#ff8800]"
+          >
+            <BasicProductInfo
+              formData={formData}
+              onFormDataChange={setFormData}
+              promotions={promotions}
+              mainImages={mainImages}
+              onMainImagesChange={setMainImages}
             />
           </Tab>
 
-          <Tab key="relations" title="Relacionamentos">
+          <Tab
+            key="descriptions"
+            title={
+              <div className="flex items-center space-x-2">
+                <span>Descrições</span>
+                {formData.productDescriptions.length > 0 && (
+                  <span className="text-[#ff8800]">•</span>
+                )}
+              </div>
+            }
+            className="data-[selected=true]:border-b-2 data-[selected=true]:border-[#ff8800]"
+          >
+            <ProductDescriptionEditor
+              descriptions={formData.productDescriptions}
+              onDescriptionsChange={(descriptions) =>
+                setFormData({ ...formData, productDescriptions: descriptions })
+              }
+            />
+          </Tab>
+
+          <Tab
+            key="categories"
+            title={
+              <div className="flex items-center gap-2">
+                <span>Categorias</span>
+                {formData.categories.length > 0 && (
+                  <span className="text-primary">•</span>
+                )}
+              </div>
+            }
+          >
+            <CategorySelector
+              categories={categories}
+              selectedCategories={formData.categories}
+              onSelectionChange={(selected) =>
+                setFormData({ ...formData, categories: selected })
+              }
+            />
+          </Tab>
+
+          <Tab
+            key="variants"
+            title={
+              <div className="flex items-center space-x-2">
+                <span>Variantes</span>
+                {formData.variants.length > 0 && (
+                  <span className="text-[#ff8800]">•</span>
+                )}
+              </div>
+            }
+            className="data-[selected=true]:border-b-2 data-[selected=true]:border-[#ff8800]"
+          >
+            <VariantManager
+              variants={formData.variants}
+              onVariantsChange={(variants) => setFormData({ ...formData, variants })}
+              promotions={promotions}
+            />
+          </Tab>
+
+          <Tab
+            key="relations"
+            title={
+              <div className="flex items-center space-x-2">
+                <span>Relacionamentos</span>
+                {formData.relations.length > 0 && (
+                  <span className="text-[#ff8800]">•</span>
+                )}
+              </div>
+            }
+            className="data-[selected=true]:border-b-2 data-[selected=true]:border-[#ff8800]"
+          >
             <ProductRelations
               relations={formData.relations}
               products={allProducts}
@@ -322,6 +197,7 @@ export default function Add_product() {
 
         <div className="mt-6">
           <Button
+            className='bg-green-600 text-white'
             color="primary"
             size="lg"
             isLoading={loading}

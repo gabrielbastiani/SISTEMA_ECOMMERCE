@@ -23,9 +23,9 @@ import { TrashIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { ArrowUpTrayIcon as UploadIcon } from "@heroicons/react/24/outline";
 import { useDropzone } from "react-dropzone";
 import { Editor } from "@tinymce/tinymce-react";
-import { CollapsibleInfo } from "@/app/components/helpers_componentes/CollapsibleInfo";
+import { CollapsibleInfo } from "@/app/components/add_product/helpers_componentes/CollapsibleInfo";
 import Image from "next/image";
-import { CurrencyInputUpdate } from "@/app/components/add_product/CurrencyInputUpdate";
+import { CurrencyInputUpdate } from "@/app/components/add_product/update_product/CurrencyInputUpdate";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 

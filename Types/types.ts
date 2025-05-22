@@ -14,74 +14,94 @@ export interface Category {
     description: string;
     image: string;
     order: number;
-    parentId: string;
-    children: any;
+    parentId: string | null;
+    children: Category[];
     promotion_id: string;
     filterId: string;
     created_at: string;
 }
 
-export interface ProductVariant {
-    id: string;
-    product_id: string;
-    sku: string;
-    price_of: number;
-    price_per: number;
-    stock: number;
-    allowBackorders: boolean;
-    sortOrder: number;
-    ean: string;
-    mainPromotion_id: string;
-    created_at: string;
+export type StatusProduct = 'DISPONIVEL' | 'INDISPONIVEL';
+export type StatusDescription = 'DISPONIVEL' | 'INDISPONIVEL';
+
+export interface ProductDescription {
+    title: string;
+    description: string;
+    status?: StatusDescription;
+}
+
+export interface VariantFormData {
+    id?: string
+    sku: string
+    price_of?: number
+    price_per?: number
+    stock: number
+    sortOrder: number
+    ean?: string
+    mainPromotion_id?: string
+    allowBackorders?: boolean
+    attributes: VariantAttribute[]
+    images: File[]
+    product_id?: string
+    created_at?: string
+    productVariantImage?: any[]
+    productVariantVideo?: any[]
+}
+
+export interface VariantAttribute {
+    key: string;
+    value: string;
+    status?: StatusProduct;
+    images?: File[];
 }
 
 export interface VideoInput {
     url: string;
+    isPrimary?: boolean;
     thumbnail?: string;
 }
 
-export interface VariantFormData {
-    sku: string;
-    price_per: string;
-    price_of?: string;
-    ean?: string;
-    stock?: string;
-    allowBackorders?: boolean;
-    sortOrder?: string;
-    mainPromotion_id?: string;
-    variantAttributes: Array<{ key: string; value: string }>;
-    images: File[];
-    videos: VideoInput[];
+export interface ProductVariant {
+    id?: string;
+    product_id?: string;
+    created_at?: string;
+    sku?: string
+    price_of?: number
+    price_per?: number
+    stock?: number
+    sortOrder?: number
+    ean?: string
+    mainPromotion_id?: string
+    allowBackorders?: boolean
+    attributes?: VariantAttribute[]
+    images?: File[]
 }
 
 export interface ProductFormData {
-    name: string
-    slug?: string
-    price_per: string
-    price_of?: string
-    metaTitle?: string
-    metaDescription?: string
-    keywords?: string
-    brand?: string
-    ean?: string
-    skuMaster?: string
-    weight?: string
-    length?: string
-    width?: string
-    height?: string
-    stock?: string
-    mainPromotion_id?: string;
-    status?: 'DISPONIVEL' | 'INDISPONIVEL'
-    categories: string[]
+    relations: any[];
+    name: string;
+    slug: string;
     description: string;
+    brand?: string;
+    ean?: string;
+    skuMaster?: string;
+    status: StatusProduct;
+    price_of?: number;
+    price_per: number;
+    stock?: number;
+    weight?: number;
+    length?: number;
+    width?: number;
+    height?: number;
+    categories: string[];
+    mainPromotion_id?: string;
     images: File[];
     videos: VideoInput[];
     variants: VariantFormData[];
-    productDescriptions: Array<{
-        title: string;
-        description: string;
-        status?: 'DISPONIVEL' | 'INDISPONIVEL';
-    }>;
+    productDescriptions: ProductDescription[];
+    metaTitle?: string;
+    metaDescription?: string;
+    keywords?: string[];
 }
 
 export interface RelationFormData {
@@ -94,27 +114,29 @@ export interface RelationFormData {
 
 export type PromotionOption = { id: string; name: string };
 
+// Versão Corrigida:
 export const initialFormData: ProductFormData = {
     name: '',
     slug: '',
-    price_per: '',
-    price_of: '',
-    metaTitle: '',
-    metaDescription: '',
-    keywords: '',
-    brand: '',
-    ean: '',
-    skuMaster: '',
-    weight: '',
-    length: '',
-    width: '',
-    height: '',
-    stock: '',
-    status: 'DISPONIVEL',
-    categories: [],
     description: '',
+    status: 'DISPONIVEL',
+    price_per: 0, // Corrigido para number
+    price_of: undefined, // Opcional - pode ser omitido ou undefined
+    metaTitle: undefined,
+    metaDescription: undefined,
+    keywords: undefined, // Ou [] se preferir array vazio
+    brand: undefined,
+    ean: undefined,
+    skuMaster: undefined,
+    weight: undefined,
+    length: undefined,
+    width: undefined,
+    height: undefined,
+    stock: undefined,
+    categories: [],
     images: [],
     videos: [],
-    variants: [],
-    productDescriptions: []
+    productDescriptions: [],
+    relations: [],
+    variants: [] as VariantFormData[],
 };

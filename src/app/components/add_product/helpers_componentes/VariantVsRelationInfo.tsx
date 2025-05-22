@@ -1,8 +1,5 @@
 import React from 'react';
 
-/**
- * Painel de comparação detalhada entre Variantes Técnicas e Relações de Produto
- */
 export function VariantVsRelationInfo() {
     return (
         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded mb-6">
