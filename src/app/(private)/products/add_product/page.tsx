@@ -1,112 +1,115 @@
-"use client"
+'use client'
 
-import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce';
-import { Section } from "@/app/components/section"
-import { TitlePage } from "@/app/components/section/titlePage"
-import { SidebarAndHeader } from "@/app/components/sidebarAndHeader"
 import { useState, useEffect } from 'react'
+import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce'
+import { Section } from '@/app/components/section'
+import { TitlePage } from '@/app/components/section/titlePage'
+import { SidebarAndHeader } from '@/app/components/sidebarAndHeader'
 import { Button, Tabs, Tab } from '@nextui-org/react'
-import { Category, initialFormData, ProductFormData, PromotionOption, RelationFormData } from 'Types/types';
-import { toast } from 'react-toastify';
-import { ProductRelations } from '@/app/components/add_product/ProductRelations';
-import { VariantManager } from '@/app/components/add_product/VariantManager';
-import { BasicProductInfo } from '@/app/components/add_product/BasicProductInfo';
-import { ProductDescriptionEditor } from '@/app/components/add_product/ProductDescriptionEditor';
-import { CategorySelector } from '@/app/components/add_product/CategorySelector';
+import { Category, initialFormData, ProductFormData, RelationFormData, VideoInput } from 'Types/types'
+import { toast } from 'react-toastify'
+import { BasicProductInfo } from '@/app/components/add_product/BasicProductInfo'
+import { ProductDescriptionEditor } from '@/app/components/add_product/ProductDescriptionEditor'
+import { CategorySelector } from '@/app/components/add_product/CategorySelector'
+import { VariantManager } from '@/app/components/add_product/VariantManager'
+import { ProductRelations } from '@/app/components/add_product/ProductRelations'
+import { VideoLinksManager } from '@/app/components/add_product/VideoLinksManager'
 
-export default function Add_product() {
+export default function AddProductPage() {
 
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<ProductFormData>(initialFormData);
-  const [relations, setRelations] = useState<RelationFormData[]>([]);
-  const [allProducts, setAllProducts] = useState<{ id: string; name: string }[]>([]);
-  const [promotions, setPromotions] = useState<PromotionOption[]>([]);
+  const [categories, setCategories] = useState<Category[]>([])
+  const [allProducts, setAllProducts] = useState<{ id: string; name: string }[]>([])
+  const [promotions, setPromotions] = useState<{ id: string; name: string }[]>([])
+  const [formData, setFormData] = useState<ProductFormData>(initialFormData)
   const [mainImages, setMainImages] = useState<File[]>([])
-  const [variantImages, setVariantImages] = useState<File[]>([])
-  const [attributeImages, setAttributeImages] = useState<File[]>([])
+
+  const [productVideoLinks, setProductVideoLinks] = useState<VideoInput[]>([])
+  const [variantVideoLinks, setVariantVideoLinks] = useState<Record<string, VideoInput[]>>({})
+
+  const [variantFiles, setVariantFiles] = useState<Record<string, File[]>>({})
+  const [attributeFiles, setAttributeFiles] = useState<Record<string, Record<number, File[]>>>({})
+
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const api = setupAPIClientEcommerce();
-    api.get('/promotions')
-      .then(resp => setPromotions(resp.data))
-      .catch(err => console.error('Erro ao carregar promoções', err));
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      const api = setupAPIClientEcommerce();
-      const [cats, prods] = await Promise.all([
-        api.get('/category/cms'),
-        api.get('/get/products')
-      ]);
-      setCategories(cats.data.all_categories_disponivel);
-      setAllProducts(prods.data.allow_products);
-    })();
-  }, []);
+    const api = setupAPIClientEcommerce()
+    api.get('/promotions').then(r => setPromotions(r.data)).catch(console.error)
+    api.get('/category/cms').then(r => setCategories(r.data.all_categories_disponivel)).catch(console.error)
+    api.get('/get/products').then(r => setAllProducts(r.data.allow_products)).catch(console.error)
+  }, [])
 
   const handleSubmit = async () => {
     setLoading(true)
-
     try {
       const formPayload = new FormData()
 
-      // Campos básicos
       Object.entries(formData).forEach(([key, value]) => {
-        if (typeof value === 'object') {
+        if (value === undefined || value === null) return
+        if (key === 'variants' || key === 'relations') return
+        if (Array.isArray(value) || typeof value === 'object') {
           formPayload.append(key, JSON.stringify(value))
         } else {
-          formPayload.append(key, value)
+          formPayload.append(key, String(value))
         }
       })
 
-      // Imagens
-      mainImages.forEach(file => formPayload.append('images', file))
-      variantImages.forEach(file => formPayload.append('variantImages', file))
-      attributeImages.forEach(file => formPayload.append('attributeImages', file))
+      console.log("Produto videos", productVideoLinks)
+
+      console.log("Variantes videos", variantVideoLinks)
+
+      formPayload.append('videoLinks', JSON.stringify(productVideoLinks.map(v => v.url)))
+
+      const cleanVariants = formData.variants.map(v => ({
+        sku: v.sku,
+        price_of: v.price_of,
+        price_per: v.price_per,
+        stock: v.stock,
+        sortOrder: v.sortOrder,
+        ean: v.ean,
+        allowBackorders: v.allowBackorders,
+        mainPromotion_id: v.mainPromotion_id,
+        images: (variantFiles[v.sku] || []).map(f => f.name),
+        videoLinks: (variantVideoLinks[v.sku] || []).map(v => v.url),
+        attributes: v.attributes.map((attr, i) => ({
+          key: attr.key,
+          value: attr.value,
+          images: (attributeFiles[v.sku]?.[i] || []).map(f => f.name)
+        }))
+      }))
+      formPayload.append('variants', JSON.stringify(cleanVariants))
+
+      formPayload.append('relations', JSON.stringify(formData.relations))
+
+      mainImages.forEach(f => formPayload.append('images', f))
+
+      Object.values(variantFiles).forEach(files =>
+        files.forEach(file => formPayload.append('variantImages', file))
+      )
+
+      Object.values(attributeFiles).forEach(attrs =>
+        Object.values(attrs).forEach(files =>
+          files.forEach(file => formPayload.append('attributeImages', file))
+        )
+      )
+
+      for (let [k, v] of formPayload.entries()) console.log(k, v)
 
       const api = setupAPIClientEcommerce()
-      await api.post('/product/create', formPayload, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      await api.post('/product/create', formPayload, { headers: { 'Content-Type': 'multipart/form-data' } })
 
-      toast.success('Produto cadastrado com sucesso!')
-      // Reset form
-    } catch (error) {
-      toast.error('Erro ao cadastrar produto')
-    } finally {
-      setLoading(false)
-    }
+      toast.success('Produto cadastrado!')
+    } catch (e: any) {
+      console.error(e)
+      toast.error(e.response?.data?.error || 'Erro ao cadastrar')
+    } finally { setLoading(false) }
   }
 
   return (
     <SidebarAndHeader>
       <Section>
         <TitlePage title="ADICIONAR PRODUTO" />
-
-        <Tabs
-          aria-placeholder="Formulário de produto"
-          variant="underlined"
-          classNames={{
-            base: "w-full",
-            tabList: "gap-6 w-full relative rounded-none p-0 border-b border-divider",
-            cursor: "w-full bg-[#ff8800]",
-            tab: "max-w-fit px-0 h-12",
-            tabContent: "group-data-[selected=true]:text-[#ff8800] font-medium text-lg"
-          }}
-        >
-          <Tab
-            key="info"
-            title={
-              <div className="flex items-center space-x-2">
-                <span>Informações Básicas</span>
-                {formData.name && (
-                  <span className="text-[#ff8800]">•</span>
-                )}
-              </div>
-            }
-            className="data-[selected=true]:border-b-2 data-[selected=true]:border-[#ff8800]"
-          >
+        <Tabs variant="underlined">
+          <Tab key="info" title="Informações Básicas">
             <BasicProductInfo
               formData={formData}
               onFormDataChange={setFormData}
@@ -115,96 +118,56 @@ export default function Add_product() {
               onMainImagesChange={setMainImages}
             />
           </Tab>
-
-          <Tab
-            key="descriptions"
-            title={
-              <div className="flex items-center space-x-2">
-                <span>Descrições</span>
-                {formData.productDescriptions.length > 0 && (
-                  <span className="text-[#ff8800]">•</span>
-                )}
-              </div>
-            }
-            className="data-[selected=true]:border-b-2 data-[selected=true]:border-[#ff8800]"
-          >
+          <Tab key="descriptions" title="Descrições">
             <ProductDescriptionEditor
               descriptions={formData.productDescriptions}
-              onDescriptionsChange={(descriptions) =>
-                setFormData({ ...formData, productDescriptions: descriptions })
-              }
+              onDescriptionsChange={desc => setFormData({ ...formData, productDescriptions: desc })}
             />
           </Tab>
-
-          <Tab
-            key="categories"
-            title={
-              <div className="flex items-center gap-2">
-                <span>Categorias</span>
-                {formData.categories.length > 0 && (
-                  <span className="text-primary">•</span>
-                )}
-              </div>
-            }
-          >
+          <Tab key="categories" title="Categorias">
             <CategorySelector
               categories={categories}
               selectedCategories={formData.categories}
-              onSelectionChange={(selected) =>
-                setFormData({ ...formData, categories: selected })
-              }
+              onSelectionChange={c => setFormData({ ...formData, categories: c })}
+            />
+          </Tab>
+          <Tab key="videos" title="Vídeos">
+            <VideoLinksManager
+              label="Vídeos do Produto"
+              links={productVideoLinks}
+              onLinksChange={setProductVideoLinks}
             />
           </Tab>
 
-          <Tab
-            key="variants"
-            title={
-              <div className="flex items-center space-x-2">
-                <span>Variantes</span>
-                {formData.variants.length > 0 && (
-                  <span className="text-[#ff8800]">•</span>
-                )}
-              </div>
-            }
-            className="data-[selected=true]:border-b-2 data-[selected=true]:border-[#ff8800]"
-          >
+          <Tab key="variants" title="Variantes">
             <VariantManager
               variants={formData.variants}
-              onVariantsChange={(variants) => setFormData({ ...formData, variants })}
+              onVariantsChange={variants => setFormData({ ...formData, variants })}
               promotions={promotions}
+              variantFiles={variantFiles}
+              setVariantFiles={setVariantFiles}
+              attributeFiles={attributeFiles}
+              setAttributeFiles={setAttributeFiles}
             />
+            {formData.variants.map(variant => (
+              <VideoLinksManager
+                key={variant.sku}
+                label={`Vídeos da Variante ${variant.sku}`}
+                links={variantVideoLinks[variant.sku] || []}
+                onLinksChange={links => setVariantVideoLinks(prev => ({ ...prev, [variant.sku]: links }))}
+              />
+            ))}
           </Tab>
-
-          <Tab
-            key="relations"
-            title={
-              <div className="flex items-center space-x-2">
-                <span>Relacionamentos</span>
-                {formData.relations.length > 0 && (
-                  <span className="text-[#ff8800]">•</span>
-                )}
-              </div>
-            }
-            className="data-[selected=true]:border-b-2 data-[selected=true]:border-[#ff8800]"
-          >
+          <Tab key="relations" title="Relacionamentos">
             <ProductRelations
               relations={formData.relations}
               products={allProducts}
-              onRelationsChange={(relations) => setFormData({ ...formData, relations })}
+              onRelationsChange={r => setFormData({ ...formData, relations: r })}
             />
           </Tab>
         </Tabs>
-
         <div className="mt-6">
-          <Button
-            className='bg-green-600 text-white'
-            color="primary"
-            size="lg"
-            isLoading={loading}
-            onPress={handleSubmit}
-          >
-            Cadastrar Produto
-          </Button>
+          <Button className='text-white bg-green-500' onPress={handleSubmit} isLoading={loading}>Cadastrar Produto</Button>
         </div>
       </Section>
     </SidebarAndHeader>

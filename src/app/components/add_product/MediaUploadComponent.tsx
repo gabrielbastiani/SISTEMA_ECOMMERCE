@@ -9,23 +9,23 @@ interface MediaUploadProps {
     label: string
     maxFiles?: number
     acceptedTypes?: Record<string, string[]>
+    files: File[]
     onUpload: (files: File[]) => void
     onRemove: (index: number) => void
-    files: File[]
 }
 
 export const MediaUploadComponent = ({
     label,
     maxFiles = 20,
     acceptedTypes = { 'image/*': ['.jpeg', '.jpg', '.png'] },
+    files,
     onUpload,
-    onRemove,
-    files
+    onRemove
 }: MediaUploadProps) => {
     const { getRootProps, getInputProps } = useDropzone({
         accept: acceptedTypes,
         maxFiles,
-        onDrop: acceptedFiles => onUpload([...files, ...acceptedFiles])
+        onDrop: (acceptedFiles) => onUpload(acceptedFiles)
     })
 
     return (
@@ -37,12 +37,10 @@ export const MediaUploadComponent = ({
             >
                 <input {...getInputProps()} />
                 <ArrowUpTrayIcon className="mx-auto h-12 w-12 text-gray-400" />
-                <p className="mt-2 text-sm text-gray-600">
-                    Arraste arquivos ou clique para fazer upload
-                </p>
+                <p className="mt-2 text-sm text-gray-600">Arraste arquivos ou clique para fazer upload</p>
             </div>
 
-            {files?.length > 0 && (
+            {files.length > 0 && (
                 <div className="grid grid-cols-3 gap-4 mt-4">
                     {files.map((file, index) => (
                         <div key={index} className="relative group">
@@ -59,7 +57,7 @@ export const MediaUploadComponent = ({
                                 className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
                                 onPress={() => onRemove(index)}
                             >
-                                <TrashIcon color='red' className="h-4 w-4 text-danger" />
+                                <TrashIcon className="h-4 w-4 text-red-500" />
                             </Button>
                         </div>
                     ))}

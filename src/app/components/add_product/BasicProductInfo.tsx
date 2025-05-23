@@ -32,7 +32,7 @@ export const BasicProductInfo = ({
 
     return (
         <div className="space-y-6 max-w-3xl">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
                 <Tooltip
                     content="Nome completo do produto para exibição no site"
                     placement="top-start"
@@ -49,40 +49,6 @@ export const BasicProductInfo = ({
                         }}
                     />
                 </Tooltip>
-
-                <div className="flex gap-2 items-end">
-                    <Tooltip
-                        content="URL amigável gerada automaticamente"
-                        placement="top-start"
-                        className="bg-white text-red-500 border border-gray-200 p-2"
-                    >
-                        <Input
-                            placeholder="Slug"
-                            value={formData.slug}
-                            onChange={(e) => handleChange('slug', e.target.value)}
-                            className="bg-white border border-gray-200 rounded-md"
-                            classNames={{
-                                input: "text-black",
-                            }}
-                            endContent={
-                                <InformationCircleIcon className="h-5 w-5 text-gray-400" />
-                            }
-                        />
-                    </Tooltip>
-                    <Button
-                        size="sm"
-                        className="h-[38px] bg-white border border-gray-200 text-black hover:bg-gray-50"
-                        onPress={() => {
-                            const generatedSlug = formData.name
-                                .toLowerCase()
-                                .replace(/[^a-z0-9]+/g, '-')
-                                .replace(/^-+|-+$/g, '')
-                            handleChange('slug', generatedSlug)
-                        }}
-                    >
-                        Gerar
-                    </Button>
-                </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
@@ -181,22 +147,20 @@ export const BasicProductInfo = ({
                             placement="top-start"
                             className="bg-white text-red-500 border border-gray-200 p-2"
                         >
+                            <div>
+                                <label className="block mb-1 text-sm font-medium text-foreground">
+                                    {label}
+                                </label>
                             <Input
-                                label={label}
                                 type="number"
                                 value={formData[formField]?.toString() || ''}
                                 onChange={(e) => handleChange(formField, Number(e.target.value))}
                                 className="bg-white border border-gray-200"
                                 classNames={{
                                     input: "text-black",
-                                    label: "text-gray-600"
                                 }}
-                                startContent={
-                                    <span className="text-gray-400 text-small">
-                                        {label.includes('Peso') ? 'kg' : 'cm'}
-                                    </span>
-                                }
                             />
+                            </div>
                         </Tooltip>
                     )
                 })}

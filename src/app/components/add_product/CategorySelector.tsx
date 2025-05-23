@@ -1,17 +1,7 @@
-'use client'
-
-import { Checkbox, Button, Tooltip, Spinner } from '@nextui-org/react'
+import { Checkbox, Button, Tooltip } from '@nextui-org/react'
 import { ChevronDownIcon, FolderIcon, FolderOpenIcon, InformationCircleIcon } from '@heroicons/react/24/outline'
 import { useEffect, useMemo, useState } from 'react'
-
-export interface Category {
-    id: string
-    name: string
-    parentId: string | null
-    children: Category[]
-    selected?: boolean
-    indeterminate?: boolean
-}
+import { Category } from 'Types/types'
 
 interface CategorySelectorProps {
     categories: Category[]
@@ -19,127 +9,93 @@ interface CategorySelectorProps {
     onSelectionChange: (selectedIds: string[]) => void
 }
 
-const cleanCategoryTree = (categories: Category[]): Category[] => {
-    return categories.map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        parentId: cat.parentId,
-        children: cleanCategoryTree(cat.children || []),
-        selected: false,
-        indeterminate: false
-    }))
-}
-
 export const CategorySelector = ({
-    categories: initialCategories,
+    categories: flatCategories,
     selectedCategories,
-    onSelectionChange
+    onSelectionChange,
 }: CategorySelectorProps) => {
-    const [searchTerm, setSearchTerm] = useState('')
-    const [categories, setCategories] = useState<Category[]>([])
-    const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
 
-    const filteredCategories = useMemo(() => {
-        if (!searchTerm) return categories
-
-        const searchLower = searchTerm.toLowerCase()
-
-        const filter = (items: Category[]): Category[] => {
-            return items.filter(item => {
-                const matches = item.name.toLowerCase().includes(searchLower)
-                const childrenMatches = filter(item.children)
-                return matches || childrenMatches.length > 0
-            }).map(item => ({
-                ...item,
-                children: filter(item.children)
-            }))
-        }
-
-        return filter(categories)
-    }, [categories, searchTerm])
+    const [tree, setTree] = useState<Category[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
     useEffect(() => {
-        const processedCategories = cleanCategoryTree(initialCategories)
+        const map: Record<string, Category> = {}
+        const roots: Category[] = []
 
-        const updateSelection = (cats: Category[]): Category[] => {
-            return cats.map(cat => {
-                const children = updateSelection(cat.children)
-                const selected = selectedCategories.includes(cat.id)
-                const indeterminate = !selected && children.some(c => c.selected || c.indeterminate)
-
-                return {
-                    ...cat,
-                    selected,
-                    indeterminate: selected ? false : indeterminate,
-                    children
-                }
-            })
-        }
-
-        setCategories(updateSelection(processedCategories))
-    }, [initialCategories, selectedCategories])
-
-    const toggleCategory = (categoryId: string) => {
-        const newSelection = new Set(selectedCategories)
-        newSelection.has(categoryId) ? newSelection.delete(categoryId) : newSelection.add(categoryId)
-        onSelectionChange(Array.from(newSelection))
-    }
-
-    const toggleExpand = (categoryId: string) => {
-        setExpandedCategories(prev => {
-            const newSet = new Set(prev)
-            newSet.has(categoryId) ? newSet.delete(categoryId) : newSet.add(categoryId)
-            return newSet
+        flatCategories.forEach(cat => {
+            map[cat.id] = { ...cat, children: [], selected: selectedCategories.includes(cat.id), indeterminate: false }
         })
+
+        Object.values(map).forEach(cat => {
+            if (cat.parentId) {
+                const parent = map[cat.parentId]
+                if (parent) parent.children!.push(cat)
+            } else {
+                roots.push(cat)
+            }
+        })
+
+        setTree(roots)
+        setExpanded(new Set(roots.map(r => r.id)))
+    }, [flatCategories, selectedCategories])
+
+    const filtered = useMemo(() => {
+        if (!searchTerm) return tree
+        const filter = (items: Category[]): Category[] => {
+            return items
+                .map(item => ({ ...item, children: filter(item.children!) }))
+                .filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()) || item.children!.length > 0)
+        }
+        return filter(tree)
+    }, [searchTerm, tree])
+
+    const toggleExpand = (id: string) => {
+        const next = new Set(expanded)
+        next.has(id) ? next.delete(id) : next.add(id)
+        setExpanded(next)
     }
 
-    const renderCategory = (category: Category, level: number = 0) => {
-        const hasChildren = category.children.length > 0
-        const isExpanded = expandedCategories.has(category.id)
+    const toggleSelect = (id: string) => {
+        const setIds = new Set(selectedCategories)
+        setIds.has(id) ? setIds.delete(id) : setIds.add(id)
+        onSelectionChange(Array.from(setIds))
+    }
+
+    const renderNode = (node: Category, level = 0) => {
+        const hasChildren = node.children && node.children.length > 0
+        const isExpanded = expanded.has(node.id)
 
         return (
-            <div key={category.id} className="space-y-2">
-                <div className="flex items-center gap-2" style={{ marginLeft: `${level * 20}px` }}>
+            <div key={node.id}>
+                <div className="flex items-center mb-1 text-black" style={{ marginLeft: level * 16 }}>
                     <Button
                         isIconOnly
                         size="sm"
                         variant="light"
-                        className="text-gray-600"
-                        onPress={() => toggleExpand(category.id)}
+                        className='text-black'
                         isDisabled={!hasChildren}
+                        onPress={() => toggleExpand(node.id)}
                     >
-                        {hasChildren && (
-                            <ChevronDownIcon className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                        )}
+                        {hasChildren && <ChevronDownIcon color='black' className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />}
                     </Button>
 
                     <Checkbox
-                        isSelected={category.selected}
-                        isIndeterminate={category.indeterminate}
-                        onValueChange={() => toggleCategory(category.id)}
-                        classNames={{
-                            base: 'flex-grow',
-                            label: 'flex items-center gap-2'
-                        }}
+                        isSelected={selectedCategories.includes(node.id)}
+                        isIndeterminate={node.indeterminate}
+                        onValueChange={() => toggleSelect(node.id)}
+                        classNames={{ base: 'flex-grow text-black', label: 'flex items-center gap-2 text-black' }}
                     >
-                        <span className="flex items-center gap-2">
-                            {hasChildren ? (
-                                isExpanded ? (
-                                    <FolderOpenIcon className="h-5 w-5 text-primary" />
-                                ) : (
-                                    <FolderIcon className="h-5 w-5 text-default" />
-                                )
-                            ) : (
-                                <FolderIcon className="h-5 w-5 text-default opacity-50" />
-                            )}
-                            {category.name}
-                        </span>
+                        <div className="flex items-center gap-2">
+                            {isExpanded ? <FolderOpenIcon className="h-5 w-5" /> : <FolderIcon className="h-5 w-5" />}
+                            {node.name}
+                        </div>
                     </Checkbox>
                 </div>
 
                 {hasChildren && isExpanded && (
-                    <div className="space-y-2">
-                        {category.children.map(child => renderCategory(child, level + 1))}
+                    <div>
+                        {node.children!.map(child => renderNode(child, level + 1))}
                     </div>
                 )}
             </div>
@@ -149,21 +105,17 @@ export const CategorySelector = ({
     return (
         <div className="border rounded-lg p-4 bg-white">
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
+                <h3 className="text-lg font-semibold flex items-center gap-2 text-black">
                     Seletor de Categorias
                     <Tooltip
-                        content="Selecione as categorias principais e subcategorias para este produto"
-                        className="bg-white text-black border border-gray-200 p-3 max-w-[300px]"
+                        content="Selecione categorias e subcategorias hierarquicamente para o produto que você esta cadastrando"
+                        className='bg-white text-red-500 p-3'
                     >
                         <InformationCircleIcon className="h-5 w-5 text-gray-500" />
                     </Tooltip>
                 </h3>
-                <Button
-                    size="sm"
-                    variant="light"
-                    onPress={() => setExpandedCategories(new Set(categories.map(c => c.id)))}
-                >
-                    Expandir Todas
+                <Button className='text-black' size="sm" variant="light" onPress={() => setExpanded(new Set(filtered.flatMap(c => [c.id])))}>
+                    Expandir Todos
                 </Button>
             </div>
 
@@ -171,20 +123,16 @@ export const CategorySelector = ({
                 type="text"
                 placeholder="Pesquisar categorias..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full p-2 mb-4 border rounded-lg"
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full p-2 mb-4 border rounded text-black"
             />
 
-            <div className="space-y-3 max-h-[500px] overflow-y-auto p-2">
-                {filteredCategories.map(category => renderCategory(category))}
+            <div className="max-h-80 overflow-y-auto space-y-2 text-black">
+                {filtered.map(node => renderNode(node))}
             </div>
 
             <div className="mt-4 text-sm text-gray-500">
-                {selectedCategories.length > 0 ? (
-                    <span>{selectedCategories.length} categorias selecionadas</span>
-                ) : (
-                    <span>Nenhuma categoria selecionada</span>
-                )}
+                {selectedCategories.length > 0 ? `${selectedCategories.length} categorias selecionadas` : 'Nenhuma categoria selecionada'}
             </div>
         </div>
     )

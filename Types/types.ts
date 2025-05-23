@@ -15,9 +15,11 @@ export interface Category {
     image: string;
     order: number;
     parentId: string | null;
-    children: Category[];
+    children?: Category[];
     promotion_id: string;
     filterId: string;
+    selected?: boolean
+    indeterminate?: boolean
     created_at: string;
 }
 
@@ -75,6 +77,7 @@ export interface ProductVariant {
     allowBackorders?: boolean
     attributes?: VariantAttribute[]
     images?: File[]
+    videoLinks?: string[]
 }
 
 export interface ProductFormData {
@@ -102,6 +105,7 @@ export interface ProductFormData {
     metaTitle?: string;
     metaDescription?: string;
     keywords?: string[];
+    videoLinks?: string[]
 }
 
 export interface RelationFormData {
@@ -114,17 +118,16 @@ export interface RelationFormData {
 
 export type PromotionOption = { id: string; name: string };
 
-// Versão Corrigida:
 export const initialFormData: ProductFormData = {
     name: '',
     slug: '',
     description: '',
     status: 'DISPONIVEL',
-    price_per: 0, // Corrigido para number
-    price_of: undefined, // Opcional - pode ser omitido ou undefined
+    price_per: 0,
+    price_of: undefined,
     metaTitle: undefined,
     metaDescription: undefined,
-    keywords: undefined, // Ou [] se preferir array vazio
+    keywords: undefined,
     brand: undefined,
     ean: undefined,
     skuMaster: undefined,
@@ -139,4 +142,5 @@ export const initialFormData: ProductFormData = {
     productDescriptions: [],
     relations: [],
     variants: [] as VariantFormData[],
+    videoLinks: []
 };
