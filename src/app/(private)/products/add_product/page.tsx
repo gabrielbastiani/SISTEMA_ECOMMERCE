@@ -6,7 +6,7 @@ import { Section } from '@/app/components/section'
 import { TitlePage } from '@/app/components/section/titlePage'
 import { SidebarAndHeader } from '@/app/components/sidebarAndHeader'
 import { Button, Tabs, Tab } from '@nextui-org/react'
-import { Category, initialFormData, ProductFormData, RelationFormData, VideoInput } from 'Types/types'
+import { Category, initialFormData, ProductFormData, VideoInput } from 'Types/types'
 import { toast } from 'react-toastify'
 import { BasicProductInfo } from '@/app/components/add_product/BasicProductInfo'
 import { ProductDescriptionEditor } from '@/app/components/add_product/ProductDescriptionEditor'
@@ -36,7 +36,16 @@ export default function AddProductPage() {
     api.get('/promotions').then(r => setPromotions(r.data)).catch(console.error)
     api.get('/category/cms').then(r => setCategories(r.data.all_categories_disponivel)).catch(console.error)
     api.get('/get/products').then(r => setAllProducts(r.data.allow_products)).catch(console.error)
-  }, [])
+  }, []);
+
+  const resetForm = () => {
+    setFormData(initialFormData);
+    setProductVideoLinks([]);
+    setVariantVideoLinks({});
+    setMainImages([]);
+    setVariantFiles({});
+    setAttributeFiles({});
+  };
 
   const handleSubmit = async () => {
     setLoading(true)
@@ -44,22 +53,20 @@ export default function AddProductPage() {
       const formPayload = new FormData()
 
       Object.entries(formData).forEach(([key, value]) => {
-        if (value === undefined || value === null) return
-        if (key === 'variants' || key === 'relations') return
+        if (value === undefined || value === null) return;
+        if (key === 'variants' || key === 'relations' || key === 'videoLinks') return;
         if (Array.isArray(value) || typeof value === 'object') {
-          formPayload.append(key, JSON.stringify(value))
+          formPayload.append(key, JSON.stringify(value));
         } else {
-          formPayload.append(key, String(value))
+          formPayload.append(key, String(value));
         }
-      })
+      });
 
-      console.log("Produto videos", productVideoLinks)
-
-      console.log("Variantes videos", variantVideoLinks)
-
-      formPayload.append('videoLinks', JSON.stringify(productVideoLinks.map(v => v.url)))
+      const videoLinksToSend = productVideoLinks.map(v => v.url);
+      formPayload.append('videoLinks', JSON.stringify(videoLinksToSend));
 
       const cleanVariants = formData.variants.map(v => ({
+        id: v.id,
         sku: v.sku,
         price_of: v.price_of,
         price_per: v.price_per,
@@ -68,12 +75,12 @@ export default function AddProductPage() {
         ean: v.ean,
         allowBackorders: v.allowBackorders,
         mainPromotion_id: v.mainPromotion_id,
-        images: (variantFiles[v.sku] || []).map(f => f.name),
-        videoLinks: (variantVideoLinks[v.sku] || []).map(v => v.url),
+        images: (variantFiles[v.id] || []).map(f => f.name),
+        videoLinks: (variantVideoLinks[v.id] || []).map(v => v.url),
         attributes: v.attributes.map((attr, i) => ({
           key: attr.key,
           value: attr.value,
-          images: (attributeFiles[v.sku]?.[i] || []).map(f => f.name)
+          images: (attributeFiles[v.id]?.[i] || []).map(f => f.name)
         }))
       }))
       formPayload.append('variants', JSON.stringify(cleanVariants))
@@ -92,12 +99,11 @@ export default function AddProductPage() {
         )
       )
 
-      for (let [k, v] of formPayload.entries()) console.log(k, v)
-
       const api = setupAPIClientEcommerce()
       await api.post('/product/create', formPayload, { headers: { 'Content-Type': 'multipart/form-data' } })
 
-      toast.success('Produto cadastrado!')
+      toast.success('Produto cadastrado!');
+      resetForm();
     } catch (e: any) {
       console.error(e)
       toast.error(e.response?.data?.error || 'Erro ao cadastrar')
@@ -148,15 +154,11 @@ export default function AddProductPage() {
               setVariantFiles={setVariantFiles}
               attributeFiles={attributeFiles}
               setAttributeFiles={setAttributeFiles}
+              variantVideoLinks={variantVideoLinks}
+              onVariantVideoLinksChange={(variantId, links) =>
+                setVariantVideoLinks(prev => ({ ...prev, [variantId]: links }))
+              }
             />
-            {formData.variants.map(variant => (
-              <VideoLinksManager
-                key={variant.sku}
-                label={`Vídeos da Variante ${variant.sku}`}
-                links={variantVideoLinks[variant.sku] || []}
-                onLinksChange={links => setVariantVideoLinks(prev => ({ ...prev, [variant.sku]: links }))}
-              />
-            ))}
           </Tab>
           <Tab key="relations" title="Relacionamentos">
             <ProductRelations

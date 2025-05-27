@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from 'uuid';
+
 export interface Notification {
     id: string;
     message: string;
@@ -33,7 +35,7 @@ export interface ProductDescription {
 }
 
 export interface VariantFormData {
-    id?: string
+    id: string
     sku: string
     price_of?: number
     price_per?: number

@@ -26,6 +26,7 @@
     "@types/react-icons": "^2.2.7",
     "@types/react-toastify": "^4.0.2",
     "@types/universal-cookie": "^2.2.0",
+    "@types/uuid": "^10.0.0",
     "autoprefixer": "^10.4.21",
     "axios": "^1.8.4",
     "chart.js": "^4.4.7",
@@ -56,6 +57,7 @@
     "swiper": "^11.1.15",
     "tinymce": "^7.6.1",
     "universal-cookie": "^8.0.1",
+    "uuid": "^11.1.0",
     "zod": "^3.24.3"
   },
   "devDependencies": {

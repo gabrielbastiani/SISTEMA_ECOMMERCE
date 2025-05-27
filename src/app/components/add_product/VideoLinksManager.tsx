@@ -77,6 +77,7 @@ export const VideoLinksManager: React.FC<VideoLinksManagerProps> = ({
                 </div>
             ))}
             <Button
+                className='text-orange-500'
                 size="sm"
                 variant="bordered"
                 startContent={<PlusIcon className="h-5 w-5" />}
