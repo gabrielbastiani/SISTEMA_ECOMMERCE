@@ -2,7 +2,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import React from 'react';
-import { Button, Input, Select, SelectItem, Tooltip } from '@nextui-org/react';
+import { Button, Input, Select, SelectItem, SharedSelection, Tooltip } from '@nextui-org/react';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { MediaUploadComponent } from './MediaUploadComponent';
 import { CurrencyInput } from './CurrencyInput';
@@ -57,6 +57,16 @@ export const VariantManager: React.FC<VariantManagerProps> = ({
         const newVariants = variants.filter((_, i) => i !== index);
         onVariantsChange(newVariants);
         onVariantVideoLinksChange(variantId, []);
+        setVariantFiles(prev => {
+            const copy = { ...prev };
+            delete copy[variantId];
+            return copy;
+        });
+        setAttributeFiles(prev => {
+            const copy = { ...prev };
+            delete copy[variantId];
+            return copy;
+        });
     };
 
     const updateVariant = (index: number, field: keyof VariantFormData, value: any) => {
@@ -70,6 +80,34 @@ export const VariantManager: React.FC<VariantManagerProps> = ({
         newVariants[variantIndex].attributes.push({ key: '', value: '' });
         onVariantsChange(newVariants);
     };
+
+    const removeAttribute = (variantIndex: number, attrIndex: number) => {
+        const variantId = variants[variantIndex].id;
+        // Remove da lista de atributos
+        const newVariants = [...variants];
+        newVariants[variantIndex].attributes = newVariants[variantIndex].attributes.filter((_, i) => i !== attrIndex);
+        onVariantsChange(newVariants);
+        // Remove arquivos de imagens do atributo removido
+        setAttributeFiles(prev => {
+            const copy = { ...prev };
+            const attrs = copy[variantId] || {};
+            const newAttrs: Record<number, File[]> = {};
+            Object.entries(attrs).forEach(([key, files]) => {
+                const i = Number(key);
+                if (i === attrIndex) return; // pula removido
+                const newIndex = i > attrIndex ? i - 1 : i;
+                newAttrs[newIndex] = files;
+            });
+            if (Object.keys(newAttrs).length) {
+                copy[variantId] = newAttrs;
+            } else {
+                delete copy[variantId];
+            }
+            return copy;
+        });
+    };
+
+    const promoItems = [{ id: '', name: 'Nenhuma promoção' }, ...promotions];
 
     return (
         <div className="space-y-6">
@@ -191,15 +229,26 @@ export const VariantManager: React.FC<VariantManagerProps> = ({
                             >
                                 <Select
                                     placeholder="Promoção"
-                                    selectedKeys={variant.mainPromotion_id ? new Set([variant.mainPromotion_id]) : new Set()}
-                                    onSelectionChange={keys => updateVariant(idx, 'mainPromotion_id', Array.from(keys)[0] as string)}
-                                    className="text-foreground border border-gray-200 rounded-md"
+                                    items={promoItems}
+                                    selectedKeys={
+                                        variant.mainPromotion_id != null
+                                            ? new Set([variant.mainPromotion_id])
+                                            : new Set<string>()
+                                    }
+                                    onSelectionChange={(keys: SharedSelection) => {
+                                        const key = typeof keys === 'string'
+                                            ? keys
+                                            : Array.from(keys)[0] ?? '';
+                                        updateVariant(idx, 'mainPromotion_id', key || null);
+                                    }}
+                                    className="text-foreground border border-gray-200 rounded-md bg-white"
+                                    classNames={{ trigger: 'text-black border-gray-200' }}
                                 >
-                                    {promotions.map(p => (
-                                        <SelectItem className='bg-white text-black' key={p.id} value={p.id}>
-                                            {p.name}
+                                    {(item: { id: string; name: string }) => (
+                                        <SelectItem key={item.id} value={item.id} className="bg-white text-black">
+                                            {item.name}
                                         </SelectItem>
-                                    ))}
+                                    )}
                                 </Select>
                             </Tooltip>
 
@@ -234,8 +283,17 @@ export const VariantManager: React.FC<VariantManagerProps> = ({
                         {/* Atributos */}
                         <div className="space-y-4">
                             {variant.attributes.map((attr, ai) => (
-                                <div key={ai} className="border p-3 rounded-lg">
-                                    <div className="flex gap-4 mb-2">
+                                <div key={ai} className="border p-3 rounded-lg relative">
+                                    <Button
+                                        isIconOnly
+                                        size="sm"
+                                        variant="light"
+                                        className="absolute top-2 right-2 z-10"
+                                        onPress={() => removeAttribute(idx, ai)}
+                                    >
+                                        <TrashIcon color='red' className="h-5 w-5 text-red-600" />
+                                    </Button>
+                                    <div className="flex gap-4 mb-2 mt-11">
                                         <Tooltip
                                             content="Exemplo: Cor"
                                             placement="top-start"
@@ -301,7 +359,7 @@ export const VariantManager: React.FC<VariantManagerProps> = ({
                                     />
                                 </div>
                             ))}
-                            <Button size="sm" variant="bordered" startContent={<PlusIcon />} onPress={() => addAttribute(idx)}>
+                            <Button className='text-violet-500' size="sm" variant="bordered" startContent={<PlusIcon />} onPress={() => addAttribute(idx)}>
                                 Adicionar Atributo
                             </Button>
                         </div>

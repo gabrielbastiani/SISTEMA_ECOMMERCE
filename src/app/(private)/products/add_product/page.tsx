@@ -14,6 +14,7 @@ import { CategorySelector } from '@/app/components/add_product/CategorySelector'
 import { VariantManager } from '@/app/components/add_product/VariantManager'
 import { ProductRelations } from '@/app/components/add_product/ProductRelations'
 import { VideoLinksManager } from '@/app/components/add_product/VideoLinksManager'
+import { SeoProductInfo } from '@/app/components/add_product/SeoProductInfo'
 
 export default function AddProductPage() {
 
@@ -114,7 +115,11 @@ export default function AddProductPage() {
     <SidebarAndHeader>
       <Section>
         <TitlePage title="ADICIONAR PRODUTO" />
-        <Tabs variant="underlined">
+        <Tabs
+          variant="bordered"
+          color="primary"
+          className="my-tabs bg-white rounded-lg shadow-sm"
+        >
           <Tab key="info" title="Informações Básicas">
             <BasicProductInfo
               formData={formData}
@@ -135,6 +140,12 @@ export default function AddProductPage() {
               categories={categories}
               selectedCategories={formData.categories}
               onSelectionChange={c => setFormData({ ...formData, categories: c })}
+            />
+          </Tab>
+          <Tab key="seo" title="SEO">
+            <SeoProductInfo
+              formData={formData}
+              onFormDataChange={setFormData}
             />
           </Tab>
           <Tab key="videos" title="Vídeos">
@@ -168,6 +179,30 @@ export default function AddProductPage() {
             />
           </Tab>
         </Tabs>
+        <style jsx global>{`
+        /* Aba ativa: laranja */
+        .my-tabs [role="tab"][aria-selected="true"] {
+          background: orange;
+          color: #ffffff;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        /* Aba inativa: texto cinza, hover com fundo cinza-claro */
+        .my-tabs [role="tab"]:not([aria-selected="true"]) {
+          color: #000000;
+        }
+        .my-tabs [role="tab"]:not([aria-selected="true"]):hover {
+          background: #f3f4f6;
+        }
+        /* Espaçamento interno da lista de tabs */
+        .my-tabs > .nextui-tabs-tablist {
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+        }
+        /* Padding do painel de conteúdo */
+        .my-tabs .nextui-tabs-panel {
+          padding: 1rem;
+        }
+      `}</style>
         <div className="mt-6">
           <Button className='text-white bg-green-500' onPress={handleSubmit} isLoading={loading}>Cadastrar Produto</Button>
         </div>

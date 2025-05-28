@@ -23,6 +23,9 @@ interface ProductRelationsProps {
 }
 
 export const ProductRelations = ({ relations, products, onRelationsChange }: ProductRelationsProps) => {
+
+    console.log(products)
+
     const addRelation = () => {
         onRelationsChange([
             ...relations,

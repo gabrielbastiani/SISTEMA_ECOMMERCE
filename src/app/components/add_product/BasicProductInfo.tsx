@@ -1,10 +1,9 @@
 'use client'
 
-import { Input, Button, Select, SelectItem, Textarea, Tooltip } from '@nextui-org/react'
+import { Input, Select, SelectItem, SharedSelection, Tooltip } from '@nextui-org/react'
 import { CurrencyInput } from '@/app/components/add_product/CurrencyInput'
 import { MediaUploadComponent } from './MediaUploadComponent'
 import { ProductFormData, PromotionOption, StatusProduct } from 'Types/types'
-import { InformationCircleIcon } from '@heroicons/react/24/outline'
 
 interface ProductBasicInfoProps {
     formData: ProductFormData
@@ -21,9 +20,12 @@ export const BasicProductInfo = ({
     mainImages,
     onMainImagesChange
 }: ProductBasicInfoProps) => {
+
     const handleChange = (field: keyof ProductFormData, value: any) => {
         onFormDataChange({ ...formData, [field]: value })
     }
+
+    const promoItems = [{ id: '', name: 'Nenhuma promoção' }, ...promotions]
 
     const handleRemoveImage = (index: number) => {
         const newImages = mainImages.filter((_, i) => i !== index)
@@ -151,15 +153,15 @@ export const BasicProductInfo = ({
                                 <label className="block mb-1 text-sm font-medium text-foreground">
                                     {label}
                                 </label>
-                            <Input
-                                type="number"
-                                value={formData[formField]?.toString() || ''}
-                                onChange={(e) => handleChange(formField, Number(e.target.value))}
-                                className="bg-white border border-gray-200"
-                                classNames={{
-                                    input: "text-black",
-                                }}
-                            />
+                                <Input
+                                    type="number"
+                                    value={formData[formField]?.toString() || ''}
+                                    onChange={(e) => handleChange(formField, Number(e.target.value))}
+                                    className="bg-white border border-gray-200"
+                                    classNames={{
+                                        input: "text-black",
+                                    }}
+                                />
                             </div>
                         </Tooltip>
                     )
@@ -223,23 +225,29 @@ export const BasicProductInfo = ({
                 className="bg-white text-red-500 border border-gray-200 p-2"
             >
                 <Select
-                    placeholder='Promoção principal'
-                    selectedKeys={formData.mainPromotion_id ? [formData.mainPromotion_id] : []}
-                    onChange={(e) => handleChange('mainPromotion_id', e.target.value)}
-                    className="bg-white border border-gray-200 rounded-md text-black"
-                    classNames={{
-                        trigger: "text-black border-gray-200",
+                    placeholder="Promoção principal"
+                    items={promoItems}
+                    selectedKeys={
+                        formData.mainPromotion_id != null
+                            ? new Set([formData.mainPromotion_id])
+                            : new Set<string>()
+                    }
+                    onSelectionChange={(keys: SharedSelection) => {
+                        const key = typeof keys === 'string'
+                            ? keys
+                            : Array.from(keys)[0] ?? ''
+                        handleChange('mainPromotion_id', key || null)
                     }}
+                    className="bg-white border border-gray-200 rounded-md text-black"
+                    classNames={{ trigger: 'text-black border-gray-200' }}
                 >
-                    {promotions.map(promotion => (
-                        <SelectItem
-                            key={promotion.id}
-                            value={promotion.id}
-                            className="text-black bg-white"
-                        >
-                            {promotion.name}
-                        </SelectItem>
-                    ))}
+                    {
+                        (item: { id: string; name: string }) => (
+                            <SelectItem key={item.id} value={item.id} className='bg-white text-black'>
+                                {item.name}
+                            </SelectItem>
+                        )
+                    }
                 </Select>
             </Tooltip>
 
