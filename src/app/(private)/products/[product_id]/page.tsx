@@ -14,6 +14,7 @@ import { ProductDescriptionEditorUpdate } from '@/app/components/add_product/upd
 import { CategoryManagerUpdate } from '@/app/components/add_product/update_product/CategoryManagerUpdate'
 import { SeoProductInfoUpdate } from '@/app/components/add_product/update_product/SeoProductInfoUpdate'
 import { VideoLinksManagerUpdate } from '@/app/components/add_product/update_product/VideoLinksManagerUpdate'
+import { VariantManagerUpdate } from '@/app/components/add_product/update_product/VariantManagerUpdate'
 
 export default function UpdateProductPage() {
 
@@ -275,7 +276,11 @@ export default function UpdateProductPage() {
             />
           </Tab>
           <Tab key="variants" title="Variantes">
-
+            <VariantManagerUpdate
+              formData={formData}
+              onFormDataChange={setFormData}
+              promotions={promotions}
+            />
           </Tab>
           <Tab key="relations" title="Relacionamentos">
 
