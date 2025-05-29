@@ -48,6 +48,7 @@ export const VariantManager: React.FC<VariantManagerProps> = ({
                 allowBackorders: false,
                 attributes: [],
                 images: [],
+                variantAttributes: []
             },
         ]);
     };

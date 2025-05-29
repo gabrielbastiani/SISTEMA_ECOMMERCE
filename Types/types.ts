@@ -1,5 +1,3 @@
-import { v4 as uuidv4 } from 'uuid';
-
 export interface Notification {
     id: string;
     message: string;
@@ -34,6 +32,12 @@ export interface ProductDescription {
     status?: StatusDescription;
 }
 
+export interface ImageRecord {
+    id: string;
+    url: string;
+    altText: string;
+}
+
 export interface VariantFormData {
     id: string
     sku: string
@@ -50,9 +54,14 @@ export interface VariantFormData {
     created_at?: string
     productVariantImage?: any[]
     productVariantVideo?: any[]
+    variantAttributes: VariantAttribute[];
+    existingImages?: ImageRecord[];
+    videos?: VideoInput[];
+    newImages?: File[];
 }
 
 export interface VariantAttribute {
+    id?: string;
     key: string;
     value: string;
     status?: StatusProduct;
@@ -83,7 +92,8 @@ export interface ProductVariant {
 }
 
 export interface ProductFormData {
-    relations: any[];
+    id?: string;
+    relations: any;
     name: string;
     slug: string;
     description: string;
@@ -108,6 +118,8 @@ export interface ProductFormData {
     metaDescription?: string;
     keywords?: string[];
     videoLinks?: string[]
+    existingImages?: ImageRecord[];
+    newImages?: File[];
 }
 
 export interface RelationFormData {
@@ -121,6 +133,7 @@ export interface RelationFormData {
 export type PromotionOption = { id: string; name: string };
 
 export const initialFormData: ProductFormData = {
+    id: '',
     name: '',
     slug: '',
     description: '',
@@ -144,5 +157,8 @@ export const initialFormData: ProductFormData = {
     productDescriptions: [],
     relations: [],
     variants: [] as VariantFormData[],
-    videoLinks: []
+    videoLinks: [],
+    newImages: [],
+    mainPromotion_id: undefined,
+    existingImages: [],
 };

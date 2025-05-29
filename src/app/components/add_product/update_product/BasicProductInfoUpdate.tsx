@@ -2,21 +2,28 @@
 
 import { Input, Select, SelectItem, SharedSelection, Tooltip } from '@nextui-org/react'
 import { CurrencyInput } from '@/app/components/add_product/CurrencyInput'
-import { MediaUploadComponent } from '@/app/components/add_product/MediaUploadComponent'
 import { ProductFormData, PromotionOption, StatusProduct } from 'Types/types'
 import { ChangeEvent } from 'react'
+import { MediaUpdateComponent } from './MediaUpdateComponent'
 
-interface BasicProductInfoProps {
+interface BasicProductInfoUpdate {
     formData: ProductFormData
     onFormDataChange: (data: ProductFormData) => void
     promotions: PromotionOption[]
 }
 
+const dimensionFields: { label: string; field: keyof ProductFormData; tooltip: string }[] = [
+    { label: 'Peso (kg)', field: 'weight', tooltip: 'Peso total' },
+    { label: 'Comprimento (cm)', field: 'length', tooltip: 'Frente para trás' },
+    { label: 'Largura (cm)', field: 'width', tooltip: 'Lado a lado' },
+    { label: 'Altura (cm)', field: 'height', tooltip: 'Base ao topo' }
+]
+
 export const BasicProductInfoUpdate = ({
     formData,
     onFormDataChange,
     promotions
-}: BasicProductInfoProps) => {
+}: BasicProductInfoUpdate) => {
     // manipula campos básicos
     const handleChange = (field: keyof ProductFormData, value: any) => {
         onFormDataChange({ ...formData, [field]: value })
@@ -24,13 +31,19 @@ export const BasicProductInfoUpdate = ({
 
     // Remove imagem existente
     const handleRemoveExisting = (id: string) => {
-        const filtered = formData.existingImages?.filter(img => img.id !== id) || []
-        onFormDataChange({ ...formData, existingImages: filtered })
+        const updated = (formData.existingImages ?? []).filter(img => img.id !== id)
+        onFormDataChange({ ...formData, existingImages: updated })
     }
 
     // Adiciona novas imagens
     const handleAddNew = (files: File[]) => {
-        onFormDataChange({ ...formData, newImages: files })
+        const updated = [...(formData.newImages ?? []), ...files]
+        onFormDataChange({ ...formData, newImages: updated })
+    }
+
+    const handleRemoveNew = (index: number) => {
+        const updated = (formData.newImages ?? []).filter((_, i) => i !== index)
+        onFormDataChange({ ...formData, newImages: updated })
     }
 
     const promoItems = [{ id: '', name: 'Nenhuma promoção' }, ...promotions]
@@ -104,21 +117,16 @@ export const BasicProductInfoUpdate = ({
 
             {/* Dimensões */}
             <div className="grid grid-cols-4 gap-4">
-                {[
-                    { label: "Peso (kg)", field: 'weight', tooltip: "Peso total" },
-                    { label: "Comprimento (cm)", field: 'length', tooltip: "Frente para trás" },
-                    { label: "Largura (cm)", field: 'width', tooltip: "Lado a lado" },
-                    { label: "Altura (cm)", field: 'height', tooltip: "Base ao topo" }
-                ].map(({ label, field, tooltip }) => (
+                {dimensionFields.map(({ label, field, tooltip }) => (
                     <Tooltip key={field} content={tooltip} placement="top-start" className="bg-white text-red-500 border border-gray-200 p-2">
                         <div>
                             <label className="block mb-1 text-sm font-medium text-foreground">{label}</label>
                             <Input
                                 type="number"
-                                value={formData[field]?.toString() || ''}
-                                onChange={e => handleChange(field as keyof ProductFormData, Number(e.target.value))}
+                                value={(formData[field]?.toString()) || ''}
+                                onChange={e => handleChange(field, Number(e.target.value))}
                                 className="bg-white border border-gray-200"
-                                classNames={{ input: "text-black" }}
+                                classNames={{ input: 'text-black' }}
                             />
                         </div>
                     </Tooltip>
@@ -140,13 +148,16 @@ export const BasicProductInfoUpdate = ({
                 <Tooltip content="Disponibilidade" placement="top-start" className="bg-white text-red-500 border border-gray-200 p-2">
                     <Select
                         placeholder="Status"
-                        selectedKeys={formData.status ? [formData.status] : []}
-                        onChange={e => handleChange('status', e as StatusProduct)}
+                        selectedKeys={formData.status ? new Set([formData.status]) : new Set()}
+                        onSelectionChange={(keys) => {
+                            const key = Array.from(keys)[0] as StatusProduct
+                            handleChange('status', key)
+                        }}
                         className="bg-white border border-gray-200 rounded-md text-black"
-                        classNames={{ trigger: "text-black border-gray-200" }}
+                        classNames={{ trigger: 'text-black border-gray-200' }}
                     >
-                        <SelectItem key="DISPONIVEL" value="DISPONIVEL">Disponível</SelectItem>
-                        <SelectItem key="INDISPONIVEL" value="INDISPONIVEL">Indisponível</SelectItem>
+                        <SelectItem className='bg-white text-black' key="DISPONIVEL" value="DISPONIVEL">Disponível</SelectItem>
+                        <SelectItem className='bg-white text-black' key="INDISPONIVEL" value="INDISPONIVEL">Indisponível</SelectItem>
                     </Select>
                 </Tooltip>
             </div>
@@ -164,18 +175,20 @@ export const BasicProductInfoUpdate = ({
                     className="bg-white border border-gray-200 rounded-md text-black"
                     classNames={{ trigger: 'text-black border-gray-200' }}
                 >
-                    {(item: PromotionOption) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>}
+                    {(item: PromotionOption) => <SelectItem className='bg-white text-black' key={item.id} value={item.id}>{item.name}</SelectItem>}
                 </Select>
             </Tooltip>
 
             {/* Upload Imagens */}
-            <MediaUploadComponent
+            <MediaUpdateComponent
                 label="Imagens Principais"
-                existingFiles={formData.existingImages as ImageRecord[]}
-                newFiles={formData.newImages}
+                existingFiles={formData.existingImages ?? []}
+                newFiles={formData.newImages ?? []}
                 onAddNew={handleAddNew}
                 onRemoveExisting={handleRemoveExisting}
+                onRemoveNew={handleRemoveNew}
             />
+
         </div>
     )
 }
