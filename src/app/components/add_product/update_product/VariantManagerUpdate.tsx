@@ -12,7 +12,7 @@ import {
 } from '@nextui-org/react'
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { MediaUpdateComponent } from './MediaUpdateComponent'
-import { CurrencyInput } from '../CurrencyInput' 
+import { CurrencyInput } from '../CurrencyInput'
 import { VideoLinksManagerUpdate } from './VideoLinksManagerUpdate'
 import { PromotionOption, ProductFormData, VideoInput, ImageRecord } from 'Types/types'
 
@@ -27,7 +27,12 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
     onFormDataChange,
     promotions
 }) => {
-    const variants = formData.variants || []
+
+    const variants = formData.variants ?? [];
+
+    if (!variants) {
+        return null
+    }
 
     const updateVariants = (newVariants: typeof variants) =>
         onFormDataChange({ ...formData, variants: newVariants })
@@ -47,7 +52,7 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                 allowBackorders: false,
                 existingImages: [],
                 newImages: [],
-                videos: [],
+                videoLinks: [],
                 newVideos: [],
                 attributes: [],
                 images: [],
@@ -61,22 +66,20 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
         updateVariants(newList)
     }
 
-    const updateVariantField = (
-        idx: number,
-        field: keyof typeof variants[0],
-        value: any
-    ) => {
-        const copy = [...variants]
-        copy[idx] = { ...copy[idx], [field]: value }
-        updateVariants(copy)
-    }
+    const updateVariantField = (idx: number, field: string, value: any) => {
+    const copy = [...formData.variants!]
+    copy[idx] = { ...copy[idx], [field]: value }
+    onFormDataChange({ ...formData, variants: copy })
+}
 
     const promoItems = [{ id: '', name: 'Nenhuma promoção' }, ...promotions]
 
     return (
         <div className="space-y-6">
             {variants.map((variant, idx) => {
-                const vidLinks = variant.videos || []
+
+                const vidLinks = variant.videoLinks || [];
+
                 return (
                     <div
                         key={variant.id}
@@ -204,8 +207,8 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                         {/* Vídeos da variante */}
                         <VideoLinksManagerUpdate
                             links={vidLinks}
-                            onLinksChange={(links: VideoInput[]) =>
-                                updateVariantField(idx, 'videos', links)
+                            onLinksChange={newLinks =>
+                                updateVariantField(idx, 'videoLinks', newLinks)
                             }
                         />
 

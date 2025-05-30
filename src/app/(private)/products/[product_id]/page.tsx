@@ -24,7 +24,6 @@ export default function UpdateProductPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [allProducts, setAllProducts] = useState<{ id: string; name: string }[]>([])
   const [promotions, setPromotions] = useState<{ id: string; name: string }[]>([])
-  const [variantVideoLinks, setVariantVideoLinks] = useState<Record<string, VideoInput[]>>({})
   const [variantFiles, setVariantFiles] = useState<Record<string, File[]>>({})
   const [attributeFiles, setAttributeFiles] = useState<Record<string, Record<number, File[]>>>({})
   const [loading, setLoading] = useState(false)
@@ -89,7 +88,7 @@ export default function UpdateProductPage() {
               }
             }),
           productDescriptions: p.productsDescriptions.map((d: any) => ({ title: d.title, description: d.description })),
-          variants: p.variants.map((v: any) => ({
+          variants: (p.variants ?? []).map((v: any) => ({
             id: v.id,
             sku: v.sku,
             price_of: v.price_of,
@@ -101,24 +100,28 @@ export default function UpdateProductPage() {
             mainPromotion_id: v.mainPromotion_id,
             existingImages: p.images
               .filter((i: any) => i.variant_id === v.id)
-              .map((i: any) => ({ id: i.id, url: i.url, altText: i.altText } as ImageRecord)),
+              .map((i: any) => ({
+                id: i.id,
+                url: i.url,
+                altText: i.altText
+              }) as ImageRecord),
             newImages: [],
-            variantAttributes: v.variantAttribute.map((a: any) => ({
+            attributes: v.variantAttribute.map((a: any) => ({
               id: a.id,
               key: a.key,
               value: a.value,
-              status: a.status
+              status: a.status,
+              existingImages: [],
+              newImages: []
             })),
             images: [],
-            videos: p.videos
-              .filter((vv: any) => vv.variant_id === v.id)
-              .map((vv: any) => {
-                const id = extractYouTubeId(vv.url)
-                return {
-                  url: vv.url,
-                  thumbnail: id ? `https://img.youtube.com/vi/${id}/0.jpg` : undefined
-                }
-              }),
+            videoLinks: (v.productVariantVideo ?? []).map((vv: any) => {
+              const id = extractYouTubeId(vv.url)
+              return {
+                url: vv.url,
+                thumbnail: id ? `https://img.youtube.com/vi/${id}/0.jpg` : undefined
+              }
+            }),
           })),
           relations: [
             ...p.parentRelations.map((r: any) => ({
@@ -156,7 +159,6 @@ export default function UpdateProductPage() {
         if ([
           'variants',
           'relations',
-          'videos',
           'newImages',
           'existingImages',
           'productDescriptions',
@@ -172,7 +174,6 @@ export default function UpdateProductPage() {
 
       // 2) Vídeos
       formPayload.append('videoLinks', JSON.stringify(formData.videos.map((v) => v.url)));
-      console.log('➡️ Enviando videoLinks:', formPayload.get('videoLinks'))
 
       // 3) Variantes
       const cleanVariants = formData.variants.map((v) => ({
@@ -185,16 +186,17 @@ export default function UpdateProductPage() {
         ean: v.ean,
         allowBackorders: v.allowBackorders,
         mainPromotion_id: v.mainPromotion_id,
-        images: (v.newImages ?? []).map((f) => f.name),
-        videoLinks: variantVideoLinks[v.id]?.map((x) => x.url) || [],
-        attributes: (v.variantAttributes ?? []).map((at, i) => ({
+        images: (v.newImages ?? []).map(f => f.name),
+        videoLinks: (v.videoLinks ?? []).map(link => link.url),
+        attributes: (v.attributes ?? []).map((at, i) => ({
           id: at.id,
           key: at.key,
           value: at.value,
-          images:
-            (attributeFiles?.[v.id]?.[i] ?? []).map((f) => f.name),
+          images: (attributeFiles?.[v.id]?.[i] ?? []).map(f => f.name),
         })),
       }))
+
+      console.log("Dados de cleanVariants", cleanVariants)
 
       formPayload.append('descriptions', JSON.stringify(formData.productDescriptions))
 
@@ -212,15 +214,23 @@ export default function UpdateProductPage() {
         )
 
       // 7) Arquivos de variantes e atributos
-      Object.values(variantFiles).flat().forEach((f) =>
-        formPayload.append('variantImages', f)
-      )
-      Object.values(attributeFiles)
-        .flatMap((obj) => Object.values(obj))
-        .flat()
-        .forEach((f) => formPayload.append('attributeImages', f))
+      formData.variants.forEach(v => {
+        const filesForThisVariant = variantFiles[v.id] || []
+        filesForThisVariant.forEach(f =>
+          // note o campo dinâmico com o ID da variante
+          formPayload.append(`variantImages_${v.id}`, f)
+        )
+      })
+      formData.variants.forEach(v => {
+        const attrs = attributeFiles[v.id] || {}
+        Object.entries(attrs).forEach(([attrIndex, files]) => {
+          files.forEach(f =>
+            formPayload.append(`attributeImages_${v.id}_${attrIndex}`, f)
+          )
+        })
+      })
 
-      console.log(formData)
+      console.log("Todos os dados", formData)
 
       // 8) Chama o backend
       const api = setupAPIClientEcommerce()

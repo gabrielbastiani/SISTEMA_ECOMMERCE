@@ -56,6 +56,7 @@ export interface VariantFormData {
     productVariantVideo?: any[]
     variantAttributes: VariantAttribute[];
     videos?: VideoInput[];
+    videoLinks?: VideoInput[];
     existingImages?: ImageRecord[]
     newImages?: File[]
     newVideos?: VideoInput[]
