@@ -6,20 +6,23 @@ import { ArrowUpTrayIcon, TrashIcon } from '@heroicons/react/24/outline'
 import Image from 'next/image'
 import { ImageRecord } from 'Types/types'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 type MediaUpdateProps = {
     label: string
     maxFiles?: number
     acceptedTypes?: Record<string, string[]>
-    existingFiles: ImageRecord[]
-    newFiles: File[]
-    onAddNew: (files: File[]) => void
-    onRemoveExisting: (id: string) => void
-    onRemoveNew: (index: number) => void
+
+    // Essas duas props vêm de quem usa este componente:
+    existingFiles: ImageRecord[]  // imagens que já estão salvas no servidor
+    newFiles: File[]             // “novos” arquivos que o usuário acabou de colocar via upload
+
+    onAddNew: (files: File[]) => void       // callback para quando o usuário arrasta/seleciona arquivos novos
+    onRemoveExisting: (id: string) => void  // callback para remover uma imagem que já existia (envia-se só o ID)
+    onRemoveNew: (index: number) => void    // callback para remover um arquivo “novo” pelo índice
 }
 
-export const MediaUpdateComponent = ({
+export const MediaUpdateComponent: React.FC<MediaUpdateProps> = ({
     label,
     maxFiles = 20,
     acceptedTypes = { 'image/*': ['.jpeg', '.jpg', '.png'] },
@@ -28,7 +31,7 @@ export const MediaUpdateComponent = ({
     onAddNew,
     onRemoveExisting,
     onRemoveNew
-}: MediaUpdateProps) => {
+}) => {
     const { getRootProps, getInputProps } = useDropzone({
         accept: acceptedTypes,
         maxFiles,
@@ -39,7 +42,7 @@ export const MediaUpdateComponent = ({
         <div className="space-y-4">
             <label className="block text-sm font-medium text-foreground">{label}</label>
 
-            {/* Upload area */}
+            {/* Área de drop / clique */}
             <div
                 {...getRootProps()}
                 className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
@@ -51,10 +54,10 @@ export const MediaUpdateComponent = ({
                 </p>
             </div>
 
-            {/* Existing + New previews */}
+            {/* Preview: lista as existingFiles (do servidor) e os newFiles (arquivos subidos agora) */}
             {(existingFiles.length > 0 || newFiles.length > 0) && (
                 <div className="grid grid-cols-3 gap-4 mt-4">
-                    {/* Existing */}
+                    {/* Existing (vêm do servidor, via URL) */}
                     {existingFiles.map(file => (
                         <div key={file.id} className="relative group">
                             <Image
@@ -74,7 +77,8 @@ export const MediaUpdateComponent = ({
                             </Button>
                         </div>
                     ))}
-                    {/* New */}
+
+                    {/* New (File objects) */}
                     {newFiles.map((file, idx) => (
                         <div key={idx} className="relative group">
                             <Image

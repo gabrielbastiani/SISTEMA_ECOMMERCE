@@ -13,72 +13,128 @@ import {
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { MediaUpdateComponent } from './MediaUpdateComponent'
 import { CurrencyInput } from '../CurrencyInput'
+import {
+    PromotionOption,
+    ProductFormData,
+    VideoInput,
+    ImageRecord,
+    VariantAttribute,
+    StatusProduct,
+    VariantFormData
+} from 'Types/types'
 import { VideoLinksManagerUpdate } from './VideoLinksManagerUpdate'
-import { PromotionOption, ProductFormData, VideoInput, ImageRecord } from 'Types/types'
 
 interface VariantManagerUpdateProps {
     formData: ProductFormData
     onFormDataChange: (data: ProductFormData) => void
     promotions: PromotionOption[]
+
+    // Estado externo: TODOS os “novos” arquivos para cada variante
+    variantFiles: Record<string, File[]>
+    setVariantFiles: React.Dispatch<React.SetStateAction<Record<string, File[]>>>
+
+    // Estado externo: TODOS os “novos” arquivos para cada atributo de cada variante
+    attributeFiles: Record<string, Record<number, File[]>>
+    setAttributeFiles: React.Dispatch<
+        React.SetStateAction<Record<string, Record<number, File[]>>>
+    >
 }
 
 export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
     formData,
     onFormDataChange,
-    promotions
+    promotions,
+    variantFiles,
+    setVariantFiles,
+    attributeFiles,
+    setAttributeFiles
 }) => {
+    const variants = formData.variants || []
 
-    const variants = formData.variants ?? [];
-
-    if (!variants) {
-        return null
-    }
-
-    const updateVariants = (newVariants: typeof variants) =>
+    // Helper para atualizar a lista de variantes no formData
+    const updateVariants = (newVariants: VariantFormData[]) =>
         onFormDataChange({ ...formData, variants: newVariants })
 
+    // Adiciona uma nova variante
     const addVariant = () => {
-        updateVariants([
-            ...variants,
-            {
-                id: uuidv4(),
-                sku: '',
-                price_of: 0,
-                price_per: 0,
-                stock: 0,
-                sortOrder: 0,
-                ean: '',
-                mainPromotion_id: '',
-                allowBackorders: false,
-                existingImages: [],
-                newImages: [],
-                videoLinks: [],
-                newVideos: [],
-                attributes: [],
-                images: [],
-                variantAttributes: []
-            }
-        ])
+        const novoId = uuidv4()
+        const novaVariante: VariantFormData = {
+            id: novoId,
+            sku: '',
+            price_of: 0,
+            price_per: 0,
+            stock: 0,
+            sortOrder: 0,
+            ean: '',
+            mainPromotion_id: '',
+            allowBackorders: false,
+
+            existingImages: [] as ImageRecord[],
+            newImages: [] as File[],
+
+            videos: [] as VideoInput[],
+            // não temos “newVideos” em VariantFormData; se o tipo do seu projeto usa “videos[]” só (não “newVideos”), siga assim
+
+            attributes: [] as VariantAttribute[],
+
+            images: [] as File[],
+            productVariantImage: [] as ImageRecord[],
+            productVariantVideo: [] as VideoInput[],
+
+            created_at: undefined,
+            product_id: formData.id ?? '',
+
+            variantAttributes: [] as any[]
+        }
+
+        updateVariants([...variants, novaVariante])
+        setVariantFiles((prev) => ({ ...prev, [novoId]: [] }))
     }
 
+    // Remove uma variante e limpa seus arquivos
     const removeVariant = (index: number) => {
-        const newList = variants.filter((_, i) => i !== index)
-        updateVariants(newList)
+        const variantId = variants[index].id
+        const novaLista = variants.filter((_, i) => i !== index)
+        updateVariants(novaLista)
+
+        setVariantFiles((prev) => {
+            const copy = { ...prev }
+            delete copy[variantId]
+            return copy
+        })
+        setAttributeFiles((prev) => {
+            const copy = { ...prev }
+            delete copy[variantId]
+            return copy
+        })
     }
 
-    const updateVariantField = (idx: number, field: string, value: any) => {
-    const copy = [...formData.variants!]
-    copy[idx] = { ...copy[idx], [field]: value }
-    onFormDataChange({ ...formData, variants: copy })
-}
+    // Atualiza campo simples dentro de uma variante
+    const updateVariantField = (
+        idx: number,
+        field:
+            | 'sku'
+            | 'price_of'
+            | 'price_per'
+            | 'stock'
+            | 'sortOrder'
+            | 'ean'
+            | 'mainPromotion_id'
+            | 'allowBackorders',
+        value: any
+    ) => {
+        const copia = [...variants]
+        copia[idx] = { ...copia[idx], [field]: value }
+        updateVariants(copia)
+    }
 
     const promoItems = [{ id: '', name: 'Nenhuma promoção' }, ...promotions]
 
     return (
         <div className="space-y-6">
             {variants.map((variant, idx) => {
-
-                const vidLinks = variant.videoLinks || [];
+                const arquivosNovosDaVariante: File[] = variantFiles[variant.id] || []
+                const vidLinks: VideoInput[] = variant.videos || []
 
                 return (
                     <div
@@ -100,15 +156,13 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                             </Button>
                         </div>
 
-                        {/* SKU / EAN */}
+                        {/* Campos de texto / número da variante */}
                         <div className="grid grid-cols-2 gap-4">
                             <Tooltip content="SKU da variante" placement="top-start">
                                 <Input
                                     placeholder="SKU"
                                     value={variant.sku}
-                                    onChange={(e) =>
-                                        updateVariantField(idx, 'sku', e.target.value)
-                                    }
+                                    onChange={(e) => updateVariantField(idx, 'sku', e.target.value)}
                                     className="text-black"
                                 />
                             </Tooltip>
@@ -116,32 +170,25 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                                 <Input
                                     placeholder="EAN"
                                     value={variant.ean}
-                                    onChange={(e) =>
-                                        updateVariantField(idx, 'ean', e.target.value)
-                                    }
+                                    onChange={(e) => updateVariantField(idx, 'ean', e.target.value)}
                                     className="text-black"
                                 />
                             </Tooltip>
                         </div>
 
-                        {/* Preço e ordem */}
                         <div className="grid grid-cols-3 gap-4">
                             <Tooltip content="Preço De" placement="top-start">
                                 <CurrencyInput
                                     placeholder="Preço De"
                                     value={variant.price_of || 0}
-                                    onChange={(v) =>
-                                        updateVariantField(idx, 'price_of', Number(v))
-                                    }
+                                    onChange={(v) => updateVariantField(idx, 'price_of', Number(v))}
                                 />
                             </Tooltip>
                             <Tooltip content="Preço Por" placement="top-start">
                                 <CurrencyInput
                                     placeholder="Preço Por"
                                     value={variant.price_per || 0}
-                                    onChange={(v) =>
-                                        updateVariantField(idx, 'price_per', Number(v))
-                                    }
+                                    onChange={(v) => updateVariantField(idx, 'price_per', Number(v))}
                                 />
                             </Tooltip>
                             <Tooltip content="Ordem de exibição" placement="top-start">
@@ -150,18 +197,13 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                                     placeholder="Ordem"
                                     value={String(variant.sortOrder || 0)}
                                     onChange={(e) =>
-                                        updateVariantField(
-                                            idx,
-                                            'sortOrder',
-                                            Number(e.target.value)
-                                        )
+                                        updateVariantField(idx, 'sortOrder', Number(e.target.value))
                                     }
                                     className="text-black"
                                 />
                             </Tooltip>
                         </div>
 
-                        {/* Estoque / Promoção */}
                         <div className="grid grid-cols-2 gap-4">
                             <Tooltip content="Estoque" placement="top-start">
                                 <Input
@@ -188,11 +230,7 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                                             typeof keys === 'string'
                                                 ? keys
                                                 : (Array.from(keys)[0] as string)
-                                        updateVariantField(
-                                            idx,
-                                            'mainPromotion_id',
-                                            key || null
-                                        )
+                                        updateVariantField(idx, 'mainPromotion_id', key || '')
                                     }}
                                 >
                                     {(item: PromotionOption) => (
@@ -204,127 +242,197 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                             </Tooltip>
                         </div>
 
-                        {/* Vídeos da variante */}
                         <VideoLinksManagerUpdate
                             links={vidLinks}
-                            onLinksChange={newLinks =>
-                                updateVariantField(idx, 'videoLinks', newLinks)
-                            }
+                            onLinksChange={(newLinks) => {
+                                const copia = [...variants]
+                                copia[idx].videos = newLinks
+                                updateVariants(copia)
+                            }}
                         />
 
-                        {/* Imagens da variante */}
+                        {/* =================================
+                  IMAGENS DA VARIANTE
+               ================================= */}
                         <MediaUpdateComponent
                             label="Imagens da Variante"
                             existingFiles={variant.existingImages || []}
-                            newFiles={variant.newImages || []}
-                            onAddNew={(files) =>
-                                updateVariantField(idx, 'newImages', files)
-                            }
-                            onRemoveExisting={(id: string) => {
-                                const keep = (variant.existingImages || []).filter(
-                                    (img) => img.id !== id
-                                )
-                                updateVariantField(idx, 'existingImages', keep)
+                            newFiles={arquivosNovosDaVariante}
+                            onAddNew={(filesList) => {
+                                // Filtrar duplicados (por nome + lastModified)
+                                setVariantFiles((prev) => {
+                                    const copia = { ...prev }
+                                    const already = copia[variant.id] || []
+                                    // Só adiciona aqueles que não existirem ainda (comparando name + lastModified)
+                                    const filtered = filesList.filter(
+                                        (f) =>
+                                            !already.some(
+                                                (e) => e.name === f.name && e.lastModified === f.lastModified
+                                            )
+                                    )
+                                    copia[variant.id] = [...already, ...filtered]
+                                    return copia
+                                })
                             }}
-                            onRemoveNew={(i: number) => {
-                                const keep = (variant.newImages || []).filter(
-                                    (_f, j) => j !== i
-                                )
-                                updateVariantField(idx, 'newImages', keep)
+                            onRemoveExisting={(id) => {
+                                const copia = [...variants]
+                                copia[idx].existingImages =
+                                    copia[idx].existingImages?.filter((img) => img.id !== id) || []
+                                updateVariants(copia)
+                            }}
+                            onRemoveNew={(i) => {
+                                setVariantFiles((prev) => {
+                                    const copy = { ...prev }
+                                    if (copy[variant.id]) {
+                                        copy[variant.id] = copy[variant.id].filter((_, j) => j !== i)
+                                    }
+                                    return copy
+                                })
                             }}
                         />
 
-                        {/* Atributos */}
+                        {/* =================================
+                  ATRIBUTOS DA VARIANTE
+               ================================= */}
                         <div className="space-y-4">
-                            {variant.attributes.map((attr, ai) => (
-                                <div
-                                    key={ai}
-                                    className="border p-3 rounded-lg bg-gray-50 relative"
-                                >
-                                    <Button
-                                        isIconOnly
-                                        size="sm"
-                                        variant="light"
-                                        className="absolute top-2 right-2"
-                                        onPress={() => {
-                                            const copy = [...variants]
-                                            copy[idx].attributes.splice(ai, 1)
-                                            updateVariants(copy)
-                                        }}
+                            {(variant.attributes || []).map((attr, ai) => {
+                                // Fonte de verdade dos novos arquivos deste atributo
+                                const arquivosNovosDoAtributo = attributeFiles[variant.id]?.[ai] || []
+
+                                return (
+                                    <div
+                                        key={ai}
+                                        className="border p-3 rounded-lg bg-gray-50 relative"
                                     >
-                                        <TrashIcon className="h-5 w-5 text-red-600" />
-                                    </Button>
+                                        <Button
+                                            isIconOnly
+                                            size="sm"
+                                            variant="light"
+                                            className="absolute top-2 right-2"
+                                            onPress={() => {
+                                                const copia = [...variants]
+                                                copia[idx].attributes.splice(ai, 1)
+                                                updateVariants(copia)
 
-                                    <div className="flex gap-4 mb-2">
-                                        <Tooltip content="Nome do atributo" placement="top-start">
-                                            <Input
-                                                placeholder="Nome Atributo"
-                                                value={attr.key}
-                                                onChange={(e) => {
-                                                    const copy = [...variants]
-                                                    copy[idx].attributes[ai].key = e.target.value
-                                                    updateVariants(copy)
-                                                }}
-                                                className="text-black"
-                                            />
-                                        </Tooltip>
-                                        <Tooltip content="Valor do atributo" placement="top-start">
-                                            <Input
-                                                placeholder="Valor Atributo"
-                                                value={attr.value}
-                                                onChange={(e) => {
-                                                    const copy = [...variants]
-                                                    copy[idx].attributes[ai].value = e.target.value
-                                                    updateVariants(copy)
-                                                }}
-                                                className="text-black"
-                                            />
-                                        </Tooltip>
+                                                setAttributeFiles((prev) => {
+                                                    const copy = { ...prev }
+                                                    if (copy[variant.id]) {
+                                                        delete copy[variant.id][ai]
+                                                        const shifted: Record<number, File[]> = {}
+                                                        Object.entries(copy[variant.id]).forEach(([key, filesArr]) => {
+                                                            const k = Number(key)
+                                                            const newKey = k > ai ? k - 1 : k
+                                                            shifted[newKey] = filesArr
+                                                        })
+                                                        if (Object.keys(shifted).length) {
+                                                            copy[variant.id] = shifted
+                                                        } else {
+                                                            delete copy[variant.id]
+                                                        }
+                                                    }
+                                                    return copy
+                                                })
+                                            }}
+                                        >
+                                            <TrashIcon className="h-5 w-5 text-red-600" />
+                                        </Button>
+
+                                        <div className="flex gap-4 mb-2">
+                                            <Tooltip content="Nome do atributo" placement="top-start">
+                                                <Input
+                                                    placeholder="Nome Atributo"
+                                                    value={attr.key}
+                                                    onChange={(e) => {
+                                                        const copia = [...variants]
+                                                        copia[idx].attributes[ai].key = e.target.value
+                                                        updateVariants(copia)
+                                                    }}
+                                                    className="text-black"
+                                                />
+                                            </Tooltip>
+                                            <Tooltip content="Valor do atributo" placement="top-start">
+                                                <Input
+                                                    placeholder="Valor Atributo"
+                                                    value={attr.value}
+                                                    onChange={(e) => {
+                                                        const copia = [...variants]
+                                                        copia[idx].attributes[ai].value = e.target.value
+                                                        updateVariants(copia)
+                                                    }}
+                                                    className="text-black"
+                                                />
+                                            </Tooltip>
+                                        </div>
+
+                                        {/* =================================
+                          IMAGENS DO ATRIBUTO
+                       ================================= */}
+                                        <MediaUpdateComponent
+                                            label="Imagens do Atributo"
+                                            existingFiles={attr.existingImages || []}
+                                            newFiles={arquivosNovosDoAtributo}
+                                            onAddNew={(filesList) => {
+                                                setAttributeFiles((prev) => {
+                                                    const copy = { ...prev }
+                                                    if (!copy[variant.id]) copy[variant.id] = {}
+                                                    const already = copy[variant.id][ai] || []
+                                                    // Filtrar duplicados
+                                                    const filtered = filesList.filter(
+                                                        (f) =>
+                                                            !already.some(
+                                                                (e) => e.name === f.name && e.lastModified === f.lastModified
+                                                            )
+                                                    )
+                                                    copy[variant.id][ai] = [...already, ...filtered]
+                                                    return copy
+                                                })
+                                            }}
+                                            onRemoveExisting={(id) => {
+                                                const copia = [...variants]
+                                                copia[idx].attributes[ai].existingImages =
+                                                    copia[idx].attributes[ai].existingImages?.filter((img) => img.id !== id) ||
+                                                    []
+                                                updateVariants(copia)
+                                            }}
+                                            onRemoveNew={(i) => {
+                                                setAttributeFiles((prev) => {
+                                                    const copy = { ...prev }
+                                                    if (copy[variant.id] && copy[variant.id][ai]) {
+                                                        copy[variant.id][ai] = copy[variant.id][ai].filter((_, j) => j !== i)
+                                                    }
+                                                    return copy
+                                                })
+                                            }}
+                                        />
                                     </div>
-
-                                    {/* Imagens de atributo */}
-                                    <MediaUpdateComponent
-                                        label="Imagens do Atributo"
-                                        existingFiles={attr.existingImages || []}
-                                        newFiles={attr.newImages || []}
-                                        onAddNew={(files) => {
-                                            const copy = [...variants]
-                                            copy[idx].attributes[ai].newImages = files
-                                            updateVariants(copy)
-                                        }}
-                                        onRemoveExisting={(id: string) => {
-                                            const keep = (attr.existingImages || []).filter(
-                                                (img) => img.id !== id
-                                            )
-                                            const copy = [...variants]
-                                            copy[idx].attributes[ai].existingImages = keep
-                                            updateVariants(copy)
-                                        }}
-                                        onRemoveNew={(i: number) => {
-                                            const keep = (attr.newImages || []).filter(
-                                                (_f, j) => j !== i
-                                            )
-                                            const copy = [...variants]
-                                            copy[idx].attributes[ai].newImages = keep
-                                            updateVariants(copy)
-                                        }}
-                                    />
-                                </div>
-                            ))}
+                                )
+                            })}
 
                             <Button
                                 size="sm"
                                 variant="bordered"
                                 startContent={<PlusIcon />}
                                 onPress={() => {
-                                    const copy = [...variants]
-                                    copy[idx].attributes.push({
+                                    const copia = [...variants]
+                                    const novoAtributo: VariantAttribute = {
+                                        id: undefined,
                                         key: '',
                                         value: '',
-                                        existingImages: [],
-                                        newImages: []
+                                        status: undefined as StatusProduct | undefined,
+                                        existingImages: [] as ImageRecord[],
+                                        newImages: [] as File[]
+                                    }
+                                    copia[idx].attributes.push(novoAtributo)
+                                    updateVariants(copia)
+
+                                    // Inicializa chave vazia no attributeFiles
+                                    setAttributeFiles((prev) => {
+                                        const copy = { ...prev }
+                                        if (!copy[variant.id]) copy[variant.id] = {}
+                                        const novoIdx = copia[idx].attributes.length - 1
+                                        copy[variant.id][novoIdx] = []
+                                        return copy
                                     })
-                                    updateVariants(copy)
                                 }}
                             >
                                 Adicionar Atributo

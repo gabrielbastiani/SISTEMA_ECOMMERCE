@@ -8,7 +8,6 @@ import { ProductDescription, StatusDescription } from 'Types/types'
 
 const TOKEN_TINY = process.env.NEXT_PUBLIC_TINYMCE_API_KEY
 
-// Estende a descrição para possivelmente incluir um id (para existing)
 export interface ProductDescriptionWithId extends ProductDescription {
     id?: string
 }
