@@ -158,7 +158,7 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
 
                         {/* Campos de texto / número da variante */}
                         <div className="grid grid-cols-2 gap-4">
-                            <Tooltip content="SKU da variante" placement="top-start">
+                            <Tooltip content="SKU código dessa variante do produto em questão" placement="top-start" className="bg-white text-red-500 border border-gray-200 p-2">
                                 <Input
                                     placeholder="SKU"
                                     value={variant.sku}
@@ -166,7 +166,7 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                                     className="text-black"
                                 />
                             </Tooltip>
-                            <Tooltip content="EAN da variante" placement="top-start">
+                            <Tooltip content="Código de barras EAN/GTIN" placement="top-start" className="bg-white text-red-500 border border-gray-200 p-2">
                                 <Input
                                     placeholder="EAN"
                                     value={variant.ean}
@@ -177,21 +177,21 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                         </div>
 
                         <div className="grid grid-cols-3 gap-4">
-                            <Tooltip content="Preço De" placement="top-start">
+                            <Tooltip content="Preço original de venda sem desconto" placement="top-start" className="bg-white text-red-500 border border-gray-200 p-2">
                                 <CurrencyInput
                                     placeholder="Preço De"
                                     value={variant.price_of || 0}
                                     onChange={(v) => updateVariantField(idx, 'price_of', Number(v))}
                                 />
                             </Tooltip>
-                            <Tooltip content="Preço Por" placement="top-start">
+                            <Tooltip content="Preço atual de venda" placement="top-start" className="bg-white text-red-500 border border-gray-200 p-2">
                                 <CurrencyInput
                                     placeholder="Preço Por"
                                     value={variant.price_per || 0}
                                     onChange={(v) => updateVariantField(idx, 'price_per', Number(v))}
                                 />
                             </Tooltip>
-                            <Tooltip content="Ordem de exibição" placement="top-start">
+                            <Tooltip content="Número correspondente a ordem que aparecerá essa variante junto ao produto" placement="top-start" className="bg-white text-red-500 border border-gray-200 p-2">
                                 <Input
                                     type="number"
                                     placeholder="Ordem"
@@ -205,7 +205,7 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
-                            <Tooltip content="Estoque" placement="top-start">
+                            <Tooltip content="Estoque desse produto/variante" placement="top-start" className="bg-white text-red-500 border border-gray-200 p-2">
                                 <Input
                                     type="number"
                                     placeholder="Estoque"
@@ -216,7 +216,7 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                                     className="text-black"
                                 />
                             </Tooltip>
-                            <Tooltip content="Promoção" placement="top-start">
+                            <Tooltip content="Promoção" placement="top-start" className="bg-white text-red-500 border border-gray-200 p-2">
                                 <Select
                                     placeholder="Promoção"
                                     items={promoItems}
@@ -232,9 +232,10 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                                                 : (Array.from(keys)[0] as string)
                                         updateVariantField(idx, 'mainPromotion_id', key || '')
                                     }}
+                                    className='text-black'
                                 >
                                     {(item: PromotionOption) => (
-                                        <SelectItem key={item.id} value={item.id}>
+                                        <SelectItem className='bg-white text-black' key={item.id} value={item.id}>
                                             {item.name}
                                         </SelectItem>
                                     )}
@@ -302,7 +303,7 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                                 return (
                                     <div
                                         key={ai}
-                                        className="border p-3 rounded-lg bg-gray-50 relative"
+                                        className="border p-3 rounded-lg bg-gray-300 relative"
                                     >
                                         <Button
                                             isIconOnly
@@ -337,8 +338,8 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                                             <TrashIcon className="h-5 w-5 text-red-600" />
                                         </Button>
 
-                                        <div className="flex gap-4 mb-2">
-                                            <Tooltip content="Nome do atributo" placement="top-start">
+                                        <div className="flex gap-4 mb-2 mt-8">
+                                            <Tooltip content="Nome do atributo" placement="top-start" className="bg-white text-red-500 border border-gray-200 p-2">
                                                 <Input
                                                     placeholder="Nome Atributo"
                                                     value={attr.key}
@@ -350,7 +351,7 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                                                     className="text-black"
                                                 />
                                             </Tooltip>
-                                            <Tooltip content="Valor do atributo" placement="top-start">
+                                            <Tooltip content="Valor do atributo" placement="top-start" className="bg-white text-red-500 border border-gray-200 p-2">
                                                 <Input
                                                     placeholder="Valor Atributo"
                                                     value={attr.value}
@@ -410,6 +411,7 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
 
                             <Button
                                 size="sm"
+                                className='text-orange-500'
                                 variant="bordered"
                                 startContent={<PlusIcon />}
                                 onPress={() => {
@@ -444,6 +446,7 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
 
             <Button
                 size="sm"
+                className='bg-violet-600 text-white'
                 variant="bordered"
                 startContent={<PlusIcon />}
                 onPress={addVariant}

@@ -19,19 +19,31 @@ import {
 } from 'Types/types'
 import { toast } from 'react-toastify'
 import { BasicProductInfoUpdate } from '@/app/components/add_product/update_product/BasicProductInfoUpdate'
-import { ProductDescriptionEditorUpdate, ProductDescriptionWithId } from '@/app/components/add_product/update_product/ProductDescriptionEditorUpdate'
+import {
+  ProductDescriptionEditorUpdate,
+  ProductDescriptionWithId
+} from '@/app/components/add_product/update_product/ProductDescriptionEditorUpdate'
 import { CategoryManagerUpdate } from '@/app/components/add_product/update_product/CategoryManagerUpdate'
 import { SeoProductInfoUpdate } from '@/app/components/add_product/update_product/SeoProductInfoUpdate'
 import { VideoLinksManagerUpdate } from '@/app/components/add_product/update_product/VideoLinksManagerUpdate'
 import { VariantManagerUpdate } from '@/app/components/add_product/update_product/VariantManagerUpdate'
+import {
+  ProductRelation,
+  ProductRelationsUpdate
+} from '@/app/components/add_product/update_product/ProductRelationsUpdate'
 
 export default function UpdateProductPage() {
+
   const { product_id } = useParams<{ product_id: string }>()
+
   const router = useRouter()
 
   const [formData, setFormData] = useState<ProductFormData>(initialFormData)
   const [categories, setCategories] = useState<Category[]>([])
   const [promotions, setPromotions] = useState<{ id: string; name: string }[]>([])
+
+  // Lista de TODOS os produtos, usada no Autocomplete de relações
+  const [products, setProducts] = useState<Array<{ id: string; name: string }>>([])
 
   // Fonte de verdade dos arquivos “novos” de cada variante
   const [variantFiles, setVariantFiles] = useState<Record<string, File[]>>({})
@@ -47,7 +59,8 @@ export default function UpdateProductPage() {
     async function load() {
       try {
         const api = setupAPIClientEcommerce()
-        const [catRes, _, promoRes, dataRes] = await Promise.all([
+        // Agora capturamos TODOS os produtos (prodRes) para passar ao Autocomplete:
+        const [catRes, prodRes, promoRes, dataRes] = await Promise.all([
           api.get('/category/cms'),
           api.get('/get/products'),
           api.get('/promotions'),
@@ -55,7 +68,20 @@ export default function UpdateProductPage() {
         ])
 
         setCategories(catRes.data.all_categories_disponivel)
-        setPromotions(promoRes.data.map((p: any) => ({ id: String(p.id), name: p.name })))
+        setPromotions(
+          promoRes.data.map((p: any) => ({
+            id: String(p.id),
+            name: p.name
+          }))
+        )
+
+        // Preenche o array “products” com {id, name} para o Autocomplete
+        setProducts(
+          prodRes.data.allow_products.map((p: any) => ({
+            id: p.id,
+            name: p.name
+          }))
+        )
 
         const p = dataRes.data
 
@@ -65,12 +91,7 @@ export default function UpdateProductPage() {
           return match ? match[1] : null
         }
 
-        const rawImages: Array<{
-          id: string
-          url: string
-          altText: string
-        }> = p.images ?? []
-
+        const rawImages: Array<{ id: string; url: string; altText: string }> = p.images ?? []
         const rawVariants: Array<any> = p.variants ?? []
         const rawDescriptions: Array<{
           id: string
@@ -132,15 +153,10 @@ export default function UpdateProductPage() {
             status: d.status as any
           })) as ProductDescriptionWithId[],
 
-          // — Aqui vem a correção principal: carregamos os vídeos de variante em `videos` —
+          // Variantes
           variants: rawVariants.map((v: any) => {
-            // 1) existingImages de variante
             const existingVarImgs: Array<any> = v.productVariantImage ?? []
-
-            // 2) atributos da variante
             const attributesRaw: Array<any> = v.variantAttribute ?? []
-
-            // 3) vídeos da variante vindos do banco (tabela `productVariantVideo`)
             const rawVideosVariant: Array<{ url: string }> = v.productVariantVideo ?? []
 
             return {
@@ -154,7 +170,6 @@ export default function UpdateProductPage() {
               ean: v.ean,
               mainPromotion_id: v.mainPromotion_id,
 
-              // Popula existingImages do MediaUpdateComponent
               existingImages: existingVarImgs.map(
                 (i: any) =>
                 ({
@@ -164,10 +179,8 @@ export default function UpdateProductPage() {
                 } as ImageRecord)
               ),
 
-              // “Novos arquivos” de variante (ficarão em variantFiles[v.id])
               newImages: [] as File[],
 
-              // Atributos
               attributes: attributesRaw.map((a: any) => {
                 const imagesOfAttr: Array<any> = a.variantAttributeImage ?? []
                 return {
@@ -187,7 +200,6 @@ export default function UpdateProductPage() {
                 } as VariantAttribute
               }),
 
-              // Vídeos de VARIANTE: mapeamos cada `v.productVariantVideo` em VideoInput
               videos: rawVideosVariant.map((vv) => {
                 const ytId = extractYouTubeId(vv.url)
                 return {
@@ -196,7 +208,7 @@ export default function UpdateProductPage() {
                 } as VideoInput
               }),
 
-              // Esses campos são apenas para satisfazer o tipo VariantFormData:
+              // Campos extras para satisfazer o tipo
               images: [] as File[],
               productVariantImage: existingVarImgs.map(
                 (i: any) =>
@@ -215,12 +227,14 @@ export default function UpdateProductPage() {
               }),
               created_at: undefined,
               product_id: v.product_id ?? product_id,
-              variantAttributes: [] as any[],
+              variantAttributes: [] as any[]
             } as VariantFormData
           }),
 
+          // Relações (união de parentRelations e childRelations)
           relations: [
             ...rawParentRels.map((r: any) => ({
+              id: r.id,
               relationDirection: 'parent' as const,
               relatedProductId: r.childProduct_id,
               relationType: r.relationType,
@@ -228,6 +242,7 @@ export default function UpdateProductPage() {
               isRequired: r.isRequired
             })),
             ...rawChildRels.map((r: any) => ({
+              id: r.id,
               relationDirection: 'child' as const,
               relatedProductId: r.parentProduct_id,
               relationType: r.relationType,
@@ -237,9 +252,9 @@ export default function UpdateProductPage() {
           ]
         })
 
-        // Inicializa variantFiles e attributeFiles (vazios) para cada variante carregada
+        // Inicializa variantFiles e attributeFiles (vazios) para cada variante
         const vfInit: Record<string, File[]> = {}
-        const afInit: Record<string, Record<number, File[]>> = {}
+        const afInit: Record<string, Record<number, File[]>> = { }
         rawVariants.forEach((v: any) => {
           vfInit[v.id] = []
           afInit[v.id] = {}
@@ -261,10 +276,10 @@ export default function UpdateProductPage() {
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      // 1) Monta productPayload como objeto “limpo”
+      // 1) Monta um objeto “limpo” productPayload
       const productPayload: Record<string, any> = {}
 
-      // Garantir que id esteja definido
+      // Garante que id existe
       const finalId = formData.id?.trim() ? formData.id : product_id
       productPayload.id = finalId
 
@@ -302,6 +317,8 @@ export default function UpdateProductPage() {
       if (formData.categories && formData.categories.length > 0) {
         productPayload.categories = formData.categories
       }
+
+      // Descrições
       if (formData.productDescriptions && formData.productDescriptions.length > 0) {
         productPayload.descriptions = formData.productDescriptions.map((d) => ({
           title: d.title,
@@ -311,93 +328,92 @@ export default function UpdateProductPage() {
       } else {
         productPayload.descriptions = []
       }
+
+      // Vídeos de Produto
       if (formData.videos && formData.videos.length > 0) {
         productPayload.videoLinks = formData.videos.map((v) => v.url)
       }
 
-      // Sempre envie existingImages (mesmo que vazio)
+      // Imagens principais (IDs a manter)
       productPayload.existingImages = formData.existingImages
         ? formData.existingImages.map((img) => img.id)
         : []
 
+      // Novas imagens principais (nomes apenas)
       if (formData.newImages && formData.newImages.length > 0) {
         productPayload.newImages = formData.newImages.map((file) => file.name)
       }
+
+      // Relações
       if (formData.relations && formData.relations.length > 0) {
         productPayload.relations = formData.relations
       }
 
-      // 2) Monta cleanVariants (sem condição de length>0 para existingImages)
-      const cleanVariants: Array<Record<string, any>> =
-        (formData.variants || []).map((v) => {
-          const objVar: Record<string, any> = {
-            id: v.id,
-            sku: v.sku,
-            price_of: v.price_of,
-            price_per: v.price_per,
-            stock: v.stock,
-            sortOrder: v.sortOrder,
-            ean: v.ean,
-            allowBackorders: v.allowBackorders,
-            mainPromotion_id: v.mainPromotion_id,
-            // Enviar existingImages sempre, mesmo que seja []
-            existingImages: (v.existingImages || []).map((img) => img.id)
+      // CleanVariants
+      const cleanVariants: Array<Record<string, any>> = (formData.variants || []).map((v) => {
+        const objVar: Record<string, any> = {
+          id: v.id,
+          sku: v.sku,
+          price_of: v.price_of,
+          price_per: v.price_per,
+          stock: v.stock,
+          sortOrder: v.sortOrder,
+          ean: v.ean,
+          allowBackorders: v.allowBackorders,
+          mainPromotion_id: v.mainPromotion_id,
+          existingImages: (v.existingImages || []).map((img) => img.id)
+        }
+
+        const arquivosDaVariante = variantFiles[v.id] || []
+        if (arquivosDaVariante.length > 0) {
+          objVar.newImages = arquivosDaVariante.map((file) => file.name)
+        }
+
+        if (v.videos && v.videos.length > 0) {
+          objVar.videos = v.videos.map((vl) => vl.url)
+        }
+
+        objVar.attributes = (v.attributes || []).map((at, ai) => {
+          const objAttr: Record<string, any> = {
+            id: at.id,
+            key: at.key,
+            value: at.value,
+            status: at.status,
+            existingImages: (at.existingImages || []).map((img) => img.id)
           }
 
-          // Se houver arquivos novos, adiciona newImages
-          const arquivosDaVariante = variantFiles[v.id] || []
-          if (arquivosDaVariante.length > 0) {
-            objVar.newImages = arquivosDaVariante.map((file) => file.name)
+          const arquivosDoAtributo = attributeFiles[v.id]?.[ai] || []
+          if (arquivosDoAtributo.length > 0) {
+            objAttr.newImages = arquivosDoAtributo.map((file) => file.name)
           }
 
-          if (v.videos && v.videos.length > 0) {
-            objVar.videos = v.videos.map((vl) => vl.url)
-          }
-
-          // Monta atributos
-          objVar.attributes = (v.attributes || []).map((at, ai) => {
-            const objAttr: Record<string, any> = {
-              id: at.id,
-              key: at.key,
-              value: at.value,
-              status: at.status,
-              // Enviar existingImages sempre (mesmo que [])
-              existingImages: (at.existingImages || []).map((img) => img.id)
-            }
-
-            const arquivosDoAtributo = attributeFiles[v.id]?.[ai] || []
-            if (arquivosDoAtributo.length > 0) {
-              objAttr.newImages = arquivosDoAtributo.map((file) => file.name)
-            }
-
-            return objAttr
-          })
-
-          return objVar
+          return objAttr
         })
 
-      // Se variants existir, inclua no payload
+        return objVar
+      })
+
       if (cleanVariants.length > 0) {
         productPayload.variants = cleanVariants
       }
 
-      // 3) Cria o FormData
+      // 2) Monta FormData
       const formPayload = new FormData()
       formPayload.append('payload', JSON.stringify(productPayload))
 
-        // 3a) Arquivos “globais” de produto
+        // Arquivos de imagens principais
         ; (formData.newImages || []).forEach((file) => {
           formPayload.append(`productImage_${file.name}`, file)
         })
 
-      // 3b) Arquivos de variantes
+      // Arquivos de variantes
       Object.entries(variantFiles).forEach(([variantId, arquivos]) => {
         arquivos.forEach((file) => {
           formPayload.append(`variantImage_${variantId}_${file.name}`, file)
         })
       })
 
-      // 3c) Arquivos de atributos
+      // Arquivos de atributos de variante
       Object.entries(attributeFiles).forEach(([variantId, mapaDeAttrs]) => {
         Object.entries(mapaDeAttrs).forEach(([attrIdxStr, arquivos]) => {
           arquivos.forEach((file) => {
@@ -409,7 +425,7 @@ export default function UpdateProductPage() {
         })
       })
 
-      // 4) Envia para o endpoint sem definir Content-Type manualmente
+      // 3) Envio ao back-end
       const api = setupAPIClientEcommerce()
       await api.put('/product/update', formPayload)
 
@@ -476,7 +492,13 @@ export default function UpdateProductPage() {
             />
           </Tab>
           <Tab key="relations" title="Relacionamentos">
-            {/* UI para relações, se existir */}
+            <ProductRelationsUpdate
+              relations={formData.relations as ProductRelation[]}
+              products={products}
+              onRelationsChange={(newRels) =>
+                setFormData({ ...formData, relations: newRels })
+              }
+            />
           </Tab>
         </Tabs>
         <style jsx global>{`

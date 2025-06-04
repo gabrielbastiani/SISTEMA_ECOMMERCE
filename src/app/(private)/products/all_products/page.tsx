@@ -180,7 +180,7 @@ export default function All_products() {
                             { key: "created_at", label: "Data de Criação" }
                         ]}
                         table_data="product"
-                        url_delete_data="/category/delete_category"
+                        url_delete_data="/products/delete"
                         data={allproducts}
                         totalPages={totalPages}
                         onFetchData={fetchProducts}

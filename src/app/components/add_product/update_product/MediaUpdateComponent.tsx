@@ -40,7 +40,7 @@ export const MediaUpdateComponent: React.FC<MediaUpdateProps> = ({
 
     return (
         <div className="space-y-4">
-            <label className="block text-sm font-medium text-foreground">{label}</label>
+            <label className="block text-sm font-medium text-black">{label}</label>
 
             {/* Área de drop / clique */}
             <div
@@ -65,7 +65,7 @@ export const MediaUpdateComponent: React.FC<MediaUpdateProps> = ({
                                 alt={file.altText}
                                 width={200}
                                 height={180}
-                                className="h-40 w-full object-cover rounded-lg"
+                                className="object-cover rounded-lg"
                             />
                             <Button
                                 isIconOnly
@@ -86,7 +86,7 @@ export const MediaUpdateComponent: React.FC<MediaUpdateProps> = ({
                                 alt={file.name}
                                 width={200}
                                 height={180}
-                                className="h-40 w-full object-cover rounded-lg"
+                                className="object-cover rounded-lg"
                             />
                             <Button
                                 isIconOnly

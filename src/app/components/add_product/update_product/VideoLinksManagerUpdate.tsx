@@ -45,7 +45,7 @@ export const VideoLinksManagerUpdate: React.FC<VideoLinksManagerUpdateProps> = (
     return (
         <div className="space-y-4 max-w-3xl">
             <div className="flex items-center gap-2">
-                <h3 className="text-sm font-medium text-foreground">Videos</h3>
+                <h3 className="text-sm font-medium text-black">Videos</h3>
             </div>
 
             {links.map((v, i) => (

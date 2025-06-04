@@ -138,10 +138,10 @@ export const ProductDescriptionEditorUpdate = ({
                                     className="bg-white border border-gray-200 rounded-md text-black"
                                     classNames={{ trigger: 'text-black border-gray-200' }}
                                 >
-                                    <SelectItem key="DISPONIVEL" value="DISPONIVEL">
+                                    <SelectItem className="bg-white text-black" key="DISPONIVEL" value="DISPONIVEL">
                                         Disponível
                                     </SelectItem>
-                                    <SelectItem key="INDISPONIVEL" value="INDISPONIVEL">
+                                    <SelectItem className="bg-white text-black" key="INDISPONIVEL" value="INDISPONIVEL">
                                         Indisponível
                                     </SelectItem>
                                 </Select>
