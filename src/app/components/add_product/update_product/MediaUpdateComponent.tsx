@@ -13,13 +13,15 @@ type MediaUpdateProps = {
     maxFiles?: number
     acceptedTypes?: Record<string, string[]>
 
-    // Essas duas props vêm de quem usa este componente:
-    existingFiles: ImageRecord[]  // imagens que já estão salvas no servidor
-    newFiles: File[]             // “novos” arquivos que o usuário acabou de colocar via upload
+    // Imagens já salvas no servidor
+    existingFiles: ImageRecord[]
 
-    onAddNew: (files: File[]) => void       // callback para quando o usuário arrasta/seleciona arquivos novos
-    onRemoveExisting: (id: string) => void  // callback para remover uma imagem que já existia (envia-se só o ID)
-    onRemoveNew: (index: number) => void    // callback para remover um arquivo “novo” pelo índice
+    // “Novos” arquivos que o usuário acabou de colocar via upload
+    newFiles: File[]
+
+    onAddNew: (files: File[]) => void
+    onRemoveExisting: (id: string) => void
+    onRemoveNew: (index: number) => void
 }
 
 export const MediaUpdateComponent: React.FC<MediaUpdateProps> = ({
@@ -35,69 +37,71 @@ export const MediaUpdateComponent: React.FC<MediaUpdateProps> = ({
     const { getRootProps, getInputProps } = useDropzone({
         accept: acceptedTypes,
         maxFiles,
-        onDrop: acceptedFiles => onAddNew(acceptedFiles)
+        onDrop: (acceptedFiles) => onAddNew(acceptedFiles)
     })
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-2">
             <label className="block text-sm font-medium text-black">{label}</label>
 
-            {/* Área de drop / clique */}
+            {/* Dropzone compacto */}
             <div
                 {...getRootProps()}
-                className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                className="border-2 border-dashed border-gray-300 rounded-lg p-3 text-center cursor-pointer hover:border-primary transition-colors"
             >
                 <input {...getInputProps()} />
-                <ArrowUpTrayIcon className="mx-auto h-12 w-12 text-gray-400" />
-                <p className="mt-2 text-sm text-gray-600">
-                    Arraste ou clique para adicionar imagens
-                </p>
+                <div className="flex items-center justify-center gap-2">
+                    <ArrowUpTrayIcon className="h-5 w-5 text-gray-400" />
+                    <p className="text-sm text-gray-600">Arraste ou clique para adicionar</p>
+                </div>
             </div>
 
-            {/* Preview: lista as existingFiles (do servidor) e os newFiles (arquivos subidos agora) */}
+            {/* Grid horizontal de imagens (existing + new) */}
             {(existingFiles.length > 0 || newFiles.length > 0) && (
-                <div className="grid grid-cols-3 gap-4 mt-4">
-                    {/* Existing (vêm do servidor, via URL) */}
-                    {existingFiles.map(file => (
-                        <div key={file.id} className="relative group">
-                            <Image
-                                src={`${API_URL}/files/${file.url}`}
-                                alt={file.altText}
-                                width={200}
-                                height={180}
-                                className="object-cover rounded-lg"
-                            />
-                            <Button
-                                isIconOnly
-                                size="sm"
-                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onPress={() => onRemoveExisting(file.id)}
-                            >
-                                <TrashIcon className="h-4 w-4 text-red-500" />
-                            </Button>
-                        </div>
-                    ))}
+                <div className="relative">
+                    <div className="flex gap-2 mt-2 overflow-x-auto pb-3 scrollbar-hide">
+                        {/* Existing (vêm do servidor via URL) */}
+                        {existingFiles.map((file) => (
+                            <div key={file.id} className="relative shrink-0 group">
+                                <Image
+                                    src={`${API_URL}/files/${file.url}`}
+                                    alt={file.altText}
+                                    width={80}
+                                    height={80}
+                                    className="h-20 w-20 object-cover rounded-lg border"
+                                />
+                                <Button
+                                    isIconOnly
+                                    size="sm"
+                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80"
+                                    onPress={() => onRemoveExisting(file.id)}
+                                >
+                                    <TrashIcon className="h-4 w-4 text-red-500" />
+                                </Button>
+                            </div>
+                        ))}
 
-                    {/* New (File objects) */}
-                    {newFiles.map((file, idx) => (
-                        <div key={idx} className="relative group">
-                            <Image
-                                src={URL.createObjectURL(file)}
-                                alt={file.name}
-                                width={200}
-                                height={180}
-                                className="object-cover rounded-lg"
-                            />
-                            <Button
-                                isIconOnly
-                                size="sm"
-                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onPress={() => onRemoveNew(idx)}
-                            >
-                                <TrashIcon className="h-4 w-4 text-red-500" />
-                            </Button>
-                        </div>
-                    ))}
+                        {/* New (File objects) */}
+                        {newFiles.map((file, index) => (
+                            <div key={index} className="relative shrink-0 group">
+                                <Image
+                                    src={URL.createObjectURL(file)}
+                                    alt={file.name}
+                                    width={80}
+                                    height={80}
+                                    className="h-20 w-20 object-cover rounded-lg border"
+                                />
+                                <Button
+                                    isIconOnly
+                                    size="sm"
+                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80"
+                                    onPress={() => onRemoveNew(index)}
+                                >
+                                    <TrashIcon className="h-4 w-4 text-red-500" />
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>

@@ -29,38 +29,45 @@ export const MediaUploadComponent = ({
     })
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-2">
             <label className="block text-sm font-medium text-foreground">{label}</label>
+
+            {/* Dropzone compacto */}
             <div
                 {...getRootProps()}
-                className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                className="border-2 border-dashed border-gray-300 rounded-lg p-3 text-center cursor-pointer hover:border-primary transition-colors"
             >
                 <input {...getInputProps()} />
-                <ArrowUpTrayIcon className="mx-auto h-12 w-12 text-gray-400" />
-                <p className="mt-2 text-sm text-gray-600">Arraste arquivos ou clique para fazer upload</p>
+                <div className="flex items-center justify-center gap-2">
+                    <ArrowUpTrayIcon className="h-5 w-5 text-gray-400" />
+                    <p className="text-sm text-gray-600">Arraste ou clique para adicionar</p>
+                </div>
             </div>
 
+            {/* Grid de imagens com scroll horizontal */}
             {files.length > 0 && (
-                <div className="grid grid-cols-3 gap-4 mt-4">
-                    {files.map((file, index) => (
-                        <div key={index} className="relative group">
-                            <Image
-                                src={URL.createObjectURL(file)}
-                                alt={file.name}
-                                width={200}
-                                height={180}
-                                className="h-40 object-fill rounded-lg"
-                            />
-                            <Button
-                                isIconOnly
-                                size="sm"
-                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onPress={() => onRemove(index)}
-                            >
-                                <TrashIcon className="h-4 w-4 text-red-500" />
-                            </Button>
-                        </div>
-                    ))}
+                <div className="relative">
+                    <div className="flex gap-2 mt-2 overflow-x-auto pb-3 scrollbar-hide">
+                        {files.map((file, index) => (
+                            <div key={index} className="relative shrink-0 group">
+                                <Image
+                                    src={URL.createObjectURL(file)}
+                                    alt={file.name}
+                                    width={80}
+                                    height={80}
+                                    className="h-20 w-20 object-cover rounded-lg border"
+                                />
+                                <Button
+                                    isIconOnly
+                                    size="sm"
+                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80"
+                                    onPress={() => onRemove(index)}
+                                >
+                                    <TrashIcon className="h-4 w-4 text-red-500" />
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>
