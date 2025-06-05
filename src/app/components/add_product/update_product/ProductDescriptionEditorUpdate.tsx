@@ -66,11 +66,13 @@ export const ProductDescriptionEditorUpdate = ({
                         subtitle={desc.status}
                         startContent={
                             <Button
+                                as="div"
                                 isIconOnly
                                 size="sm"
                                 variant="light"
                                 className="text-danger"
                                 onPress={() => removeDescription(idx)}
+                                aria-label="Remover descrição"
                             >
                                 <TrashIcon color="red" className="h-4 w-4" />
                             </Button>
@@ -103,13 +105,15 @@ export const ProductDescriptionEditorUpdate = ({
                                         updateDescription(idx, 'description', content)
                                     }
                                     init={{
+                                        base_url: `https://cdn.tiny.cloud/1/${TOKEN_TINY}/tinymce/6`,
+                                        suffix: '.min',
                                         height: 300,
                                         menubar: true,
-                                        plugins: [
-                                            'advlist autolink lists link image charmap print preview anchor',
-                                            'searchreplace visualblocks code fullscreen',
-                                            'insertdatetime media table paste code help wordcount'
-                                        ],
+                                        /* Incluí onboarding junto com os outros plugins */
+                                        plugins:
+                                            'advlist autolink lists link image charmap print preview anchor ' +
+                                            'searchreplace visualblocks code fullscreen ' +
+                                            'insertdatetime media table paste code help wordcount onboarding',
                                         toolbar:
                                             'undo redo | formatselect | bold italic backcolor | ' +
                                             'alignleft aligncenter alignright alignjustify | ' +
@@ -130,22 +134,30 @@ export const ProductDescriptionEditorUpdate = ({
                                     placeholder="Status"
                                     selectedKeys={new Set([desc.status ?? 'DISPONIVEL'])}
                                     onSelectionChange={(keys: SharedSelection) => {
-                                        const key = typeof keys === 'string'
-                                            ? keys
-                                            : (Array.from(keys)[0] as StatusDescription)
+                                        const key =
+                                            typeof keys === 'string'
+                                                ? keys
+                                                : (Array.from(keys)[0] as StatusDescription)
                                         updateDescription(idx, 'status', key)
                                     }}
                                     className="bg-white border border-gray-200 rounded-md text-black"
                                     classNames={{ trigger: 'text-black border-gray-200' }}
                                 >
-                                    <SelectItem className="bg-white text-black" key="DISPONIVEL" value="DISPONIVEL">
+                                    <SelectItem
+                                        className="bg-white text-black"
+                                        key="DISPONIVEL"
+                                        value="DISPONIVEL"
+                                    >
                                         Disponível
                                     </SelectItem>
-                                    <SelectItem className="bg-white text-black" key="INDISPONIVEL" value="INDISPONIVEL">
+                                    <SelectItem
+                                        className="bg-white text-black"
+                                        key="INDISPONIVEL"
+                                        value="INDISPONIVEL"
+                                    >
                                         Indisponível
                                     </SelectItem>
                                 </Select>
-
                             </Tooltip>
                         </div>
                     </AccordionItem>

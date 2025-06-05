@@ -1,12 +1,20 @@
 'use client'
 
 import { useState } from 'react'
-import { Accordion, AccordionItem, Button, Input, Select, SelectItem, Tooltip } from '@nextui-org/react'
+import {
+    Accordion,
+    AccordionItem,
+    Button,
+    Input,
+    Select,
+    SelectItem,
+    Tooltip
+} from '@nextui-org/react'
 import { Editor } from '@tinymce/tinymce-react'
 import { TrashIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { ProductDescription, StatusDescription } from 'Types/types'
 
-const TOKEN_TINY = process.env.NEXT_PUBLIC_TINYMCE_API_KEY;
+const TOKEN_TINY = process.env.NEXT_PUBLIC_TINYMCE_API_KEY
 
 interface ProductDescriptionEditorProps {
     descriptions: ProductDescription[]
@@ -29,7 +37,11 @@ export const ProductDescriptionEditor = ({
         setActiveIndex(descriptions.length)
     }
 
-    const updateDescription = (index: number, field: keyof ProductDescription, value: string) => {
+    const updateDescription = (
+        index: number,
+        field: keyof ProductDescription,
+        value: string
+    ) => {
         const newDescriptions = [...descriptions]
         newDescriptions[index] = { ...newDescriptions[index], [field]: value }
         onDescriptionsChange(newDescriptions)
@@ -58,30 +70,33 @@ export const ProductDescriptionEditor = ({
                         subtitle={desc.status}
                         startContent={
                             <Button
-                                isIconOnly
+                                as="div"
                                 size="sm"
                                 variant="light"
-                                className="text-danger"
+                                className="text-danger p-1"
                                 onPress={() => removeDescription(index)}
+                                aria-label="Remover descrição"
                             >
-                                <TrashIcon color='red' className="h-4 w-4" />
+                                <TrashIcon className="h-4 w-4" />
                             </Button>
                         }
                     >
                         <div className="space-y-4 p-2">
                             <Tooltip
-                                content="Titulo para a descrição EX: Informaçoes do produto"
+                                content="Título para a descrição EX: Informações do produto"
                                 placement="top-start"
                                 className="bg-white text-red-500 border border-gray-200 p-2"
                             >
                                 <Input
                                     placeholder="Título"
                                     value={desc.title}
-                                    onChange={(e) => updateDescription(index, 'title', e.target.value)}
+                                    onChange={(e) =>
+                                        updateDescription(index, 'title', e.target.value)
+                                    }
                                     isRequired
                                     className="bg-white border border-gray-200 rounded-md"
                                     classNames={{
-                                        input: "text-black",
+                                        input: 'text-black'
                                     }}
                                 />
                             </Tooltip>
@@ -90,22 +105,29 @@ export const ProductDescriptionEditor = ({
                                 <label className="text-sm font-medium">Conteúdo</label>
                                 <Editor
                                     apiKey={TOKEN_TINY}
-                                    value={desc.description}
-                                    onEditorChange={(content) => updateDescription(index, 'description', content)}
+                                    /* 1) Informamos de onde o TinyMCE deve buscar tudo (base_url + suffix)
+                                       2) Removemos tinymceScriptSrc, porque o próprio base_url + suffix já tratará do carregamento do script principal e dos plugins */
                                     init={{
+                                        base_url: `https://cdn.tiny.cloud/1/${TOKEN_TINY}/tinymce/6`,
+                                        suffix: '.min',
                                         height: 300,
                                         menubar: true,
-                                        plugins: [
-                                            'advlist autolink lists link image charmap print preview anchor',
-                                            'searchreplace visualblocks code fullscreen',
-                                            'insertdatetime media table paste code help wordcount'
-                                        ],
+                                        /* lista de plugins como string única (todos irão vir do CDN) */
+                                        plugins:
+                                            'advlist autolink lists link image charmap print preview anchor ' +
+                                            'searchreplace visualblocks code fullscreen ' +
+                                            'insertdatetime media table paste code help wordcount',
                                         toolbar:
-                                            'undo redo | formatselect | bold italic backcolor | \
-                      alignleft aligncenter alignright alignjustify | \
-                      bullist numlist outdent indent | removeformat | help',
-                                        content_style: 'body { font-family: Arial, sans-serif; font-size: 14px }'
+                                            'undo redo | formatselect | bold italic backcolor | ' +
+                                            'alignleft aligncenter alignright alignjustify | ' +
+                                            'bullist numlist outdent indent | removeformat | help',
+                                        content_style:
+                                            'body { font-family: Arial, sans-serif; font-size: 14px }'
                                     }}
+                                    value={desc.description}
+                                    onEditorChange={(content) =>
+                                        updateDescription(index, 'description', content)
+                                    }
                                 />
                             </div>
 
@@ -117,10 +139,16 @@ export const ProductDescriptionEditor = ({
                                 <Select
                                     placeholder="Status"
                                     selectedKeys={[desc.status || 'DISPONIVEL']}
-                                    onChange={(e) => updateDescription(index, 'status', e.target.value as StatusDescription)}
+                                    onChange={(e) =>
+                                        updateDescription(
+                                            index,
+                                            'status',
+                                            e.target.value as StatusDescription
+                                        )
+                                    }
                                     className="bg-white border border-gray-200 rounded-md text-black"
                                     classNames={{
-                                        trigger: "text-black border-gray-200",
+                                        trigger: 'text-black border-gray-200'
                                     }}
                                 >
                                     <SelectItem
@@ -144,15 +172,14 @@ export const ProductDescriptionEditor = ({
                 ))}
             </Accordion>
 
-            <Button
-                className='bg-orange-500 text-white'
-                color="primary"
-                variant="bordered"
-                startContent={<PlusIcon className="h-4 w-4" />}
-                onPress={addDescription}
+            <button
+                type="button"
+                className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600"
+                onClick={addDescription}
             >
-                Adicionar Descrição
-            </Button>
+                <PlusIcon className="h-4 w-4" />
+                <span>Adicionar Descrição</span>
+            </button>
         </div>
     )
 }
