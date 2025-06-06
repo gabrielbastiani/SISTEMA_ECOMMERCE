@@ -38,6 +38,20 @@ interface VariantManagerUpdateProps {
     setAttributeFiles: React.Dispatch<
         React.SetStateAction<Record<string, Record<number, File[]>>>
     >
+
+    // ─── NOVOS PROPS ────────────────────────────────────────────────────────────────
+
+    // Para cada variante (variantId), qual ID de imagem está marcada como principal
+    primaryVariantImageIdByVariantId: Record<string, string>
+    onSetPrimaryVariantImageId: (variantId: string, imageId: string) => void
+
+    // Para cada variante e cada attrIndex, qual ID de imagem de atributo está marcada como principal
+    primaryAttributeImageIdByVariantAndAttrIdx: Record<string, Record<number, string>>
+    onSetPrimaryAttributeImageId: (
+        variantId: string,
+        attrIndex: number,
+        imageId: string
+    ) => void
 }
 
 export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
@@ -47,7 +61,13 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
     variantFiles,
     setVariantFiles,
     attributeFiles,
-    setAttributeFiles
+    setAttributeFiles,
+
+    primaryVariantImageIdByVariantId,
+    onSetPrimaryVariantImageId,
+
+    primaryAttributeImageIdByVariantAndAttrIdx,
+    onSetPrimaryAttributeImageId
 }) => {
     const variants = formData.variants || []
 
@@ -73,7 +93,6 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
             newImages: [] as File[],
 
             videos: [] as VideoInput[],
-            // não temos “newVideos” em VariantFormData; se o tipo do seu projeto usa “videos[]” só (não “newVideos”), siga assim
 
             attributes: [] as VariantAttribute[],
 
@@ -89,6 +108,11 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
 
         updateVariants([...variants, novaVariante])
         setVariantFiles((prev) => ({ ...prev, [novoId]: [] }))
+        setAttributeFiles((prev) => ({ ...prev, [novoId]: {} }))
+
+        // Inicializar “primárias” vazias para a nova variante
+        onSetPrimaryVariantImageId(novoId, '')
+        onSetPrimaryAttributeImageId(novoId, 0, '') // mesmo que não haja atributos ainda
     }
 
     // Remove uma variante e limpa seus arquivos
@@ -107,6 +131,15 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
             delete copy[variantId]
             return copy
         })
+
+        // Remove do mapa de primárias
+        onSetPrimaryVariantImageId(variantId, '')
+        // Remover todas as chaves de atributos desse variantId
+        if (primaryAttributeImageIdByVariantAndAttrIdx[variantId]) {
+            Object.keys(primaryAttributeImageIdByVariantAndAttrIdx[variantId]).forEach((aiStr) => {
+                onSetPrimaryAttributeImageId(variantId, Number(aiStr), '')
+            })
+        }
     }
 
     // Atualiza campo simples dentro de uma variante
@@ -133,9 +166,9 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
     return (
         <div className="space-y-6">
             {variants.map((variant, idx) => {
-                const variantId = variant.id;
-                const arquivosNovosDaVariante: File[] = variantFiles[variantId] || [];
-                const vidLinks: VideoInput[] = variant.videos || [];
+                const variantId = variant.id
+                const arquivosNovosDaVariante: File[] = variantFiles[variantId] || []
+                const vidLinks: VideoInput[] = variant.videos || []
 
                 return (
                     <div key={variantId} className="border rounded-lg p-4 bg-white shadow">
@@ -214,7 +247,7 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                                     </Tooltip>
 
                                     <Tooltip
-                                        content="Número correspondente a ordem que aparecerá essa variante junto ao produto"
+                                        content="Número correspondente à ordem de exibição desta variante"
                                         placement="top-start"
                                         className="bg-white text-red-500 border border-gray-200 p-2"
                                     >
@@ -233,7 +266,7 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <Tooltip
-                                        content="Estoque desse produto/variante"
+                                        content="Estoque dessa variante"
                                         placement="top-start"
                                         className="bg-white text-red-500 border border-gray-200 p-2"
                                     >
@@ -250,7 +283,7 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                                     </Tooltip>
 
                                     <Tooltip
-                                        content="Promoção aplicada"
+                                        content="Promoção aplicada à variante"
                                         placement="top-start"
                                         className="bg-white text-red-500 border border-gray-200 p-2"
                                     >
@@ -263,8 +296,8 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                                                     : new Set<string>()
                                             }
                                             onSelectionChange={(keys: SharedSelection) => {
-                                                const key = Array.from(keys)[0] ?? '';
-                                                updateVariantField(idx, 'mainPromotion_id', key || '');
+                                                const key = Array.from(keys)[0] ?? ''
+                                                updateVariantField(idx, 'mainPromotion_id', key || '')
                                             }}
                                             className="text-foreground border border-gray-200 rounded-md bg-white"
                                             classNames={{ trigger: 'text-black border-gray-200' }}
@@ -278,13 +311,13 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                                     </Tooltip>
                                 </div>
 
-                                {/* Vídeos */}
+                                {/* Vídeos da Variante */}
                                 <VideoLinksManagerUpdate
                                     links={vidLinks}
                                     onLinksChange={(newLinks) => {
-                                        const copia = [...variants];
-                                        copia[idx].videos = newLinks;
-                                        updateVariants(copia);
+                                        const copia = [...variants]
+                                        copia[idx].videos = newLinks
+                                        updateVariants(copia)
                                     }}
                                 />
                             </div>
@@ -295,34 +328,43 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                                     label="Imagens da Variante"
                                     existingFiles={variant.existingImages || []}
                                     newFiles={arquivosNovosDaVariante}
+                                    // ─── NOVOS PROPS PARA MARCAR “IS PRIMARY” ─────────
+                                    primaryId={primaryVariantImageIdByVariantId[variantId] || ''}
+                                    onSetPrimary={(imgId: string) =>
+                                        onSetPrimaryVariantImageId(variantId, imgId)
+                                    }
                                     onAddNew={(filesList) => {
                                         setVariantFiles((prev) => {
-                                            const copia = { ...prev };
-                                            const already = copia[variantId] || [];
+                                            const copia = { ...prev }
+                                            const already = copia[variantId] || []
                                             const filtered = filesList.filter(
                                                 (f) =>
                                                     !already.some(
                                                         (e) => e.name === f.name && e.lastModified === f.lastModified
                                                     )
-                                            );
-                                            copia[variantId] = [...already, ...filtered];
-                                            return copia;
-                                        });
+                                            )
+                                            copia[variantId] = [...already, ...filtered]
+                                            return copia
+                                        })
                                     }}
                                     onRemoveExisting={(id) => {
                                         const copia = [...variants];
                                         copia[idx].existingImages =
                                             copia[idx].existingImages?.filter((img) => img.id !== id) || [];
                                         updateVariants(copia);
-                                    }}
+       // Se tirou a imagem que era principal, reseta o estado de primary
+       if (primaryVariantImageIdByVariantId[variantId] === id) {
+         onSetPrimaryVariantImageId(variantId, '');
+       }
+     }}
                                     onRemoveNew={(i) => {
                                         setVariantFiles((prev) => {
-                                            const copy = { ...prev };
+                                            const copy = { ...prev }
                                             if (copy[variantId]) {
-                                                copy[variantId] = copy[variantId].filter((_, j) => j !== i);
+                                                copy[variantId] = copy[variantId].filter((_, j) => j !== i)
                                             }
-                                            return copy;
-                                        });
+                                            return copy
+                                        })
                                     }}
                                 />
                             </div>
@@ -337,26 +379,27 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                                     variant="bordered"
                                     startContent={<PlusIcon className="h-4 w-4" />}
                                     onPress={() => {
-                                        const copia = [...variants];
+                                        const copia = [...variants]
                                         const novoAtributo: VariantAttribute = {
                                             id: undefined,
                                             key: '',
                                             value: '',
                                             status: undefined as StatusProduct | undefined,
                                             existingImages: [] as ImageRecord[],
-                                            newImages: [] as File[],
-                                        };
-                                        copia[idx].attributes.push(novoAtributo);
-                                        updateVariants(copia);
+                                            newImages: [] as File[]
+                                        }
+                                        copia[idx].attributes.push(novoAtributo)
+                                        updateVariants(copia)
 
-                                        // Inicializa chave vazia no attributeFiles
+                                        // Inicializa chave vazia no attributeFiles e nas primárias
                                         setAttributeFiles((prev) => {
-                                            const copy = { ...prev };
-                                            if (!copy[variantId]) copy[variantId] = {};
-                                            const novoIdx = copia[idx].attributes.length - 1;
-                                            copy[variantId][novoIdx] = [];
-                                            return copy;
-                                        });
+                                            const copy = { ...prev }
+                                            if (!copy[variantId]) copy[variantId] = {}
+                                            const novoIdx = copia[idx].attributes.length - 1
+                                            copy[variantId][novoIdx] = []
+                                            return copy
+                                        })
+                                        onSetPrimaryAttributeImageId(variantId, copia[idx].attributes.length - 1, '')
                                     }}
                                     className="text-violet-500"
                                 >
@@ -366,7 +409,9 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {(variant.attributes || []).map((attr, ai) => {
-                                    const arquivosNovosDoAtributo = attributeFiles[variantId]?.[ai] || [];
+                                    const arquivosNovosDoAtributo = attributeFiles[variantId]?.[ai] || []
+                                    const primaryAttrId =
+                                        primaryAttributeImageIdByVariantAndAttrIdx[variantId]?.[ai] || ''
 
                                     return (
                                         <div
@@ -379,28 +424,35 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                                                 variant="light"
                                                 className="absolute top-2 right-2"
                                                 onPress={() => {
-                                                    const copia = [...variants];
-                                                    copia[idx].attributes.splice(ai, 1);
-                                                    updateVariants(copia);
+                                                    const copia = [...variants]
+                                                    copia[idx].attributes.splice(ai, 1)
+                                                    updateVariants(copia)
 
                                                     setAttributeFiles((prev) => {
-                                                        const copy = { ...prev };
+                                                        const copy = { ...prev }
                                                         if (copy[variantId]) {
-                                                            delete copy[variantId][ai];
-                                                            const shifted: Record<number, File[]> = {};
+                                                            delete copy[variantId][ai]
+                                                            const shifted: Record<number, File[]> = {}
                                                             Object.entries(copy[variantId]).forEach(([key, filesArr]) => {
-                                                                const k = Number(key);
-                                                                const newKey = k > ai ? k - 1 : k;
-                                                                shifted[newKey] = filesArr;
-                                                            });
+                                                                const k = Number(key)
+                                                                const newKey = k > ai ? k - 1 : k
+                                                                shifted[newKey] = filesArr
+                                                            })
                                                             if (Object.keys(shifted).length) {
-                                                                copy[variantId] = shifted;
+                                                                copy[variantId] = shifted
                                                             } else {
-                                                                delete copy[variantId];
+                                                                delete copy[variantId]
                                                             }
                                                         }
-                                                        return copy;
-                                                    });
+                                                        return copy
+                                                    })
+
+                                                    // Reseta primary para esse atributo, se estava marcado
+                                                    if (
+                                                        primaryAttributeImageIdByVariantAndAttrIdx[variantId]?.[ai]
+                                                    ) {
+                                                        onSetPrimaryAttributeImageId(variantId, ai, '')
+                                                    }
                                                 }}
                                             >
                                                 <TrashIcon className="h-5 w-5 text-red-600" />
@@ -416,9 +468,9 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                                                         placeholder="Nome (ex: Cor)"
                                                         value={attr.key}
                                                         onChange={(e) => {
-                                                            const copia = [...variants];
-                                                            copia[idx].attributes[ai].key = e.target.value;
-                                                            updateVariants(copia);
+                                                            const copia = [...variants]
+                                                            copia[idx].attributes[ai].key = e.target.value
+                                                            updateVariants(copia)
                                                         }}
                                                         className="bg-white border border-gray-200 rounded-md"
                                                         classNames={{ input: "text-black" }}
@@ -434,9 +486,9 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                                                         placeholder="Valor (ex: Azul)"
                                                         value={attr.value}
                                                         onChange={(e) => {
-                                                            const copia = [...variants];
-                                                            copia[idx].attributes[ai].value = e.target.value;
-                                                            updateVariants(copia);
+                                                            const copia = [...variants]
+                                                            copia[idx].attributes[ai].value = e.target.value
+                                                            updateVariants(copia)
                                                         }}
                                                         className="bg-white border border-gray-200 rounded-md"
                                                         classNames={{ input: "text-black" }}
@@ -449,46 +501,57 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                                                 label="Imagens do Atributo"
                                                 existingFiles={attr.existingImages || []}
                                                 newFiles={arquivosNovosDoAtributo}
+                                                // ─── NOVOS PROPS PARA MARCAR “IS PRIMARY” NO ATRIBUTO ─────
+                                                primaryId={primaryAttrId}
+                                                onSetPrimary={(imgId: string) =>
+                                                    onSetPrimaryAttributeImageId(variantId, ai, imgId)
+                                                }
                                                 onAddNew={(filesList) => {
                                                     setAttributeFiles((prev) => {
-                                                        const copy = { ...prev };
-                                                        if (!copy[variantId]) copy[variantId] = {};
-                                                        const already = copy[variantId][ai] || [];
+                                                        const copy = { ...prev }
+                                                        if (!copy[variantId]) copy[variantId] = {}
+                                                        const already = copy[variantId][ai] || []
                                                         const filtered = filesList.filter(
                                                             (f) =>
                                                                 !already.some(
                                                                     (e) => e.name === f.name && e.lastModified === f.lastModified
                                                                 )
-                                                        );
-                                                        copy[variantId][ai] = [...already, ...filtered];
-                                                        return copy;
-                                                    });
+                                                        )
+                                                        copy[variantId][ai] = [...already, ...filtered]
+                                                        return copy
+                                                    })
                                                 }}
                                                 onRemoveExisting={(id) => {
-                                                    const copia = [...variants];
+                                                    const copia = [...variants]
                                                     copia[idx].attributes[ai].existingImages =
                                                         copia[idx].attributes[ai].existingImages?.filter(
                                                             (img) => img.id !== id
-                                                        ) || [];
-                                                    updateVariants(copia);
+                                                        ) || []
+                                                    updateVariants(copia)
+
+                                                    if (primaryAttrId === id) {
+                                                        onSetPrimaryAttributeImageId(variantId, ai, '')
+                                                    }
                                                 }}
                                                 onRemoveNew={(i) => {
                                                     setAttributeFiles((prev) => {
-                                                        const copy = { ...prev };
+                                                        const copy = { ...prev }
                                                         if (copy[variantId] && copy[variantId][ai]) {
-                                                            copy[variantId][ai] = copy[variantId][ai].filter((_, j) => j !== i);
+                                                            copy[variantId][ai] = copy[variantId][ai].filter(
+                                                                (_, j) => j !== i
+                                                            )
                                                         }
-                                                        return copy;
-                                                    });
+                                                        return copy
+                                                    })
                                                 }}
                                             />
                                         </div>
-                                    );
+                                    )
                                 })}
                             </div>
                         </div>
                     </div>
-                );
+                )
             })}
 
             <Button
@@ -500,6 +563,5 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                 Adicionar Variante
             </Button>
         </div>
-
     )
 }

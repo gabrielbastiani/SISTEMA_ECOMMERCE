@@ -11,6 +11,10 @@ interface ProductBasicInfoProps {
     promotions: PromotionOption[]
     mainImages: File[]
     onMainImagesChange: (files: File[]) => void
+
+    // Novos props para controlar qual imagem principal
+    primaryIndex?: number
+    onSetPrimary?: (index: number) => void
 }
 
 export const BasicProductInfo = ({
@@ -18,7 +22,9 @@ export const BasicProductInfo = ({
     onFormDataChange,
     promotions,
     mainImages,
-    onMainImagesChange
+    onMainImagesChange,
+    primaryIndex = -1,
+    onSetPrimary,
 }: ProductBasicInfoProps) => {
 
     const handleChange = (field: keyof ProductFormData, value: any) => {
@@ -28,6 +34,10 @@ export const BasicProductInfo = ({
     const promoItems = [{ id: '', name: 'Nenhuma promoção' }, ...promotions]
 
     const handleRemoveImage = (index: number) => {
+        // Se a imagem removida era a principal, zera o índice principal
+        if (typeof primaryIndex === 'number' && index === primaryIndex) {
+            onSetPrimary && onSetPrimary(-1)
+        }
         const newImages = mainImages.filter((_, i) => i !== index)
         onMainImagesChange(newImages)
     }
@@ -256,6 +266,8 @@ export const BasicProductInfo = ({
                 files={mainImages}
                 onUpload={onMainImagesChange}
                 onRemove={handleRemoveImage}
+                primaryIndex={primaryIndex}
+                onSetPrimary={onSetPrimary}
             />
         </div>
     )

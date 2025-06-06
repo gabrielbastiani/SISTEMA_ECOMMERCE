@@ -77,7 +77,7 @@ export const ProductDescriptionEditor = ({
                                 onPress={() => removeDescription(index)}
                                 aria-label="Remover descrição"
                             >
-                                <TrashIcon className="h-4 w-4" />
+                                <TrashIcon color='red' className="h-4 w-4" />
                             </Button>
                         }
                     >
@@ -105,18 +105,18 @@ export const ProductDescriptionEditor = ({
                                 <label className="text-sm font-medium">Conteúdo</label>
                                 <Editor
                                     apiKey={TOKEN_TINY}
-                                    /* 1) Informamos de onde o TinyMCE deve buscar tudo (base_url + suffix)
-                                       2) Removemos tinymceScriptSrc, porque o próprio base_url + suffix já tratará do carregamento do script principal e dos plugins */
+                                    /* 1) Carrega o core do TinyMCE direto do CDN: */
+                                    tinymceScriptSrc={`https://cdn.tiny.cloud/1/${TOKEN_TINY}/tinymce/6/tinymce.min.js`}
                                     init={{
                                         base_url: `https://cdn.tiny.cloud/1/${TOKEN_TINY}/tinymce/6`,
                                         suffix: '.min',
-                                        height: 300,
+                                        height: 500,
                                         menubar: true,
                                         /* lista de plugins como string única (todos irão vir do CDN) */
                                         plugins:
-                                            'advlist autolink lists link image charmap print preview anchor ' +
+                                            'advlist autolink lists link image charmap preview anchor ' +
                                             'searchreplace visualblocks code fullscreen ' +
-                                            'insertdatetime media table paste code help wordcount',
+                                            'insertdatetime media table help wordcount',
                                         toolbar:
                                             'undo redo | formatselect | bold italic backcolor | ' +
                                             'alignleft aligncenter alignright alignjustify | ' +

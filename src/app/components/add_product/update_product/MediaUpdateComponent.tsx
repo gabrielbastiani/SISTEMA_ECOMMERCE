@@ -13,11 +13,17 @@ type MediaUpdateProps = {
     maxFiles?: number
     acceptedTypes?: Record<string, string[]>
 
-    // Imagens já salvas no servidor
+    // Imagens já salvas no servidor (cada uma tem id, url, altText)
     existingFiles: ImageRecord[]
 
-    // “Novos” arquivos que o usuário acabou de colocar via upload
+    // “Novos” arquivos que o usuário acabou de selecionar (File objects)
     newFiles: File[]
+
+    // O ID (string) da imagem existente atualmente marcada como “isPrimary”
+    primaryId: string
+
+    // Callback para quando o usuário clicar no círculo de uma imagem existente:
+    onSetPrimary: (imageId: string) => void
 
     onAddNew: (files: File[]) => void
     onRemoveExisting: (id: string) => void
@@ -30,6 +36,8 @@ export const MediaUpdateComponent: React.FC<MediaUpdateProps> = ({
     acceptedTypes = { 'image/*': ['.jpeg', '.jpg', '.png'] },
     existingFiles,
     newFiles,
+    primaryId,
+    onSetPrimary,
     onAddNew,
     onRemoveExisting,
     onRemoveNew
@@ -44,7 +52,7 @@ export const MediaUpdateComponent: React.FC<MediaUpdateProps> = ({
         <div className="space-y-2">
             <label className="block text-sm font-medium text-black">{label}</label>
 
-            {/* Dropzone compacto */}
+            {/* Dropzone */}
             <div
                 {...getRootProps()}
                 className="border-2 border-dashed border-gray-300 rounded-lg p-3 text-center cursor-pointer hover:border-primary transition-colors"
@@ -60,28 +68,47 @@ export const MediaUpdateComponent: React.FC<MediaUpdateProps> = ({
             {(existingFiles.length > 0 || newFiles.length > 0) && (
                 <div className="relative">
                     <div className="flex gap-2 mt-2 overflow-x-auto pb-3 scrollbar-hide">
-                        {/* Existing (vêm do servidor via URL) */}
-                        {existingFiles.map((file) => (
-                            <div key={file.id} className="relative shrink-0 group">
-                                <Image
-                                    src={`${API_URL}/files/${file.url}`}
-                                    alt={file.altText}
-                                    width={80}
-                                    height={80}
-                                    className="h-20 w-20 object-cover rounded-lg border"
-                                />
-                                <Button
-                                    isIconOnly
-                                    size="sm"
-                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80"
-                                    onPress={() => onRemoveExisting(file.id)}
-                                >
-                                    <TrashIcon className="h-4 w-4 text-red-500" />
-                                </Button>
-                            </div>
-                        ))}
+                        {/* ─── Imagens Existentes (do servidor) ─── */}
+                        {existingFiles.map((file) => {
+                            const isPrimary = file.id === primaryId
+                            return (
+                                <div key={file.id} className="relative shrink-0 group">
+                                    <Image
+                                        src={`${API_URL}/files/${file.url}`}
+                                        alt={file.altText}
+                                        width={80}
+                                        height={80}
+                                        className={`h-20 w-20 object-cover rounded-lg border ${isPrimary ? 'ring-2 ring-primary' : ''
+                                            }`}
+                                    />
 
-                        {/* New (File objects) */}
+                                    {/* Botão de remover existente */}
+                                    <Button
+                                        isIconOnly
+                                        size="sm"
+                                        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80"
+                                        onPress={() => onRemoveExisting(file.id)}
+                                    >
+                                        <TrashIcon className="h-4 w-4 text-red-500" />
+                                    </Button>
+
+                                    {/* Círculo para marcar como “isPrimary” */}
+                                    <button
+                                        type="button"
+                                        onClick={() => onSetPrimary(file.id)}
+                                        className={`
+                      absolute bottom-1 left-1 h-4 w-4 rounded-full border-2 
+                      flex items-center justify-center transition-colors 
+                      ${isPrimary ? 'bg-primary border-primary' : 'bg-white border-gray-300'}
+                    `}
+                                    >
+                                        {isPrimary && <div className="h-2 w-2 rounded-full bg-white" />}
+                                    </button>
+                                </div>
+                            )
+                        })}
+
+                        {/* ─── Imagens Novas (File objects ainda não enviadas) ─── */}
                         {newFiles.map((file, index) => (
                             <div key={index} className="relative shrink-0 group">
                                 <Image

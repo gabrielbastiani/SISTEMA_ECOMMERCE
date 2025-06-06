@@ -1,7 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { Accordion, AccordionItem, Button, Input, Select, SelectItem, SharedSelection, Tooltip } from '@nextui-org/react'
+import {
+    Accordion,
+    AccordionItem,
+    Button,
+    Input,
+    Select,
+    SelectItem,
+    SharedSelection,
+    Tooltip
+} from '@nextui-org/react'
 import { Editor } from '@tinymce/tinymce-react'
 import { TrashIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { ProductDescription, StatusDescription } from 'Types/types'
@@ -100,20 +109,23 @@ export const ProductDescriptionEditorUpdate = ({
                                 <label className="text-sm font-medium">Conteúdo</label>
                                 <Editor
                                     apiKey={TOKEN_TINY}
+                                    /* 1) Carrega o core do TinyMCE direto do CDN: */
+                                    tinymceScriptSrc={`https://cdn.tiny.cloud/1/${TOKEN_TINY}/tinymce/6/tinymce.min.js`}
                                     value={desc.description}
                                     onEditorChange={(content) =>
                                         updateDescription(idx, 'description', content)
                                     }
                                     init={{
+                                        /* 2) base_url + suffix → de onde virão todos os plugins/temas */
                                         base_url: `https://cdn.tiny.cloud/1/${TOKEN_TINY}/tinymce/6`,
                                         suffix: '.min',
-                                        height: 300,
+                                        height: 500,
                                         menubar: true,
-                                        /* Incluí onboarding junto com os outros plugins */
+                                        /* 3) Lista de plugins sem “print” nem “paste” */
                                         plugins:
-                                            'advlist autolink lists link image charmap print preview anchor ' +
+                                            'advlist autolink lists link image charmap preview anchor ' +
                                             'searchreplace visualblocks code fullscreen ' +
-                                            'insertdatetime media table paste code help wordcount onboarding',
+                                            'insertdatetime media table help wordcount',
                                         toolbar:
                                             'undo redo | formatselect | bold italic backcolor | ' +
                                             'alignleft aligncenter alignright alignjustify | ' +

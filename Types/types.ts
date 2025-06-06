@@ -27,6 +27,7 @@ export type StatusProduct = 'DISPONIVEL' | 'INDISPONIVEL';
 export type StatusDescription = 'DISPONIVEL' | 'INDISPONIVEL';
 
 export interface ProductDescription {
+    id?: any;
     title: string;
     description: string;
     status?: StatusDescription;

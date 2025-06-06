@@ -107,7 +107,7 @@ export default function All_products() {
 
             console.log(data)
 
-            await apiClient.put(`/product/update`, data);
+            await apiClient.put(`/product/status`, data);
 
             setAllproducts((prevProduct) =>
                 prevProduct.map((product) => (product.id === id ? { ...product, ...updatedField } : product))

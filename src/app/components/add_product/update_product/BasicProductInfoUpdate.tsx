@@ -2,14 +2,29 @@
 
 import { Input, Select, SelectItem, SharedSelection, Tooltip } from '@nextui-org/react'
 import { CurrencyInput } from '@/app/components/add_product/CurrencyInput'
-import { ProductFormData, PromotionOption, StatusProduct } from 'Types/types'
+import { ProductFormData, PromotionOption, StatusProduct, ImageRecord } from 'Types/types'
 import { ChangeEvent } from 'react'
 import { MediaUpdateComponent } from './MediaUpdateComponent'
 
-interface BasicProductInfoUpdate {
+interface BasicProductInfoUpdateProps {
     formData: ProductFormData
     onFormDataChange: (data: ProductFormData) => void
     promotions: PromotionOption[]
+
+    // ─── Novos props para gerenciar imagens principais ─────────────────────
+
+    // Imagens existentes (do servidor) e novas (arquivos File)
+    existingImages: ImageRecord[]
+    newImages: File[]
+
+    // ID da imagem existente marcada como principal
+    primaryImageId: string
+
+    // Callbacks
+    onSetPrimaryImageId: (id: string) => void
+    onAddNewImage: (files: File[]) => void
+    onRemoveExistingImage: (id: string) => void
+    onRemoveNewImage: (index: number) => void
 }
 
 const dimensionFields: { label: string; field: keyof ProductFormData; tooltip: string }[] = [
@@ -22,28 +37,19 @@ const dimensionFields: { label: string; field: keyof ProductFormData; tooltip: s
 export const BasicProductInfoUpdate = ({
     formData,
     onFormDataChange,
-    promotions
-}: BasicProductInfoUpdate) => {
+    promotions,
+
+    existingImages,
+    newImages,
+    primaryImageId,
+    onSetPrimaryImageId,
+    onAddNewImage,
+    onRemoveExistingImage,
+    onRemoveNewImage
+}: BasicProductInfoUpdateProps) => {
     // manipula campos básicos
     const handleChange = (field: keyof ProductFormData, value: any) => {
         onFormDataChange({ ...formData, [field]: value })
-    }
-
-    // Remove imagem existente
-    const handleRemoveExisting = (id: string) => {
-        const updated = (formData.existingImages ?? []).filter(img => img.id !== id)
-        onFormDataChange({ ...formData, existingImages: updated })
-    }
-
-    // Adiciona novas imagens
-    const handleAddNew = (files: File[]) => {
-        const updated = [...(formData.newImages ?? []), ...files]
-        onFormDataChange({ ...formData, newImages: updated })
-    }
-
-    const handleRemoveNew = (index: number) => {
-        const updated = (formData.newImages ?? []).filter((_, i) => i !== index)
-        onFormDataChange({ ...formData, newImages: updated })
     }
 
     const promoItems = [{ id: '', name: 'Nenhuma promoção' }, ...promotions]
@@ -179,16 +185,17 @@ export const BasicProductInfoUpdate = ({
                 </Select>
             </Tooltip>
 
-            {/* Upload Imagens */}
+            {/* Upload Imagens (Produto) */}
             <MediaUpdateComponent
                 label="Imagens Principais"
-                existingFiles={formData.existingImages ?? []}
-                newFiles={formData.newImages ?? []}
-                onAddNew={handleAddNew}
-                onRemoveExisting={handleRemoveExisting}
-                onRemoveNew={handleRemoveNew}
+                existingFiles={existingImages}
+                newFiles={newImages}
+                primaryId={primaryImageId}
+                onSetPrimary={(id) => onSetPrimaryImageId(id)}
+                onAddNew={(filesList) => onAddNewImage(filesList)}
+                onRemoveExisting={(id) => onRemoveExistingImage(id)}
+                onRemoveNew={(index) => onRemoveNewImage(index)}
             />
-
         </div>
     )
 }
