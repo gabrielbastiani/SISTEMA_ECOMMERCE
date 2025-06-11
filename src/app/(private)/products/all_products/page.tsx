@@ -42,6 +42,7 @@ interface ProductProps {
         id?: string;
         url?: string;
         altText?: string;
+        isPrimary?: boolean;
     }>;
     variants?: Array<{
         sku: string;
@@ -103,9 +104,7 @@ export default function All_products() {
                 updatedField = { status: editedValue };
             }
 
-            const data = { ...updatedField, id: id };
-
-            console.log(data)
+            const data = { ...updatedField, product_id: id };
 
             await apiClient.put(`/product/status`, data);
 
@@ -154,19 +153,27 @@ export default function All_products() {
                             "id",
                             "name",
                             "brand",
+                            "stock",
                             "status",
+                            "categories",
+                            "parentRelations",
                             "skuMaster",
                             "price_per",
                             "price_of",
-                            "images",
+                            "variants",
                             "created_at"
                         ]}
                         customNames={{
                             id: "ID do produto",
                             name: "Nome do produto",
+                            brand: "Marca",
+                            stock: "Estoque",
                             skuMaster: "Código do produto",
+                            price_per: "Preço anterior",
+                            price_of: "Preço atual",
                             status: "Status",
                             categories: "Categorias",
+                            variants: "Variantes",
                             parentRelations: "Qtd. Pais",
                             created_at: "Data de cadastro"
                         }}
