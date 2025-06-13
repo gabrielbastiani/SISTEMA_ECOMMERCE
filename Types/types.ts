@@ -167,3 +167,120 @@ export const initialFormData: ProductFormData = {
     mainPromotion_id: undefined,
     existingImages: [],
 };
+
+export enum ConditionType {
+    FIRST_ORDER = 'FIRST_ORDER',
+    CART_ITEM_COUNT = 'CART_ITEM_COUNT',
+    UNIQUE_VARIANT_COUNT = 'UNIQUE_VARIANT_COUNT',
+    CATEGORY = 'CATEGORY',
+    ZIP_CODE = 'ZIP_CODE',
+    PRODUCT_CODE = 'PRODUCT_CODE',
+    VARIANT_CODE = 'VARIANT_CODE',
+    STATE = 'STATE',
+    CATEGORY_ITEM_COUNT = 'CATEGORY_ITEM_COUNT',
+    CATEGORY_VARIANT_COUNT = 'CATEGORY_VARIANT_COUNT',
+    CATEGORY_VALUE = 'CATEGORY_VALUE',
+    BRAND_VALUE = 'BRAND_VALUE',
+    VARIANT_ITEM_COUNT = 'VARIANT_ITEM_COUNT',
+    PRODUCT_ITEM_COUNT = 'PRODUCT_ITEM_COUNT',
+    PERSON_TYPE = 'PERSON_TYPE',
+    USER = 'USER',
+    SUBTOTAL_VALUE = 'SUBTOTAL_VALUE',
+    TOTAL_VALUE = 'TOTAL_VALUE'
+}
+
+export enum Operator {
+    EQUAL = 'EQUAL',
+    GREATER = 'GREATER',
+    GREATER_EQUAL = 'GREATER_EQUAL',
+    LESS = 'LESS',
+    LESS_EQUAL = 'LESS_EQUAL'
+}
+
+export enum ActionType {
+    PRICE_TABLE_ADJUST = 'PRICE_TABLE_ADJUST',
+    FIXED_DISCOUNT_BY_QTY = 'FIXED_DISCOUNT_BY_QTY',
+    FIXED_DISCOUNT_VARIANT = 'FIXED_DISCOUNT_VARIANT',
+    FIXED_DISCOUNT_PRODUCT = 'FIXED_DISCOUNT_PRODUCT',
+    FREE_VARIANT_ITEM = 'FREE_VARIANT_ITEM',
+    FREE_PRODUCT_ITEM = 'FREE_PRODUCT_ITEM',
+    PERCENT_DISCOUNT_RECURR = 'PERCENT_DISCOUNT_RECURR',
+    PERCENT_DISCOUNT_CATEGORY = 'PERCENT_DISCOUNT_CATEGORY',
+    PERCENT_DISCOUNT_VARIANT = 'PERCENT_DISCOUNT_VARIANT',
+    PERCENT_DISCOUNT_PRODUCT = 'PERCENT_DISCOUNT_PRODUCT',
+    PERCENT_DISCOUNT_BRAND = 'PERCENT_DISCOUNT_BRAND',
+    PERCENT_DISCOUNT_QTY_PRODUCT = 'PERCENT_DISCOUNT_QTY_PRODUCT',
+    PERCENT_DISCOUNT_EXTREME = 'PERCENT_DISCOUNT_EXTREME',
+    PERCENT_DISCOUNT_SHIPPING = 'PERCENT_DISCOUNT_SHIPPING',
+    PERCENT_DISCOUNT_SUBTOTAL = 'PERCENT_DISCOUNT_SUBTOTAL',
+    PERCENT_DISCOUNT_TOTAL_BEFORE = 'PERCENT_DISCOUNT_TOTAL_BEFORE',
+    PERCENT_DISCOUNT_PER_PRODUCT = 'PERCENT_DISCOUNT_PER_PRODUCT',
+    FIXED_DISCOUNT_BRAND = 'FIXED_DISCOUNT_BRAND',
+    FIXED_DISCOUNT_SHIPPING = 'FIXED_DISCOUNT_SHIPPING',
+    FIXED_DISCOUNT_SUBTOTAL = 'FIXED_DISCOUNT_SUBTOTAL',
+    FIXED_DISCOUNT_TOTAL_BEFORE = 'FIXED_DISCOUNT_TOTAL_BEFORE',
+    FIXED_DISCOUNT_PER_PRODUCT = 'FIXED_DISCOUNT_PER_PRODUCT',
+    MAX_SHIPPING_DISCOUNT = 'MAX_SHIPPING_DISCOUNT',
+    FIXED_VARIANT_DISCOUNT = "FIXED_VARIANT_DISCOUNT",
+    FIXED_PRODUCT_DISCOUNT = "FIXED_PRODUCT_DISCOUNT",
+    PERCENT_CATEGORY = "PERCENT_CATEGORY",
+    PERCENT_VARIANT = "PERCENT_VARIANT",
+    PERCENT_PRODUCT = "PERCENT_PRODUCT",
+    PERCENT_BRAND_ITEMS = "PERCENT_BRAND_ITEMS",
+    PERCENT_ITEM_COUNT = "PERCENT_ITEM_COUNT",
+    PERCENT_EXTREME_ITEM = "PERCENT_EXTREME_ITEM",
+    PERCENT_SHIPPING = "PERCENT_SHIPPING",
+    PERCENT_SUBTOTAL = "PERCENT_SUBTOTAL",
+    PERCENT_TOTAL_NO_SHIPPING = "PERCENT_TOTAL_NO_SHIPPING",
+    PERCENT_TOTAL_PER_PRODUCT = "PERCENT_TOTAL_PER_PRODUCT",
+    FIXED_SHIPPING = "FIXED_SHIPPING",
+    FIXED_SUBTOTAL = "FIXED_SUBTOTAL",
+    FIXED_TOTAL_NO_SHIPPING = "FIXED_TOTAL_NO_SHIPPING",
+    FIXED_BRAND_ITEMS = "FIXED_BRAND_ITEMS",
+    FIXED_TOTAL_PER_PRODUCT = "FIXED_TOTAL_PER_PRODUCT"
+}
+
+export enum DisplayType {
+    SPOT = 'SPOT',
+    PRODUCT_PAGE = 'PRODUCT_PAGE'
+}
+
+export type CouponInput = { code: string }
+export type ConditionInput = { type: string; operator: string; value: any }
+export type ActionInput = { type: string; params: any }
+export type DisplayInput = { title: string; type: string; content: string }
+export type BadgeInput = {
+    file: { new(fileBits: BlobPart[], fileName: string, options?: FilePropertyBag): File; prototype: File; }; title: string; imageUrl: string
+}
+
+export interface CreatePromotionDto {
+    name: string
+    description?: string
+    startDate: Date
+    endDate: Date
+
+    hasCoupon: boolean
+    multipleCoupons: boolean
+    reuseSameCoupon: boolean
+    perUserCouponLimit?: number
+    totalCouponCount?: number
+    coupons?: string[]
+
+    active: boolean
+    cumulative: boolean
+    priority: number
+
+    conditions?: ConditionInput[]
+    actions?: ActionInput[]
+    displays?: DisplayInput[]
+    badges?: BadgeInput[]
+}
+
+export interface BadgeWithFile {
+    title: string
+    imageUrl: string
+    file: File
+}
+export type PromotionWizardDto = Omit<CreatePromotionDto, 'badges'> & {
+    badges: BadgeWithFile[]
+}
