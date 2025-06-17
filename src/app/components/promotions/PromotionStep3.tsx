@@ -2,7 +2,100 @@
 
 import { useState, useEffect } from 'react'
 import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce'
-import { ActionInput, ActionType, CreatePromotionDto, PromotionWizardDto } from 'Types/types'
+import { ActionInput, ActionType, PromotionWizardDto } from 'Types/types'
+import { Tooltip } from '@nextui-org/react'
+
+// Componente genérico de seleção múltipla
+interface MultiSelectOption {
+    value: string
+    label: string
+}
+
+interface MultiSelectProps {
+    label: string
+    options: MultiSelectOption[]
+    selected: string[]
+    onChange: (newSelected: string[]) => void
+}
+
+function MultiSelect({
+    label,
+    options,
+    selected,
+    onChange
+}: MultiSelectProps) {
+    const [open, setOpen] = useState(false)
+
+    const toggle = (val: string) =>
+        selected.includes(val)
+            ? onChange(selected.filter(x => x !== val))
+            : onChange([...selected, val])
+
+    return (
+        <div className="relative">
+            <span className="block mb-1 font-medium text-foreground">{label}</span>
+            <button
+                type="button"
+                onClick={() => setOpen(o => !o)}
+                className="w-full text-left border p-2 rounded flex justify-between items-center bg-white text-black"
+            >
+                <span className="truncate text-black">
+                    {selected.length > 0
+                        ? `${selected.length} selecionado${selected.length > 1 ? 's' : ''}`
+                        : 'Nenhum selecionado'}
+                </span>
+                <svg
+                    className={`w-4 h-4 transform transition-transform ${open ? 'rotate-180' : ''
+                        }`}
+                    viewBox="0 0 20 20"
+                >
+                    <path d="M5.5 8l4.5 4.5L14.5 8h-9z" fill="currentColor" />
+                </svg>
+            </button>
+
+            {open && (
+                <div className="absolute z-10 mt-1 w-full bg-white border rounded shadow-lg max-h-60 overflow-auto">
+                    {options.map(opt => (
+                        <label
+                            key={opt.value}
+                            className="flex items-center px-3 py-2 text-black"
+                        >
+                            <input
+                                type="checkbox"
+                                checked={selected.includes(opt.value)}
+                                onChange={() => toggle(opt.value)}
+                                className="mr-2"
+                            />
+                            <span className="truncate text-black">{opt.label}</span>
+                        </label>
+                    ))}
+                </div>
+            )}
+
+            {selected.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                    {options
+                        .filter(o => selected.includes(o.value))
+                        .map(o => (
+                            <span
+                                key={o.value}
+                                className="flex items-center bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm"
+                            >
+                                {o.label}
+                                <button
+                                    type="button"
+                                    onClick={() => toggle(o.value)}
+                                    className="ml-1 text-green-600 hover:text-green-900"
+                                >
+                                    ×
+                                </button>
+                            </span>
+                        ))}
+                </div>
+            )}
+        </div>
+    )
+}
 
 // Opções de ação
 const actionOptions: { value: ActionType; label: string }[] = [
@@ -88,66 +181,53 @@ export default function PromotionStep3({
         setData(d => ({ ...d, actions: d.actions!.filter((_: any, idx: number) => idx !== i) }))
     }
 
+    // Mapeia para MultiSelectOption
+    const productOptions = products.map(p => ({ value: p.id, label: p.name }))
+    const variantOptions = variants.map(v => ({ value: v.id, label: v.sku }))
+    const categoryOptions = categories.map(c => ({ value: c.id, label: c.name }))
+
     // Renderiza os campos dinâmicos de acordo com o tipo selecionado
     function renderFields() {
         switch (type) {
             case ActionType.FIXED_VARIANT_DISCOUNT:
                 return (
                     <>
-                        <fieldset>
-                            <legend>Produto Variante*</legend>
-                            {variants.map(v => (
-                                <label key={v.id} className="block">
-                                    <input
-                                        type="checkbox"
-                                        checked={params.variantIds?.includes(v.id) || false}
-                                        onChange={e => {
-                                            const sel = new Set<string>(params.variantIds || [])
-                                            e.target.checked ? sel.add(v.id) : sel.delete(v.id)
-                                            setParams({ ...params, variantIds: Array.from(sel) })
-                                        }}
-                                    />{' '}
-                                    {v.sku}
-                                </label>
-                            ))}
-                        </fieldset>
-                        <label>
-                            Valor do desconto (R$)*{' '}
-                            <input
-                                type="number"
-                                value={params.amount || ''}
-                                onChange={e => setParams({ ...params, amount: Number(e.target.value) })}
-                            />
-                        </label>
+                        <MultiSelect
+                            label="Variantes"
+                            options={variantOptions}
+                            selected={params.variantIds || []}
+                            onChange={arr => setParams((p: any) => ({ ...p, variantIds: arr }))}
+                        />
+                        <div className='mt-10'>
+                            <label>
+                                Valor do desconto (R$)*{' '}
+                                <input
+                                    type="number"
+                                    value={params.amount || ''}
+                                    onChange={e => setParams({ ...params, amount: Number(e.target.value) })}
+                                    className='p-2 text-black border-4'
+                                />
+                            </label>
+                        </div>
                     </>
                 )
 
             case ActionType.FIXED_PRODUCT_DISCOUNT:
                 return (
                     <>
-                        <fieldset>
-                            <legend>Produto*</legend>
-                            {products.map(p => (
-                                <label key={p.id} className="block">
-                                    <input
-                                        type="checkbox"
-                                        checked={params.productIds?.includes(p.id) || false}
-                                        onChange={e => {
-                                            const sel = new Set<string>(params.productIds || [])
-                                            e.target.checked ? sel.add(p.id) : sel.delete(p.id)
-                                            setParams({ ...params, productIds: Array.from(sel) })
-                                        }}
-                                    />{' '}
-                                    {p.name}
-                                </label>
-                            ))}
-                        </fieldset>
-                        <label>
+                        <MultiSelect
+                            label="Produtos"
+                            options={productOptions}
+                            selected={params.productIds || []}
+                            onChange={arr => setParams((p: any) => ({ ...p, productIds: arr }))}
+                        />
+                        <label className='mt-9'>
                             Valor do desconto (R$)*{' '}
                             <input
                                 type="number"
                                 value={params.amount || ''}
                                 onChange={e => setParams({ ...params, amount: Number(e.target.value) })}
+                                className='p-2 text-black border-4'
                             />
                         </label>
                     </>
@@ -156,29 +236,19 @@ export default function PromotionStep3({
             case ActionType.FREE_VARIANT_ITEM:
                 return (
                     <>
-                        <fieldset>
-                            <legend>Produto Variante*</legend>
-                            {variants.map(v => (
-                                <label key={v.id} className="block">
-                                    <input
-                                        type="checkbox"
-                                        checked={params.variantIds?.includes(v.id) || false}
-                                        onChange={e => {
-                                            const sel = new Set<string>(params.variantIds || [])
-                                            e.target.checked ? sel.add(v.id) : sel.delete(v.id)
-                                            setParams({ ...params, variantIds: Array.from(sel) })
-                                        }}
-                                    />{' '}
-                                    {v.sku}
-                                </label>
-                            ))}
-                        </fieldset>
+                        <MultiSelect
+                            label="Variantes"
+                            options={variantOptions}
+                            selected={params.variantIds || []}
+                            onChange={arr => setParams((p: any) => ({ ...p, variantIds: arr }))}
+                        />
                         <label>
                             Unidades de brinde*{' '}
                             <input
                                 type="number"
                                 value={params.qty || ''}
                                 onChange={e => setParams({ ...params, qty: Number(e.target.value) })}
+                                className='p-2 text-black border-4'
                             />
                         </label>
                     </>
@@ -187,29 +257,19 @@ export default function PromotionStep3({
             case ActionType.FREE_PRODUCT_ITEM:
                 return (
                     <>
-                        <fieldset>
-                            <legend>Produto*</legend>
-                            {products.map(p => (
-                                <label key={p.id} className="block">
-                                    <input
-                                        type="checkbox"
-                                        checked={params.productIds?.includes(p.id) || false}
-                                        onChange={e => {
-                                            const sel = new Set<string>(params.productIds || [])
-                                            e.target.checked ? sel.add(p.id) : sel.delete(p.id)
-                                            setParams({ ...params, productIds: Array.from(sel) })
-                                        }}
-                                    />{' '}
-                                    {p.name}
-                                </label>
-                            ))}
-                        </fieldset>
+                        <MultiSelect
+                            label="Produtos"
+                            options={productOptions}
+                            selected={params.productIds || []}
+                            onChange={arr => setParams((p: any) => ({ ...p, productIds: arr }))}
+                        />
                         <label>
                             Unidades de brinde*{' '}
                             <input
                                 type="number"
                                 value={params.qty || ''}
                                 onChange={e => setParams({ ...params, qty: Number(e.target.value) })}
+                                className='p-2 text-black border-4'
                             />
                         </label>
                     </>
@@ -218,70 +278,56 @@ export default function PromotionStep3({
             case ActionType.PERCENT_CATEGORY:
                 return (
                     <>
-                        <fieldset>
-                            <legend>Categoria*</legend>
-                            {categories.map(c => (
-                                <label key={c.id} className="block">
-                                    <input
-                                        type="checkbox"
-                                        checked={params.categoryIds?.includes(c.id) || false}
-                                        onChange={e => {
-                                            const sel = new Set<string>(params.categoryIds || [])
-                                            e.target.checked ? sel.add(c.id) : sel.delete(c.id)
-                                            setParams({ ...params, categoryIds: Array.from(sel) })
-                                        }}
-                                    />{' '}
-                                    {c.name}
-                                </label>
-                            ))}
-                        </fieldset>
-                        <label>
-                            Percentual (%)*{' '}
-                            <input
-                                type="number"
-                                value={params.percent || ''}
-                                onChange={e => setParams({ ...params, percent: Number(e.target.value) })}
-                            />
-                        </label>
-                    </>
-                )
-
-            case ActionType.PERCENT_VARIANT:
-            case ActionType.PERCENT_PRODUCT:
-                {
-                    const list = type === ActionType.PERCENT_VARIANT ? variants : products
-                    const key = type === ActionType.PERCENT_VARIANT ? 'variantIds' : 'productIds'
-                    const labelList = type === ActionType.PERCENT_VARIANT ? 'sku' : 'name'
-
-                    return (
-                        <>
-                            <fieldset>
-                                <legend>{type === ActionType.PERCENT_VARIANT ? 'Variantes*' : 'Produtos*'}</legend>
-                                {list.map(item => (
-                                    <label key={item.id} className="block">
-                                        <input
-                                            type="checkbox"
-                                            // @ts-ignore
-                                            checked={params[key]?.includes(item.id) || false}
-                                            onChange={e => {
-                                                const sel = new Set<string>(params[key] || [])
-                                                e.target.checked ? sel.add(item.id) : sel.delete(item.id)
-                                                setParams({ ...params, [key]: Array.from(sel) })
-                                            }}
-                                        />{' '}
-                                        {/* @ts-ignore */}
-                                        {item[labelList]}
-                                    </label>
-                                ))}
-                            </fieldset>
+                        <MultiSelect
+                            label="Categorias"
+                            options={categoryOptions}
+                            selected={params.categoryIds || []}
+                            onChange={arr => setParams((p: any) => ({ ...p, categoryIds: arr }))}
+                        />
+                        <div className='mt-10'>
                             <label>
                                 Percentual (%)*{' '}
                                 <input
                                     type="number"
                                     value={params.percent || ''}
                                     onChange={e => setParams({ ...params, percent: Number(e.target.value) })}
+                                    className='p-2 text-black border-4'
                                 />
                             </label>
+                        </div>
+                    </>
+                )
+
+            case ActionType.PERCENT_VARIANT:
+            case ActionType.PERCENT_PRODUCT:
+                {
+                    const isVariant = type === ActionType.PERCENT_VARIANT
+                    const opts = isVariant ? variantOptions : productOptions
+                    const key = isVariant ? 'variantIds' : 'productIds'
+                    const label = isVariant ? 'Variantes*' : 'Produtos*'
+
+                    return (
+                        <>
+                            <MultiSelect
+                                label={label}
+                                options={opts}
+                                selected={params[key] || []}
+                                onChange={arr =>
+                                    setParams((p: any) => ({ ...p, [key]: arr }))
+                                }
+                            />
+                            <div className='mt-10'>
+                                <label>
+                                    Percentual (%)*{' '}
+                                    <input
+                                        type="number"
+                                        value={params.percent || ''}
+                                        onChange={e => setParams({ ...params, percent: Number(e.target.value) })}
+                                        className='p-2 text-black border-4'
+                                    />
+                                </label>
+                            </div>
+
                         </>
                     )
                 }
@@ -289,70 +335,57 @@ export default function PromotionStep3({
             case ActionType.PERCENT_ITEM_COUNT:
                 return (
                     <>
-                        <fieldset>
-                            <legend>Produto(s)*</legend>
-                            {products.map(p => (
-                                <label key={p.id} className="block">
-                                    <input
-                                        type="checkbox"
-                                        checked={params.productIds?.includes(p.id) || false}
-                                        onChange={e => {
-                                            const sel = new Set<string>(params.productIds || [])
-                                            e.target.checked ? sel.add(p.id) : sel.delete(p.id)
-                                            setParams({ ...params, productIds: Array.from(sel) })
-                                        }}
-                                    />{' '}
-                                    {p.name}
-                                </label>
-                            ))}
-                        </fieldset>
-                        <label>
-                            Percentual (%)*{' '}
-                            <input
-                                type="number"
-                                value={params.percent || ''}
-                                onChange={e => setParams({ ...params, percent: Number(e.target.value) })}
-                            />
-                        </label>
-                        <label>
-                            Número de unidades*{' '}
-                            <input
-                                type="number"
-                                value={params.qty || ''}
-                                onChange={e => setParams({ ...params, qty: Number(e.target.value) })}
-                            />
-                        </label>
+                        <MultiSelect
+                            label="Produtos"
+                            options={productOptions}
+                            selected={params.productIds || []}
+                            onChange={arr => setParams((p: any) => ({ ...p, productIds: arr }))}
+                        />
+                        <div className='mt-10'>
+                            <label>
+                                Percentual (%)*{' '}
+                                <input
+                                    type="number"
+                                    value={params.percent || ''}
+                                    onChange={e => setParams({ ...params, percent: Number(e.target.value) })}
+                                    className='p-2 text-black border-4'
+                                />
+                            </label>
+                            <label>
+                                Número de unidades*{' '}
+                                <input
+                                    type="number"
+                                    value={params.qty || ''}
+                                    onChange={e => setParams({ ...params, qty: Number(e.target.value) })}
+                                    className='p-2 text-black border-4'
+                                />
+                            </label>
+                        </div>
+
                     </>
                 )
 
             case ActionType.PERCENT_EXTREME_ITEM:
                 return (
                     <>
-                        <fieldset>
-                            <legend>Produto Variante*</legend>
-                            {variants.map(v => (
-                                <label key={v.id} className="block">
-                                    <input
-                                        type="checkbox"
-                                        checked={params.variantIds?.includes(v.id) || false}
-                                        onChange={e => {
-                                            const sel = new Set<string>(params.variantIds || [])
-                                            e.target.checked ? sel.add(v.id) : sel.delete(v.id)
-                                            setParams({ ...params, variantIds: Array.from(sel) })
-                                        }}
-                                    />{' '}
-                                    {v.sku}
-                                </label>
-                            ))}
-                        </fieldset>
-                        <label>
-                            Percentual (%)*{' '}
-                            <input
-                                type="number"
-                                value={params.percent || ''}
-                                onChange={e => setParams({ ...params, percent: Number(e.target.value) })}
-                            />
-                        </label>
+                        <MultiSelect
+                            label="Variantes"
+                            options={variantOptions}
+                            selected={params.variantIds || []}
+                            onChange={arr => setParams((p: any) => ({ ...p, variantIds: arr }))}
+                        />
+                        <div className='mt-10'>
+                            <label>
+                                Percentual (%)*{' '}
+                                <input
+                                    type="number"
+                                    value={params.percent || ''}
+                                    onChange={e => setParams({ ...params, percent: Number(e.target.value) })}
+                                    className='p-2 text-black border-4'
+                                />
+                            </label>
+                        </div>
+
                         <fieldset>
                             <legend>Aplicar desconto em:</legend>
                             <label>
@@ -420,14 +453,17 @@ export default function PromotionStep3({
             case ActionType.PERCENT_TOTAL_NO_SHIPPING:
             case ActionType.PERCENT_TOTAL_PER_PRODUCT:
                 return (
-                    <label>
-                        Percentual (%)*{' '}
-                        <input
-                            type="number"
-                            value={params.amount || ''}
-                            onChange={e => setParams({ ...params, amount: Number(e.target.value) })}
-                        />
-                    </label>
+                    <div className='mt-10'>
+                        <label>
+                            Percentual (%)*{' '}
+                            <input
+                                type="number"
+                                value={params.amount || ''}
+                                onChange={e => setParams({ ...params, amount: Number(e.target.value) })}
+                                className='p-2 text-black border-4'
+                            />
+                        </label>
+                    </div>
                 )
 
             case ActionType.FIXED_SHIPPING:
@@ -442,6 +478,7 @@ export default function PromotionStep3({
                             type="number"
                             value={params.amount || ''}
                             onChange={e => setParams({ ...params, amount: Number(e.target.value) })}
+                            className='p-2 text-black border-4'
                         />
                     </label>
                 )
@@ -548,33 +585,9 @@ export default function PromotionStep3({
         <div className="space-y-6">
             <h2 className="text-xl font-semibold">Passo 3: Defina as Ações</h2>
 
-            <div>
-                <label className="block mb-1">Ação*</label>
-                <select
-                    value={type}
-                    onChange={e => setType(e.target.value as ActionType)}
-                    className="w-full border p-1 rounded"
-                >
-                    {actionOptions.map(o => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
-                    ))}
-                </select>
-            </div>
-
-            <div className="space-y-4">{renderFields()}</div>
-
-            <button
-                type="button"
-                onClick={saveAction}
-                className="px-4 py-2 bg-blue-600 text-white rounded"
-            >
-                Adicionar Ação
-            </button>
-
-            <h3 className="mt-6 font-medium">Ações Cadastradas</h3>
             <table className="w-full border-collapse">
                 <thead>
-                    <tr className="border-b bg-gray-100">
+                    <tr className="border-b bg-gray-100 text-black">
                         <th className="p-2 text-left">Ação</th>
                         <th className="p-2 text-left">Detalhes</th>
                         <th className="p-2"></th>
@@ -585,9 +598,9 @@ export default function PromotionStep3({
                         const label = actionOptions.find(o => o.value === a.type)?.label
                         const details = formatDetails(a)
                         return (
-                            <tr key={i} className="border-b hover:bg-gray-50">
-                                <td className="p-2">{label}</td>
-                                <td className="p-2">{details}</td>
+                            <tr key={i} className="border-b text-black">
+                                <td className="p-2 text-foreground">{label}</td>
+                                <td className="p-2 text-foreground">{details}</td>
                                 <td className="p-2">
                                     <button
                                         type="button"
@@ -603,18 +616,47 @@ export default function PromotionStep3({
                 </tbody>
             </table>
 
+            <div>
+                <label className="block mb-1">Ação*</label>
+                <Tooltip
+                    content="Selecione a ação para a aplicar à Promoção. (Preenchimento Obrigatório)"
+                    placement="top-start"
+                    className="bg-white text-red-500 border border-gray-200 p-2"
+                >
+                    <select
+                        value={type}
+                        onChange={e => setType(e.target.value as ActionType)}
+                        className="w-full border p-2 rounded text-black"
+                    >
+                        {actionOptions.map(o => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                    </select>
+                </Tooltip>
+
+            </div>
+
+            <div className="space-y-4">{renderFields()}</div>
+
             <div className="flex justify-between mt-6">
                 <button
                     type="button"
                     onClick={onBack}
-                    className="px-4 py-2 border rounded"
+                    className="px-4 py-2 rounded bg-gray-200 text-black hover:bg-gray-300"
                 >
                     Voltar
                 </button>
                 <button
                     type="button"
+                    onClick={saveAction}
+                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                >
+                    Adicionar Ação
+                </button>
+                <button
+                    type="button"
                     onClick={onNext}
-                    className="px-4 py-2 bg-green-600 text-white rounded"
+                    className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
                 >
                     Próximo
                 </button>

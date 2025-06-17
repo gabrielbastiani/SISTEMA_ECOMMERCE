@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
 import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce'
-import { ConditionInput, CreatePromotionDto, PromotionWizardDto } from 'Types/types'
+import { ConditionInput, PromotionWizardDto } from 'Types/types'
+import { Tooltip } from '@nextui-org/react'
 
 // Opções de condição
 const conditionOptions = [
@@ -69,10 +70,8 @@ const brazilStates = [
 
 // Formatadores
 const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
-const percent = (v: number) => `${v.toLocaleString('pt-BR')}%`
 
 type ConditionKey = typeof conditionOptions[number]['value']
-type LogicKey = string
 
 interface Props {
   data: PromotionWizardDto
@@ -81,13 +80,111 @@ interface Props {
   onNext: () => void
 }
 
+interface MultiSelectOption {
+  value: string
+  label: string
+}
+
+interface MultiSelectProps {
+  label: string
+  options: MultiSelectOption[]
+  selected: string[]
+  onChange: (newSelected: string[]) => void
+}
+
+function MultiSelect({
+  label,
+  options,
+  selected,
+  onChange
+}: MultiSelectProps) {
+  const [open, setOpen] = useState(false)
+
+  const toggle = (val: string) =>
+    selected.includes(val)
+      ? onChange(selected.filter(x => x !== val))
+      : onChange([...selected, val])
+
+  return (
+    <div className="relative">
+      <span className="block mb-1 font-medium text-black">{label}</span>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full text-left border p-2 rounded flex justify-between items-center bg-white"
+      >
+        <span className="truncate text-black">
+          {selected.length > 0
+            ? `${selected.length} selecionado${selected.length > 1 ? 's' : ''}`
+            : 'Nenhum selecionado'}
+        </span>
+        <svg
+          className={`w-4 h-4 transform transition-transform ${open ? 'rotate-180' : ''
+            }`}
+          viewBox="0 0 20 20"
+        >
+          <path d="M5.5 8l4.5 4.5L14.5 8h-9z" fill="currentColor" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute z-10 mt-1 w-full bg-white border rounded shadow-lg max-h-60 overflow-auto">
+          {options.map(opt => (
+            <label
+              key={opt.value}
+              className="flex items-center px-3 py-2 hover:bg-gray-100 text-black"
+            >
+              <input
+                type="checkbox"
+                checked={selected.includes(opt.value)}
+                onChange={() => toggle(opt.value)}
+                className="mr-2"
+              />
+              <span className="truncate">{opt.label}</span>
+            </label>
+          ))}
+        </div>
+      )}
+
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-2">
+          {options
+            .filter(o => selected.includes(o.value))
+            .map(o => (
+              <span
+                key={o.value}
+                className="flex items-center bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm"
+              >
+                {o.label}
+                <button
+                  type="button"
+                  onClick={() => toggle(o.value)}
+                  className="ml-1 text-green-600 hover:text-green-900"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function PromotionStep2({ data, setData, onBack, onNext }: Props) {
+
   const api = setupAPIClientEcommerce()
 
-  const [type, setType] = useState<ConditionKey>('FIRST_ORDER')
-  const [operator, setOperator] = useState<LogicKey>('EQUAL')
+  const [type, setType] = useState<ConditionKey>(
+    conditionOptions[0].value
+  )
+  const [operator, setOperator] = useState<string>(
+    logicMap[type][0] || ''
+  )
   const [payload, setPayload] = useState<any>({})
-  const [logicOptions, setLogicOptions] = useState<string[]>(logicMap['FIRST_ORDER'])
+  const [logicOptions, setLogicOptions] = useState<string[]>(
+    logicMap[type]
+  )
 
   const [products, setProducts] = useState<{ id: string; name: string }[]>([])
   const [variants, setVariants] = useState<{ id: string; sku: string }[]>([])
@@ -118,7 +215,6 @@ export default function PromotionStep2({ data, setData, onBack, onNext }: Props)
         setVariants(vRes.data.map((v: any) => ({ id: v.id, sku: v.sku })))
         setCategories(cRes.data.all_categories_disponivel.map((c: any) => ({ id: c.id, name: c.name })))
         setUsers(uRes.data.all_customers)
-        // extrai marcas únicas
         setBrands([...new Set(prods.map(p => p.brand).filter(Boolean))])
       } catch {
         toast.error('Falha ao carregar opções.')
@@ -129,12 +225,46 @@ export default function PromotionStep2({ data, setData, onBack, onNext }: Props)
 
   function saveCondition() {
     const cond: ConditionInput = { type, operator, value: payload }
-    setData((d: any) => ({ ...d, conditions: [...(d.conditions || []), cond] }))
-    setType('FIRST_ORDER')
+    setData(d => ({
+      ...d,
+      conditions: [...(d.conditions || []), cond]
+    }))
+    setType(conditionOptions[0].value)
   }
-  function removeCondition(i: number) {
-    setData((d: any) => ({ ...d, conditions: d.conditions!.filter((_: any, idx: number) => idx !== i) }))
+
+  function removeCondition(idx: number) {
+    setData(d => ({
+      ...d,
+      conditions: d.conditions!.filter((_, i) => i !== idx)
+    }))
   }
+
+  // mapeia raw → MultiSelectOption
+  const productOptions: MultiSelectOption[] = products.map(p => ({
+    value: p.id,
+    label: p.name
+  }))
+  const variantOptions: MultiSelectOption[] = variants.map(v => ({
+    value: v.id,
+    label: v.sku
+  }))
+  const categoryOptions: MultiSelectOption[] = categories.map(c => ({
+    value: c.id,
+    label: c.name
+  }))
+  const userOptions: MultiSelectOption[] = users.map(u => ({
+    value: u.id,
+    label: u.email
+  }))
+  const brandOptions: MultiSelectOption[] = brands.map(b => ({
+    value: b,
+    label: b
+  }))
+
+  const stateOptions: MultiSelectOption[] = brazilStates.map(s => ({
+    value: s,
+    label: s
+  }))
 
   // Campos dinâmicos
   function renderExtraFields() {
@@ -144,20 +274,20 @@ export default function PromotionStep2({ data, setData, onBack, onNext }: Props)
           type="checkbox"
           checked={payload.firstOrder || false}
           onChange={() => setPayload((p: any) => ({ ...p, firstOrder: !p.firstOrder }))}
+          className='text-black'
         /> Primeira compra?</label>
 
       case 'CART_ITEM_COUNT':
         return <input type="number" placeholder="Qtd"
           value={payload.qty || ''}
           onChange={e => setPayload((p: any) => ({ ...p, qty: Number(e.target.value) }))}
-          className="border p-1 rounded w-full" />
+          className="border p-1 rounded w-full text-black" />
 
       case 'UNIQUE_VARIANT_COUNT':
         return <>
-          <button type="button" className="underline" onClick={() => {
-            // opcional: modal ou dropdown
+          <button type="button" className="underline text-foreground" onClick={() => {
           }}>Adicionar Produto(s) Variante(s)</button>
-          <div className="text-sm text-gray-600 mb-2">
+          <div className="text-sm text-foreground mb-2">
             Se vazio, considera todas as variantes.
           </div>
           {variants.map(v => (
@@ -175,7 +305,7 @@ export default function PromotionStep2({ data, setData, onBack, onNext }: Props)
           <input type="number" placeholder="Qtd mín."
             value={payload.qty || ''}
             onChange={e => setPayload((p: any) => ({ ...p, qty: Number(e.target.value) }))}
-            className="border p-1 rounded w-full mt-2" />
+            className="border p-1 rounded w-full mt-2 text-black" />
         </>
 
       case 'ZIP_CODE':
@@ -183,64 +313,88 @@ export default function PromotionStep2({ data, setData, onBack, onNext }: Props)
           <input type="text" placeholder="CEP Inicial"
             value={payload.zipFrom || ''}
             onChange={e => setPayload((p: any) => ({ ...p, zipFrom: e.target.value }))}
-            className="border p-1 rounded flex-1" />
+            className="border p-1 rounded flex-1 text-black" />
           <input type="text" placeholder="CEP Final"
             value={payload.zipTo || ''}
             onChange={e => setPayload((p: any) => ({ ...p, zipTo: e.target.value }))}
-            className="border p-1 rounded flex-1" />
+            className="border p-1 rounded flex-1 text-black" />
         </div>
 
       case 'PRODUCT_CODE':
-        return <select multiple className="border p-1 rounded w-full h-24"
-          value={payload.productIds || []}
-          onChange={e => setPayload((p: any) => ({ ...p, productIds: Array.from(e.target.selectedOptions, o => o.value) }))}
-        >{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+        return <MultiSelect
+          label="Selecione Produtos"
+          options={productOptions}
+          selected={payload.productIds || []}
+          onChange={arr =>
+            setPayload((p: any) => ({ ...p, productIds: arr }))
+          }
+        />
 
       case 'VARIANT_CODE':
-        return <select multiple className="border p-1 rounded w-full h-24"
-          value={payload.variantIds || []}
-          onChange={e => setPayload((p: any) => ({ ...p, variantIds: Array.from(e.target.selectedOptions, o => o.value) }))}
-        >{variants.map(v => <option key={v.id} value={v.id}>{v.sku}</option>)}</select>
+        return <MultiSelect
+          label="Selecione Variantes"
+          options={variantOptions}
+          selected={payload.variantIds || []}
+          onChange={arr =>
+            setPayload((p: any) => ({ ...p, variantIds: arr }))
+          }
+        />
 
       case 'STATE':
-        return <select multiple className="border p-1 rounded w-full h-24"
-          value={payload.states || []}
-          onChange={e => setPayload((p: any) => ({ ...p, states: Array.from(e.target.selectedOptions, o => o.value) }))}
-        >{brazilStates.map(s => <option key={s} value={s}>{s}</option>)}</select>
+        return <MultiSelect
+          label="Selecione Estados"
+          options={stateOptions}
+          selected={payload.states || []}
+          onChange={arr =>
+            setPayload((p: any) => ({ ...p, states: arr }))
+          }
+        />
 
       case 'CATEGORY':
-        return <select multiple className="border p-1 rounded w-full h-24"
-          value={payload.categoryIds || []}
-          onChange={e => setPayload((p: any) => ({ ...p, categoryIds: Array.from(e.target.selectedOptions, o => o.value) }))}
-        >{categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+        return <MultiSelect
+          label="Selecione Categorias"
+          options={categoryOptions}
+          selected={payload.categoryIds || []}
+          onChange={arr =>
+            setPayload((p: any) => ({ ...p, categoryIds: arr }))
+          }
+        />
 
       case 'CATEGORY_ITEM_COUNT':
         return <>
-          <select multiple className="border p-1 rounded w-full h-24"
-            value={payload.categoryIds || []}
-            onChange={e => setPayload((p: any) => ({ ...p, categoryIds: Array.from(e.target.selectedOptions, o => o.value) }))}
-          >{categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+          <MultiSelect
+            label="Selecione Categorias"
+            options={categoryOptions}
+            selected={payload.categoryIds || []}
+            onChange={arr =>
+              setPayload((p: any) => ({ ...p, categoryIds: arr }))
+            }
+          />
           <input type="number" placeholder="Qtd"
             value={payload.qty || ''}
             onChange={e => setPayload((p: any) => ({ ...p, qty: Number(e.target.value) }))}
-            className="border p-1 rounded w-full mt-2" />
+            className="border p-1 rounded w-full mt-2 text-black" />
         </>
 
       case 'CATEGORY_VALUE':
         return <>
-          <select multiple className="border p-1 rounded w-full h-24"
-            value={payload.categoryIds || []}
-            onChange={e => setPayload((p: any) => ({ ...p, categoryIds: Array.from(e.target.selectedOptions, o => o.value) }))}
-          >{categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+          <MultiSelect
+            label="Selecione Categorias"
+            options={categoryOptions}
+            selected={payload.categoryIds || []}
+            onChange={arr =>
+              setPayload((p: any) => ({ ...p, categoryIds: arr }))
+            }
+          />
           <input type="number" placeholder="Valor"
             value={payload.qtyOrValue || ''}
             onChange={e => setPayload((p: any) => ({ ...p, qtyOrValue: Number(e.target.value) }))}
-            className="border p-1 rounded w-full mt-2" />
+            className="border p-1 rounded w-full mt-2 text-black" />
         </>
 
       case 'BRAND_VALUE':
         return <>
-          <button type="button" className="underline">Adicionar Marca(s)</button>
+          <button type="button" className="underline text-black">Adicionar Marca(s)</button>
           {brands.map(b => (
             <label key={b} className="block">
               <input type="checkbox"
@@ -256,53 +410,63 @@ export default function PromotionStep2({ data, setData, onBack, onNext }: Props)
           <input type="number" placeholder="Valor"
             value={payload.brandValue || ''}
             onChange={e => setPayload((p: any) => ({ ...p, brandValue: Number(e.target.value) }))}
-            className="border p-1 rounded w-full mt-2" />
+            className="border p-1 rounded w-full mt-2 text-black" />
         </>
 
       case 'VARIANT_ITEM_COUNT':
         return <>
-          <select multiple className="border p-1 rounded w-full h-24"
-            value={payload.variantIds || []}
-            onChange={e => setPayload((p: any) => ({ ...p, variantIds: Array.from(e.target.selectedOptions, o => o.value) }))}
-          >{variants.map(v => <option key={v.id} value={v.id}>{v.sku}</option>)}</select>
+          <MultiSelect
+            label="Selecione Variantes"
+            options={variantOptions}
+            selected={payload.variantIds || []}
+            onChange={arr =>
+              setPayload((p: any) => ({ ...p, variantIds: arr }))
+            }
+          />
           <input type="number" placeholder="Qtd"
             value={payload.qty || ''}
             onChange={e => setPayload((p: any) => ({ ...p, qty: Number(e.target.value) }))}
-            className="border p-1 rounded w-full mt-2" />
+            className="border p-1 rounded w-full mt-2 text-black" />
         </>
 
       case 'PRODUCT_ITEM_COUNT':
         return <>
-          <select multiple className="border p-1 rounded w-full h-24"
-            value={payload.productIds || []}
-            onChange={e => setPayload((p: any) => ({ ...p, productIds: Array.from(e.target.selectedOptions, o => o.value) }))}
-          >{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+          <MultiSelect
+            label="Selecione Produtos"
+            options={productOptions}
+            selected={payload.productIds || []}
+            onChange={arr =>
+              setPayload((p: any) => ({ ...p, productIds: arr }))
+            }
+          />
           <input type="number" placeholder="Qtd"
             value={payload.qty || ''}
             onChange={e => setPayload((p: any) => ({ ...p, qty: Number(e.target.value) }))}
-            className="border p-1 rounded w-full mt-2" />
+            className="border p-1 rounded w-full mt-2 text-black" />
         </>
 
       case 'PERSON_TYPE':
         return (
-          <select className="border p-1 rounded w-full"
+          <select className="border p-1 rounded w-full text-black"
             value={payload.personType || ''}
             onChange={e => setPayload((p: any) => ({ ...p, personType: e.target.value }))}
           >
-            <option value="">Selecione...</option>
-            <option value="FISICA">Física</option>
-            <option value="JURIDICA">Jurídica</option>
+            <option className='text-black' value="">Selecione...</option>
+            <option className='text-black' value="FISICA">Física</option>
+            <option className='text-black' value="JURIDICA">Jurídica</option>
           </select>
         )
 
       case 'USER':
         return (
-          <select multiple className="border p-1 rounded w-full h-24"
-            value={payload.userIds || []}
-            onChange={e => setPayload((p: any) => ({ ...p, userIds: Array.from(e.target.selectedOptions, o => o.value) }))}
-          >
-            {users.map(u => <option key={u.id} value={u.id}>{u.email}</option>)}
-          </select>
+          <MultiSelect
+            label="Selecione Usuários"
+            options={userOptions}
+            selected={payload.userIds || []}
+            onChange={arr =>
+              setPayload((p: any) => ({ ...p, userIds: arr }))
+            }
+          />
         )
 
       case 'SUBTOTAL_VALUE':
@@ -311,7 +475,7 @@ export default function PromotionStep2({ data, setData, onBack, onNext }: Props)
           <input type="number" placeholder="Valor"
             value={payload.amount || ''}
             onChange={e => setPayload((p: any) => ({ ...p, amount: Number(e.target.value) }))}
-            className="border p-1 rounded w-full" />
+            className="border p-1 rounded w-full text-black" />
         )
 
       default:
@@ -374,22 +538,21 @@ export default function PromotionStep2({ data, setData, onBack, onNext }: Props)
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Passo 2: Defina as Condições</h2>
 
-      {/* condições cadastradas */}
       <table className="w-full border-collapse">
         <thead>
           <tr className="bg-gray-100 border-b">
-            <th className="p-2 text-left">Condição</th>
-            <th className="p-2 text-left">Lógica</th>
-            <th className="p-2 text-left">Detalhes</th>
+            <th className="p-2 text-left text-black">Condição</th>
+            <th className="p-2 text-left text-black">Lógica</th>
+            <th className="p-2 text-left text-black">Detalhes</th>
             <th className="p-2"></th>
           </tr>
         </thead>
         <tbody>
           {data.conditions?.map((c: any, i: any) => (
-            <tr key={i} className="border-b hover:bg-gray-50">
-              <td className="p-2">{conditionOptions.find(o => o.value === c.type)?.label}</td>
-              <td className="p-2">{logicLabels[c.operator]}</td>
-              <td className="p-2">{formatCondition(c)}</td>
+            <tr key={i} className="border-b text-black">
+              <td className="p-2 text-foreground">{conditionOptions.find(o => o.value === c.type)?.label}</td>
+              <td className="p-2 text-foreground">{logicLabels[c.operator]}</td>
+              <td className="p-2 text-foreground">{formatCondition(c)}</td>
               <td className="p-2">
                 <button onClick={() => removeCondition(i)} className="text-red-600 hover:underline">
                   Remover
@@ -400,27 +563,75 @@ export default function PromotionStep2({ data, setData, onBack, onNext }: Props)
         </tbody>
       </table>
 
-      {/* formulário */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
         <div>
-          <label className="block mb-1">Condição*</label>
-          <select value={type} onChange={e => setType(e.target.value as ConditionKey)}
-            className="w-full border p-1 rounded"
-          >{conditionOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+          <label className="block mb-1 font-medium text-black">
+            Condição*
+          </label>
+          <Tooltip
+            content="Selecione a condição para a aplicação à Promoção. (Preenchimento Obrigatório)."
+            placement="top-start"
+            className="bg-white text-red-500 border border-gray-200 p-2"
+          >
+            <select
+              value={type}
+              onChange={e => setType(e.target.value as ConditionKey)}
+              className="w-full border p-2 rounded text-black"
+            >
+              {conditionOptions.map(o => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </Tooltip>
+
         </div>
         <div>
-          <label className="block mb-1">Lógica*</label>
-          <select value={operator} onChange={e => setOperator(e.target.value)}
-            className="w-full border p-1 rounded"
-          >{logicOptions.map(lo => <option key={lo} value={lo}>{logicLabels[lo]}</option>)}</select>
+          <label className="block mb-1 font-medium text-black">
+            Lógica*
+          </label>
+          <Tooltip
+            content="Selecione a lógica para a aplicar à Promoção. (Preenchimento Obrigatório)."
+            placement="top-start"
+            className="bg-white text-red-500 border border-gray-200 p-2"
+          >
+            <select
+              value={operator}
+              onChange={e => setOperator(e.target.value)}
+              className="w-full border p-2 rounded text-black"
+            >
+              {logicOptions.map(lo => (
+                <option key={lo} value={lo}>
+                  {logicLabels[lo]}
+                </option>
+              ))}
+            </select>
+          </Tooltip>
+
         </div>
         <div>{renderExtraFields()}</div>
       </div>
 
       <div className="flex justify-between">
-        <button onClick={onBack} className="px-4 py-2 border rounded">Voltar</button>
-        <button onClick={saveCondition} className="px-4 py-2 bg-blue-600 text-white rounded">Salvar Condição</button>
-        <button onClick={onNext} className="px-4 py-2 bg-green-600 text-white rounded">Próximo</button>
+        <button
+          onClick={onBack}
+          className="px-4 py-2 rounded bg-gray-200 text-black hover:bg-gray-300"
+        >
+          Voltar
+        </button>
+        <button
+          onClick={saveCondition}
+          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+        >
+          Salvar Condição
+        </button>
+        <button
+          onClick={onNext}
+          className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+        >
+          Próximo
+        </button>
       </div>
     </div>
   )

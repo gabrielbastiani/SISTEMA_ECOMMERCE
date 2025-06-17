@@ -56,7 +56,12 @@ export default function AddPromotion() {
                 form.append('totalCouponCount', String(data.totalCouponCount))
 
             // array de cupons
-            data.coupons?.forEach(c => form.append('coupons', c))
+            const validCoupons = (data.coupons ?? [])
+                .map(c => c.trim())
+                .filter(c => c.length > 0)
+
+            // 2) Append de cada cupom
+            validCoupons.forEach(c => form.append('coupons', c))
 
             form.append('active', String(data.active))
             form.append('cumulative', String(data.cumulative))
