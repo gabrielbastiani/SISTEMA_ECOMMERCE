@@ -85,7 +85,7 @@ export const MediaUploadComponent = ({
                                             className={`
                         absolute bottom-1 left-1 h-4 w-4 rounded-full border-2 
                         flex items-center justify-center transition-colors 
-                        ${isPrimary ? 'bg-primary border-primary' : 'bg-white border-gray-300'}
+                        ${isPrimary ? 'bg-orange-500 border-orange-500' : 'bg-white border-gray-300'}
                       `}
                                         >
                                             {/* Se for primary, deixamos o círculo preenchido */}

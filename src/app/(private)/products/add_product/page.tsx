@@ -39,7 +39,7 @@ export default function AddProductPage() {
 
   useEffect(() => {
     const api = setupAPIClientEcommerce()
-    api.get('/promotions').then(r => setPromotions(r.data)).catch(console.error)
+    api.get('/promotions/get').then(r => setPromotions(r.data.allow_promotions)).catch(console.error)
     api.get('/category/cms').then(r => setCategories(r.data.all_categories_disponivel)).catch(console.error)
     api.get('/get/products').then(r => setAllProducts(r.data.allow_products)).catch(console.error)
   }, [])

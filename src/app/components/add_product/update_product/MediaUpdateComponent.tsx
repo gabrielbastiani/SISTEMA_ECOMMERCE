@@ -12,19 +12,10 @@ type MediaUpdateProps = {
     label: string
     maxFiles?: number
     acceptedTypes?: Record<string, string[]>
-
-    // Imagens já salvas no servidor (cada uma tem id, url, altText)
     existingFiles: ImageRecord[]
-
-    // “Novos” arquivos que o usuário acabou de selecionar (File objects)
     newFiles: File[]
-
-    // O ID (string) da imagem existente atualmente marcada como “isPrimary”
     primaryId: string
-
-    // Callback para quando o usuário clicar no círculo de uma imagem existente:
     onSetPrimary: (imageId: string) => void
-
     onAddNew: (files: File[]) => void
     onRemoveExisting: (id: string) => void
     onRemoveNew: (index: number) => void
@@ -50,7 +41,7 @@ export const MediaUpdateComponent: React.FC<MediaUpdateProps> = ({
 
     return (
         <div className="space-y-2">
-            <label className="block text-sm font-medium text-black">{label}</label>
+            <label className="block text-sm font-medium text-foreground">{label}</label>
 
             {/* Dropzone */}
             <div
@@ -99,7 +90,7 @@ export const MediaUpdateComponent: React.FC<MediaUpdateProps> = ({
                                         className={`
                       absolute bottom-1 left-1 h-4 w-4 rounded-full border-2 
                       flex items-center justify-center transition-colors 
-                      ${isPrimary ? 'bg-primary border-primary' : 'bg-white border-gray-300'}
+                      ${isPrimary ? 'bg-orange-500 border-orange-bg-orange-500' : 'bg-white border-gray-300'}
                     `}
                                     >
                                         {isPrimary && <div className="h-2 w-2 rounded-full bg-white" />}

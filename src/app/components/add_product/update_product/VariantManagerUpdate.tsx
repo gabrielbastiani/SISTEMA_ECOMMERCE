@@ -28,24 +28,12 @@ interface VariantManagerUpdateProps {
     formData: ProductFormData
     onFormDataChange: (data: ProductFormData) => void
     promotions: PromotionOption[]
-
-    // Estado externo: TODOS os “novos” arquivos para cada variante
     variantFiles: Record<string, File[]>
     setVariantFiles: React.Dispatch<React.SetStateAction<Record<string, File[]>>>
-
-    // Estado externo: TODOS os “novos” arquivos para cada atributo de cada variante
     attributeFiles: Record<string, Record<number, File[]>>
-    setAttributeFiles: React.Dispatch<
-        React.SetStateAction<Record<string, Record<number, File[]>>>
-    >
-
-    // ─── NOVOS PROPS ────────────────────────────────────────────────────────────────
-
-    // Para cada variante (variantId), qual ID de imagem está marcada como principal
+    setAttributeFiles: React.Dispatch<React.SetStateAction<Record<string, Record<number, File[]>>>>
     primaryVariantImageIdByVariantId: Record<string, string>
     onSetPrimaryVariantImageId: (variantId: string, imageId: string) => void
-
-    // Para cada variante e cada attrIndex, qual ID de imagem de atributo está marcada como principal
     primaryAttributeImageIdByVariantAndAttrIdx: Record<string, Record<number, string>>
     onSetPrimaryAttributeImageId: (
         variantId: string,
@@ -352,11 +340,11 @@ export const VariantManagerUpdate: React.FC<VariantManagerUpdateProps> = ({
                                         copia[idx].existingImages =
                                             copia[idx].existingImages?.filter((img) => img.id !== id) || [];
                                         updateVariants(copia);
-       // Se tirou a imagem que era principal, reseta o estado de primary
-       if (primaryVariantImageIdByVariantId[variantId] === id) {
-         onSetPrimaryVariantImageId(variantId, '');
-       }
-     }}
+                                        // Se tirou a imagem que era principal, reseta o estado de primary
+                                        if (primaryVariantImageIdByVariantId[variantId] === id) {
+                                            onSetPrimaryVariantImageId(variantId, '');
+                                        }
+                                    }}
                                     onRemoveNew={(i) => {
                                         setVariantFiles((prev) => {
                                             const copy = { ...prev }

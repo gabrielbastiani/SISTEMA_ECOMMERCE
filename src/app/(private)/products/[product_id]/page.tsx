@@ -42,42 +42,27 @@ export default function UpdateProductPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [promotions, setPromotions] = useState<{ id: string; name: string }[]>([])
   const [products, setProducts] = useState<Array<{ id: string; name: string }>>([])
-
-  // Estados para novos arquivos de variante / atributo
   const [variantFiles, setVariantFiles] = useState<Record<string, File[]>>({})
   const [attributeFiles, setAttributeFiles] = useState<Record<string, Record<number, File[]>>>({})
-
-  // ─── NOVO: ID da imagem principal do produto (existente) ──────────
   const [primaryMainImageId, setPrimaryMainImageId] = useState<string>("")
-
-  console.log(primaryMainImageId)
-
-  // ─── NOVO: para cada variante (variantId), qual o imageId marcado como principal ───────
-  const [primaryVariantImageIdByVariantId, setPrimaryVariantImageIdByVariantId] = useState<
-    Record<string, string>
-  >({})
-
-  // ─── NOVO: para cada variante e para cada índice de atributo, qual imageId do atributo principal ───
-  const [primaryAttributeImageIdByVariantAndAttrIdx, setPrimaryAttributeImageIdByVariantAndAttrIdx] =
-    useState<Record<string, Record<number, string>>>({})
-
+  const [primaryVariantImageIdByVariantId, setPrimaryVariantImageIdByVariantId] = useState<Record<string, string>>({})
+  const [primaryAttributeImageIdByVariantAndAttrIdx, setPrimaryAttributeImageIdByVariantAndAttrIdx] = useState<Record<string, Record<number, string>>>({})
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     async function load() {
       try {
         const api = setupAPIClientEcommerce()
-        // 1) Busca categorias, lista de produtos, promoções e dados completos do produto
         const [catRes, prodRes, promoRes, dataRes] = await Promise.all([
           api.get('/category/cms'),
           api.get('/get/products'),
-          api.get('/promotions'),
+          api.get('/promotions/get'),
           api.get(`/product/cms/get?product_id=${product_id}`)
         ])
 
         setCategories(catRes.data.all_categories_disponivel)
         setPromotions(
-          promoRes.data.map((p: any) => ({
+          promoRes.data.allow_promotions.map((p: any) => ({
             id: String(p.id),
             name: p.name
           }))
@@ -98,27 +83,13 @@ export default function UpdateProductPage() {
           return match ? match[1] : null
         }
 
-        //
-        // ─── TRATAMENTO DAS IMAGENS DE NÍVEL PRODUTO ──────────────────────
-        //
-        // rawImages vem do back‑end incluindo campo `isPrimary: boolean`
-        const rawImages: Array<{ id: string; url: string; altText: string; isPrimary: boolean }> =
-          p.images ?? []
-
-        // Encontrar qual ID está marcado como isPrimary
+        const rawImages: Array<{ id: string; url: string; altText: string; isPrimary: boolean }> = p.images ?? []
         const initialPrimaryMainImage = rawImages.find((img) => img.isPrimary)?.id ?? ""
-
-        // ─── TRATAMENTO DAS VARIANTES ───────────────────────────────────────
         const rawVariants: Array<any> = p.variants ?? []
-        // Para popular primaryVariantImageIdByVariantId e primaryAttributeImageIdByVariantAndAttrIdx
         const primVarMap: Record<string, string> = {}
         const primAttrMap: Record<string, Record<number, string>> = {}
-
-        // Monta formData.variants a partir de rawVariants
         const formVariants: VariantFormData[] = rawVariants.map((v: any) => {
           const variantId: string = v.id
-
-          // todas as imagens de variante, com isPrimary
           const existingVarImgs: Array<{
             id: string
             url: string
@@ -126,7 +97,6 @@ export default function UpdateProductPage() {
             isPrimary: boolean
           }> = v.productVariantImage ?? []
 
-          // Descobre qual imagem de variante é primary
           const primaryVar = existingVarImgs.find((img) => img.isPrimary)
           if (primaryVar) {
             primVarMap[variantId] = primaryVar.id
@@ -134,7 +104,6 @@ export default function UpdateProductPage() {
             primVarMap[variantId] = ""
           }
 
-          // agora cada atributo:
           const attributesRaw: Array<any> = v.variantAttribute ?? []
           primAttrMap[variantId] = {}
           attributesRaw.forEach((a: any, idx: number) => {
@@ -144,10 +113,8 @@ export default function UpdateProductPage() {
             primAttrMap[variantId][idx] = primaryAttrImg ? primaryAttrImg.id : ""
           })
 
-          // Mapeia os vídeos da variante
           const rawVideosVariant: Array<{ url: string }> = v.productVariantVideo ?? []
 
-          // Montagem de VariantFormData
           return {
             id: v.id,
             sku: v.sku,
@@ -159,7 +126,6 @@ export default function UpdateProductPage() {
             ean: v.ean,
             mainPromotion_id: v.mainPromotion_id,
 
-            // Imagens existentes da variante (sem os arquivos File, só IDs e URLs)
             existingImages: existingVarImgs.map(
               (i: any) =>
               ({
@@ -169,10 +135,8 @@ export default function UpdateProductPage() {
               } as ImageRecord)
             ),
 
-            // Placeholder para novos arquivos File
             newImages: [] as File[],
 
-            // Atributos
             attributes: attributesRaw.map((a: any) => {
               const imagesOfAttr: Array<any> = a.variantAttributeImage ?? []
               return {
@@ -223,9 +187,6 @@ export default function UpdateProductPage() {
           } as VariantFormData
         })
 
-        //
-        // ─── POPULAÇÃO DOS STATES ─────────────────────────────────────────────
-        //
         setFormData({
           ...initialFormData,
           id: p.id,
@@ -330,9 +291,6 @@ export default function UpdateProductPage() {
     load()
   }, [product_id])
 
-  //
-  // ─── handleSubmit (envio da atualização) ─────────────────────────────────────────
-  //
   const handleSubmit = async () => {
     setLoading(true)
     try {
@@ -395,32 +353,22 @@ export default function UpdateProductPage() {
         productPayload.videoLinks = formData.videos.map((v) => v.url)
       }
 
-      //
-      // ─── IMAGENS DO PRODUTO ──────────────────────────────────────────────────────
-      //
-      // existingImages: IDs a manter
       productPayload.existingImages = formData.existingImages
         ? formData.existingImages.map((img) => img.id)
         : []
 
-      // primaryMainImageId: adiciona ao payload
       if (primaryMainImageId) {
         productPayload.primaryMainImageId = primaryMainImageId
       }
 
-      // newImages (nomes) para o serviço criar
       if (formData.newImages && formData.newImages.length > 0) {
         productPayload.newImages = formData.newImages.map((file) => file.name)
       }
 
-      // Relações
       if (formData.relations && formData.relations.length > 0) {
         productPayload.relations = formData.relations
       }
 
-      //
-      // ─── VARIANTES, IMAGENS DE VARIANTE E ATRIBUTOS ──────────────────────────────
-      //
       const cleanVariants: Array<Record<string, any>> = (formData.variants || []).map((v) => {
         const objVar: Record<string, any> = {
           id: v.id,
@@ -433,25 +381,20 @@ export default function UpdateProductPage() {
           allowBackorders: v.allowBackorders,
           mainPromotion_id: v.mainPromotion_id,
 
-          // existingImages de variante
           existingImages: (v.existingImages || []).map((img) => img.id),
 
-          // primaryImageId desta variante
           primaryImageId: primaryVariantImageIdByVariantId[v.id] || ""
         }
 
-        // Se houver novos arquivos de variante
         const arquivosDaVariante = variantFiles[v.id] || []
         if (arquivosDaVariante.length > 0) {
           objVar.newImages = arquivosDaVariante.map((file) => file.name)
         }
 
-        // Vídeos da variante
         if (v.videos && v.videos.length > 0) {
           objVar.videos = v.videos.map((vl) => vl.url)
         }
 
-        // Atributos da variante
         objVar.attributes = (v.attributes || []).map((at, ai) => {
           const objAttr: Record<string, any> = {
             id: at.id,
@@ -459,13 +402,8 @@ export default function UpdateProductPage() {
             value: at.value,
             status: at.status,
             existingImages: (at.existingImages || []).map((img) => img.id),
-
-            // primaryAttributeImageId para este atributo
-            primaryAttributeImageId:
-              (primaryAttributeImageIdByVariantAndAttrIdx[v.id] || {})[ai] || ""
+            primaryAttributeImageId: (primaryAttributeImageIdByVariantAndAttrIdx[v.id] || {})[ai] || ""
           }
-
-          // Se houver novos arquivos de atributo para este índice
           const arquivosDoAtributo = attributeFiles[v.id]?.[ai] || []
           if (arquivosDoAtributo.length > 0) {
             objAttr.newImages = arquivosDoAtributo.map((file) => file.name)
@@ -481,31 +419,22 @@ export default function UpdateProductPage() {
         productPayload.variants = cleanVariants
       }
 
-      //
-      // ─── MONTAÇÃO DO FormData PARA ENVIO ─────────────────────────────────────────────
-      //
       const formPayload = new FormData()
       formPayload.append('payload', JSON.stringify(productPayload))
 
-        // Anexa arquivos novos de nível produto
         ; (formData.newImages || []).forEach((file) => {
-          // Nome do field: “productImage_<nome_do_arquivo>”
           formPayload.append(`productImage_${file.name}`, file)
         })
 
-      // Anexa arquivos novos de nível variante
       Object.entries(variantFiles).forEach(([variantId, arquivos]) => {
         arquivos.forEach((file) => {
-          // Fieldname: “variantImage_<variantId>_<nome_do_arquivo>”
           formPayload.append(`variantImage_${variantId}_${file.name}`, file)
         })
       })
 
-      // Anexa arquivos novos de nível atributo
       Object.entries(attributeFiles).forEach(([variantId, mapaDeAttrs]) => {
         Object.entries(mapaDeAttrs).forEach(([attrIdxStr, arquivos]) => {
           arquivos.forEach((file) => {
-            // Fieldname: “attributeImage_<variantId>_<attrIdx>_<nome_do_arquivo>”
             formPayload.append(
               `attributeImage_${variantId}_${attrIdxStr}_${file.name}`,
               file
@@ -514,9 +443,6 @@ export default function UpdateProductPage() {
         })
       })
 
-      //
-      // ─── ENVIO AO BACK‑END ─────────────────────────────────────────────────────────
-      //
       const api = setupAPIClientEcommerce()
       await api.put('/product/update', formPayload)
 
@@ -530,29 +456,20 @@ export default function UpdateProductPage() {
     }
   }
 
-  //
-  // ─── RENDERIZAÇÃO ─────────────────────────────────────────────────────────────────
-  //
   return (
     <SidebarAndHeader>
       <Section>
         <TitlePage title="ATUALIZAR PRODUTO" />
-        <Tabs variant="bordered" color="primary" className="my-tabs bg-white rounded-lg shadow-sm">
+        <Tabs variant="bordered" color="danger" className="my-tabs bg-white rounded-lg shadow-sm">
           <Tab key="info" title="Informações Básicas">
             <BasicProductInfoUpdate
               formData={formData}
               onFormDataChange={setFormData}
               promotions={promotions}
-
-              // ─── EXISTENTES E NOVAS IMAGENS ─────────────────────────────────────────────────
               existingImages={formData.existingImages ?? []}
               newImages={formData.newImages ?? []}
-
-              // ─── QUAL IMAGEM ESTÁ MARCADA COMO “PRINCIPAL” ────────────────────────────────
               primaryImageId={primaryMainImageId}
               onSetPrimaryImageId={(id: string) => setPrimaryMainImageId(id)}
-
-              // ─── CALLBACKS PARA ADICIONAR / REMOVER IMAGENS ───────────────────────────────
               onAddNewImage={(files: File[]) =>
                 setFormData((prev) => ({
                   ...prev,
@@ -616,8 +533,6 @@ export default function UpdateProductPage() {
               setVariantFiles={setVariantFiles}
               attributeFiles={attributeFiles}
               setAttributeFiles={setAttributeFiles}
-
-              // ─── NOVOS PROPS PARA IMAGENS DE VARIANTE ──────────
               primaryVariantImageIdByVariantId={primaryVariantImageIdByVariantId}
               onSetPrimaryVariantImageId={(variantId: string, imageId: string) =>
                 setPrimaryVariantImageIdByVariantId((prev) => ({
@@ -625,8 +540,6 @@ export default function UpdateProductPage() {
                   [variantId]: imageId
                 }))
               }
-
-              // ─── NOVOS PROPS PARA IMAGENS DE ATRIBUTO ──────────
               primaryAttributeImageIdByVariantAndAttrIdx={
                 primaryAttributeImageIdByVariantAndAttrIdx
               }
