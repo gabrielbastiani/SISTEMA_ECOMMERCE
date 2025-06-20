@@ -277,10 +277,18 @@ export interface CreatePromotionDto {
 }
 
 export interface BadgeWithFile {
+    id: any;
     title: string
     imageUrl: string
     file: File
 }
 export type PromotionWizardDto = Omit<CreatePromotionDto, 'badges'> & {
     badges: BadgeWithFile[]
+}
+
+export interface BadgeWizardDto {
+    id?: string
+    title: string
+    imageUrl?: string    // URL já salva
+    file?: File         // caso usuário selecione um novo arquivo
 }

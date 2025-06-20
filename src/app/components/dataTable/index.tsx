@@ -1,7 +1,7 @@
 import { JSX, Suspense } from "react";
 import { useContext, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { setupAPIClientEcommerce } from "@/app/services/apiEcommerce"; 
+import { setupAPIClientEcommerce } from "@/app/services/apiEcommerce";
 import { toast } from "react-toastify";
 import ConfirmDeleteModal from "./confirmDeleteModal";
 import TimeFilterModal from "./timeFilterModal";
@@ -10,7 +10,7 @@ import OrderSelect from "./orderSelect";
 import PaginationControls from "./paginationControls";
 import ExportDataFunctions from "./exportDataFunctions";
 import BulkDeleteData from "./bulkDeleteData";
-import { AuthContext } from "@/app/contexts/AuthContext"; 
+import { AuthContext } from "@/app/contexts/AuthContext";
 
 interface Column<T> {
     key: keyof T;
@@ -56,7 +56,8 @@ function DataTable<T extends {
     name?: string;
     status?: string;
     role?: string;
-    created_at?: string | number | Date; id: string
+    created_at?: string | number | Date;
+    id: string
 }>({
     timeFilterButton,
     generate_excel_delete,
@@ -205,6 +206,8 @@ function DataTable<T extends {
     }
 
     function handleSelectAll() {
+        if (!data) return;
+
         if (selectdData.length === data.length) {
             setSelectdData([]);
         } else {
@@ -292,7 +295,7 @@ function DataTable<T extends {
                         }
                         {active_export_data ? (
                             <ExportDataFunctions
-                                data={data}
+                                data={data || []}
                                 table_data={table_data}
                                 name_file_export={name_file_export}
                                 availableColumns={availableColumns}
@@ -320,7 +323,7 @@ function DataTable<T extends {
                                         <input
                                             type="checkbox"
                                             onChange={handleSelectAll}
-                                            checked={selectdData.length === data.length}
+                                            checked={selectdData.length === data?.length}
                                         />
                                     ) :
                                         null
@@ -334,7 +337,7 @@ function DataTable<T extends {
                             </tr>
                         </thead>
                         <tbody>
-                            {data.map((item) => (
+                            {data?.map((item) => (
                                 <tr key={item.id} className="border-b">
                                     {checkbox_delete ? (
                                         <td className="p-3">

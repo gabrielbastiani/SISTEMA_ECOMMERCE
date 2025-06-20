@@ -2,7 +2,7 @@
 
 import { Dispatch, SetStateAction, useState, ChangeEvent } from 'react'
 import { Button, Tooltip } from '@nextui-org/react'
-import { CreatePromotionDto, PromotionWizardDto } from 'Types/types'
+import { PromotionWizardDto } from 'Types/types'
 
 // Tipo local que estende o BadgeInput original com o File
 export type BadgeWithFile = {
