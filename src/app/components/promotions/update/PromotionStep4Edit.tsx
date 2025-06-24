@@ -21,15 +21,10 @@ export default function PromotionStep4Edit({
     onNext,
     onSelectDisplay
 }: Props) {
-    // lista atual em memória
     const [list, setList] = useState<DisplayInput[]>([...initialDisplays])
-
-    // form
     const [title, setTitle] = useState('')
     const [type, setType] = useState<DisplayType>(DisplayType.SPOT)
     const [content, setContent] = useState('')
-
-    // índice selecionado
     const [editingIdx, setEditingIdx] = useState<number>(-1)
 
     function handleSelectEdit(idx: number) {
@@ -68,7 +63,6 @@ export default function PromotionStep4Edit({
             return copy
         })
 
-        // limpa form e sai do modo edição
         setTitle('')
         setContent('')
         setEditingIdx(-1)

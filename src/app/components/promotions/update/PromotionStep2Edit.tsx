@@ -1,10 +1,9 @@
 'use client'
+
 import React, { useState, useEffect } from 'react'
 import { toast } from 'react-toastify'
 import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce'
 import { ConditionInput } from 'Types/types'
-
-
 
 const conditionOptions = [
     { value: 'FIRST_ORDER', label: 'Se 1ª compra' },
@@ -167,25 +166,20 @@ export default function PromotionStep2Edit({
     onBack,
     onNext
 }: Props) {
+
     const api = setupAPIClientEcommerce()
 
-    // **local state para toda a lista de condições**
     const [conds, setConds] = useState<ConditionInput[]>([...initialConditions])
-
-    // estado para criar nova condição
     const [type, setType] = useState<ConditionKey>(conditionOptions[0].value)
     const [operator, setOperator] = useState<string>(logicMap[type][0])
     const [payload, setPayload] = useState<any>({})
     const [logicOptions, setLogicOptions] = useState<string[]>(logicMap[type])
-
-    // dados auxiliares (produtos, categorias, etc)
     const [products, setProducts] = useState<{ id: string; name: string }[]>([])
     const [variants, setVariants] = useState<{ id: string; sku: string }[]>([])
     const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
     const [users, setUsers] = useState<{ id: string; email: string }[]>([])
     const [brands, setBrands] = useState<string[]>([])
 
-    // ao trocar type, reseta operador e payload
     useEffect(() => {
         const opts = logicMap[type] || []
         setLogicOptions(opts)
@@ -193,16 +187,13 @@ export default function PromotionStep2Edit({
         setPayload({})
     }, [type])
 
-    // carrega seleções externas só no mount
     useEffect(() => {
         api.get('/get/products')
     .then(r => {
-      // supondo que r.data.allow_products seja um array de { id, name, brand, ... }
       const prods = r.data.allow_products as Array<{
           brand: any; id: string; name: string 
 }>
       setProducts(prods)
-      // preencher brands também, como antes
       const rawBrands: any[] = prods.map(p => p.brand)
       const onlyStrings = rawBrands.filter((b): b is string => typeof b === 'string')
       setBrands(Array.from(new Set(onlyStrings)))
@@ -235,10 +226,6 @@ export default function PromotionStep2Edit({
         value: u.id,
         label: u.email
     }))
-    const brandOptions: MultiSelectOption[] = brands.map(b => ({
-        value: b,
-        label: b
-    }))
 
     const stateOptions: MultiSelectOption[] = brazilStates.map(s => ({
         value: s,
@@ -248,7 +235,6 @@ export default function PromotionStep2Edit({
     function saveSingle() {
         const c: ConditionInput = { type, operator, value: payload }
         setConds(cs => [...cs, c])
-        // reset para próxima
         setType(conditionOptions[0].value)
     }
 
@@ -256,7 +242,6 @@ export default function PromotionStep2Edit({
         setConds(cs => cs.filter((_, i) => i !== idx))
     }
 
-    // renderização dos campos extras (mantenha o switch/case do seu código)
     function renderExtra() {
         switch (type) {
             case 'FIRST_ORDER':
@@ -473,7 +458,6 @@ export default function PromotionStep2Edit({
         }
     }
 
-    // função para formatar pra exibição no preview da tabela
     function fmt(c: ConditionInput): string {
         const v = c.value as any
         switch (c.type) {

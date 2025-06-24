@@ -12,7 +12,7 @@ import { usePromotionForm } from '@/hooks/usePromotionForm'
 import PromotionStep2Edit from '@/app/components/promotions/update/PromotionStep2Edit'
 import PromotionStep3Edit from '@/app/components/promotions/update/PromotionStep3Edit'
 import PromotionStep4Edit from '@/app/components/promotions/update/PromotionStep4Edit'
-import PromotionStep5Edit, { BadgeWithFile } from '@/app/components/promotions/update/PromotionStep5Edit'
+import PromotionStep5Edit from '@/app/components/promotions/update/PromotionStep5Edit'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!
 
@@ -134,18 +134,13 @@ export default function UpdatePromotionPage() {
                 previewUrl: `${API_URL}/files/${b.imageUrl}`
               }))}
               onSave={async badges => {
-                // 1) Prepara FormData
                 const form = new FormData()
                 form.append('badges', JSON.stringify(
                   badges.map(b => ({ title: b.title, imageUrl: b.imageUrl }))
                 ))
                 badges.forEach(b => b.file && form.append('badgeFiles', b.file))
-
-                // 2) Chama API e recebe o objeto completo atualizado
                 const resp = await api.put(`/promotions/${promotion_id}`, form)
                 const updated = resp.data as { badges: { title: string; imageUrl: string }[] }
-
-                // 3) Atualiza apenas o estado global de data.badges
                 setData((d: any) => ({ ...d, badges: updated.badges }))
 
                 toast.success('Passo 5 salvo com sucesso!')

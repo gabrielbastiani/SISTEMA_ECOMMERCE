@@ -3,13 +3,11 @@
 import Image from 'next/image'
 import React, { useState, ChangeEvent, useEffect } from 'react'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL!
-
 export type BadgeWithFile = {
     title: string
-    imageUrl: string        // filename (original) ou existente
-    previewUrl: string      // URL para preview
-    file?: File             // só para novos uploads ou troca
+    imageUrl: string
+    previewUrl: string
+    file?: File
 }
 
 interface Props {
@@ -25,7 +23,6 @@ export default function PromotionStep5Edit({
     onBack,
     onFinish
 }: Props) {
-    // 1) inicializa **uma vez** a partir das props
     const [badges, setBadges] = useState<BadgeWithFile[]>(() =>
         initialBadges.map(b => ({ ...b, file: undefined }))
     )
@@ -34,7 +31,6 @@ export default function PromotionStep5Edit({
     const [preview, setPreview] = useState('')
     const [editingIdx, setEditingIdx] = useState<number>(-1)
 
-    // limpa só no primeiro render
     useEffect(() => { clearForm() }, [])
 
     function onFileChange(e: ChangeEvent<HTMLInputElement>) {
@@ -58,7 +54,6 @@ export default function PromotionStep5Edit({
 
         const newItem: BadgeWithFile = {
             title: title.trim(),
-            // se é edição, mantém o filename antigo; se é novo, usa file.name
             imageUrl: editingIdx >= 0
                 ? badges[editingIdx].imageUrl
                 : (file?.name || ''),
@@ -91,7 +86,6 @@ export default function PromotionStep5Edit({
         if (editingIdx === idx) clearForm()
     }
 
-    // antes de salvar, aplica edição pendente
     async function handleSaveStep() {
         if (editingIdx >= 0) handleAddOrUpdate()
         await onSave(badges)

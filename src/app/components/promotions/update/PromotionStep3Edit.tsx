@@ -1,11 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { ActionInput, ActionType, PromotionWizardDto } from 'Types/types'
+import { ActionInput, ActionType } from 'Types/types'
 import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce'
 import { toast } from 'react-toastify'
 
-// --- MultiSelect genérico (igual ao create) ---
 interface MultiSelectOption {
     value: string
     label: string
@@ -84,7 +83,6 @@ function MultiSelect({ label, options, selected, onChange }: MultiSelectProps) {
     )
 }
 
-// --- Opções de ação e rótulos (mesmos que no create) ---
 const actionOptions: { value: ActionType; label: string }[] = [
     { value: ActionType.FIXED_VARIANT_DISCOUNT, label: 'Ganhe X R$ de desconto na unidade de cada produto variante Y' },
     { value: ActionType.FIXED_PRODUCT_DISCOUNT, label: 'Ganhe X R$ de desconto na unidade de cada produto Y' },
@@ -123,7 +121,6 @@ export default function PromotionStep3Edit({
 }: Props) {
     const api = setupAPIClientEcommerce()
 
-    // 1) Estado local das ações completas
     const defaultActionType = (initialActions.length > 0
         ? initialActions[0].type
         : actionOptions[0].value
@@ -132,14 +129,11 @@ export default function PromotionStep3Edit({
     const [actions, setActions] = useState<ActionInput[]>([...initialActions])
     const [type, setType] = useState<ActionType>(defaultActionType)
     const [params, setParams] = useState<any>({})
-
-    // dados auxiliares
     const [products, setProducts] = useState<{ id: string; name: string }[]>([])
     const [variants, setVariants] = useState<{ id: string; sku: string }[]>([])
     const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
     const [brands, setBrands] = useState<string[]>([])
 
-    // carrega tudo uma única vez
     useEffect(() => {
         async function loadAll() {
             try {
@@ -160,24 +154,20 @@ export default function PromotionStep3Edit({
         loadAll()
     }, [api])
 
-    // adiciona ação ao array e reseta form
     function saveAction() {
         setActions(a => [...a, { type, params }])
         setType(actionOptions[0].value)
         setParams({})
     }
 
-    // remove ação
     function removeAction(i: number) {
         setActions(a => a.filter((_, idx) => idx !== i))
     }
 
-    // mapeia para MultiSelectOption
     const productOpts = products.map(p => ({ value: p.id, label: p.name }))
     const variantOpts = variants.map(v => ({ value: v.id, label: v.sku }))
     const categoryOpts = categories.map(c => ({ value: c.id, label: c.name }))
 
-    // renderiza campos extras — copie seu switch/case aqui
     function renderFields() {
         switch (type) {
             case ActionType.FIXED_VARIANT_DISCOUNT:
@@ -479,7 +469,6 @@ export default function PromotionStep3Edit({
         }
     }
 
-    // formata para a tabela
     function formatDetails(a: ActionInput) {
         const p = a.params
         switch (a.type) {
