@@ -1,131 +1,34 @@
 'use client'
 
 import { useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { toast } from 'react-toastify'
 import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce'
 import { SidebarAndHeader } from '@/app/components/sidebarAndHeader'
 import { Section } from '@/app/components/section'
 import { TitlePage } from '@/app/components/section/titlePage'
-import PromotionStep2 from '@/app/components/promotions/PromotionStep2'
-import PromotionStep3 from '@/app/components/promotions/PromotionStep3'
-import PromotionStep4 from '@/app/components/promotions/PromotionStep4'
-import PromotionStep5 from '@/app/components/promotions/PromotionStep5'
+import PromotionStep1Edit from '@/app/components/promotions/update/PromotionStep1Edit'
 import { usePromotionForm } from '@/hooks/usePromotionForm'
-import PromotionStep1Edit, { Step1Values } from '@/app/components/promotions/update/PromotionStep1Edit'
+import PromotionStep2Edit from '@/app/components/promotions/update/PromotionStep2Edit'
+import PromotionStep3Edit from '@/app/components/promotions/update/PromotionStep3Edit'
+import PromotionStep4Edit from '@/app/components/promotions/update/PromotionStep4Edit'
+import PromotionStep5Edit, { BadgeWithFile } from '@/app/components/promotions/update/PromotionStep5Edit'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL!
 
 export default function UpdatePromotionPage() {
 
+  const router = useRouter();
+
   const { promotion_id } = useParams<{ promotion_id: string }>()
   const api = setupAPIClientEcommerce()
-
-  const {
-    data,
-    setData,
-    loading,
-  } = usePromotionForm(promotion_id)
-
+  const { data, setData, loading } = usePromotionForm(promotion_id)
   const [step, setStep] = useState(1)
-
-  const handleSaveStep1 = async (vals: Step1Values) => {
-    try {
-      const form = new FormData()
-      Object.entries(vals).forEach(([k, v]) => {
-        if (v != null) form.append(k, String(v))
-      })
-      // cupons repetido:
-      vals.coupons.forEach(c => form.append('coupons', c))
-      // NÃO setar headers, axios cuida do multipart boundary
-      await api.put(`/promotions/${promotion_id}`, form)
-      toast.success('Passo 1 salvo com sucesso!')
-      // atualiza estado pai para manter wizard consistente
-      setData(d => ({
-        ...d,
-        name: vals.name,
-        description: vals.description,
-        startDate: new Date(vals.startDate),
-        endDate: new Date(vals.endDate),
-        hasCoupon: vals.hasCoupon,
-        multipleCoupons: vals.multipleCoupons,
-        reuseSameCoupon: vals.reuseSameCoupon,
-        perUserCouponLimit: vals.perUserCouponLimit,
-        totalCouponCount: vals.totalCouponCount,
-        coupons: vals.coupons,
-        active: d.active,
-        cumulative: d.cumulative,
-        priority: vals.priority
-      }))
-    } catch (err) {
-      console.error(err)
-      toast.error('Falha ao salvar Passo 1.')
-    }
-  }
-
-  // quando concluir, envia PUT
-  const handleUpdate = async () => {
-    try {
-      const form = new FormData()
-
-      // campos simples
-      form.append('name', data.name)
-      if (data.description) form.append('description', data.description)
-      form.append('startDate', data.startDate.toISOString())
-      form.append('endDate', data.endDate.toISOString())
-
-      form.append('hasCoupon', String(data.hasCoupon))
-      form.append('multipleCoupons', String(data.multipleCoupons))
-      form.append('reuseSameCoupon', String(data.reuseSameCoupon))
-      if (data.perUserCouponLimit != null)
-        form.append('perUserCouponLimit', String(data.perUserCouponLimit))
-      if (data.totalCouponCount != null) {
-        form.append(
-          'totalCouponCount',
-          data.totalCouponCount.toString()
-        )
-      }
-
-      // cupons
-      (data.coupons || [])
-        .map((c: string) => c.trim())
-        .filter((c: string | any[]) => c.length > 0)
-        .forEach((c: string | Blob) => form.append('coupons', c))
-
-      form.append('active', String(data.active))
-      form.append('cumulative', String(data.cumulative))
-      form.append('priority', String(data.priority))
-
-      // relacionamentos JSON
-      form.append('conditions', JSON.stringify(data.conditions))
-      form.append('actions', JSON.stringify(data.actions))
-      form.append('displays', JSON.stringify(data.displays))
-
-      // badges — serializa ids e titles e depois anexa arquivos novos
-      // badgeInputs = [{ id?, title, file? }]
-      const badgeMeta = data.badges.map(b => ({
-        id: b.id,
-        title: b.title
-      }))
-      form.append('badges', JSON.stringify(badgeMeta))
-      data.badges.forEach(b => {
-        if (b.file) {
-          form.append('badgeFiles', b.file)
-        }
-      })
-
-      await api.put(`/promotions/${promotion_id}`, form)
-
-      toast.success('Promoção atualizada com sucesso!')
-
-    } catch (err) {
-      console.error(err)
-      toast.error('Erro ao atualizar promoção.')
-    }
-  }
 
   if (loading) {
     return (
       <SidebarAndHeader>
-        <section className="text-center py-20">Carregando...</section>
+        <section className="text-center py-20">Carregando…</section>
       </SidebarAndHeader>
     )
   }
@@ -137,55 +40,121 @@ export default function UpdatePromotionPage() {
         <div className="max-w-3xl mx-auto p-6 space-y-6">
           {step === 1 && (
             <PromotionStep1Edit
-              initialValues={{
+              initial={{
                 name: data.name,
                 description: data.description || '',
-                startDate: data.startDate.toISOString().slice(0, 16),
-                endDate: data.endDate.toISOString().slice(0, 16),
+                startDate: data.startDate,
+                endDate: data.endDate,
                 hasCoupon: data.hasCoupon,
                 multipleCoupons: data.multipleCoupons,
                 reuseSameCoupon: data.reuseSameCoupon,
+                coupons: data.coupons || [],
                 perUserCouponLimit: data.perUserCouponLimit,
                 totalCouponCount: data.totalCouponCount,
-                coupons: data.coupons || [],
                 active: data.active,
                 cumulative: data.cumulative,
                 priority: data.priority
               }}
-              onSaveStep1={handleSaveStep1}
+              onSave={async values => {
+                const form = new FormData()
+                form.append('name', values.name)
+                if (values.description) form.append('description', values.description)
+                form.append('startDate', values.startDate.toISOString())
+                form.append('endDate', values.endDate.toISOString())
+                form.append('hasCoupon', String(values.hasCoupon))
+                form.append('multipleCoupons', String(values.multipleCoupons))
+                form.append('reuseSameCoupon', String(values.reuseSameCoupon))
+                if (values.perUserCouponLimit != null)
+                  form.append('perUserCouponLimit', String(values.perUserCouponLimit))
+                if (values.totalCouponCount != null)
+                  form.append('totalCouponCount', String(values.totalCouponCount))
+                values.coupons.forEach(c => form.append('coupons', c))
+                form.append('active', String(values.active))
+                form.append('cumulative', String(values.cumulative))
+                form.append('priority', String(values.priority))
+
+                await api.put(`/promotions/${promotion_id}`, form)
+                setData(d => ({
+                  ...d,
+                  ...values
+                }))
+                toast.success('Passo 1 salvo com sucesso!')
+              }}
               onNext={() => setStep(2)}
             />
           )}
           {step === 2 && (
-            <PromotionStep2
-              data={data}
-              setData={setData}
-              onNext={() => setStep(3)}
+            <PromotionStep2Edit
+              initialConditions={data.conditions || []}
+              onSave={async conds => {
+                const form = new FormData()
+                form.append('conditions', JSON.stringify(conds))
+                await api.put(`/promotions/${promotion_id}`, form)
+                setData(d => ({ ...d, conditions: conds }))
+                toast.success('Passo 2 salvo!')
+              }}
               onBack={() => setStep(1)}
+              onNext={() => setStep(3)}
             />
           )}
           {step === 3 && (
-            <PromotionStep3
-              data={data}
-              setData={setData}
-              onNext={() => setStep(4)}
+            <PromotionStep3Edit
+              initialActions={data.actions || []}
+              onSave={async actions => {
+                const form = new FormData()
+                form.append('conditions', JSON.stringify(data.conditions))
+                form.append('actions', JSON.stringify(actions))
+                await api.put(`/promotions/${promotion_id}`, form)
+                toast.success('Passo 3 salvo!')
+                setData(d => ({ ...d, actions }))
+              }}
               onBack={() => setStep(2)}
+              onNext={() => setStep(4)}
             />
           )}
           {step === 4 && (
-            <PromotionStep4
-              data={data}
-              setData={setData}
-              onNext={() => setStep(5)}
+            <PromotionStep4Edit
+              initialDisplays={data.displays || []}
+              onSave={async (displays) => {
+                const form = new FormData()
+                form.append('displays', JSON.stringify(displays))
+                await api.put(`/promotions/${promotion_id}`, form)
+                toast.success('Passo 4 salvo com sucesso!')
+                setData(d => ({ ...d, displays }))
+              }}
               onBack={() => setStep(3)}
+              onNext={() => setStep(5)}
             />
           )}
           {step === 5 && (
-            <PromotionStep5
-              data={data}
-              setData={setData}
+            <PromotionStep5Edit
+              initialBadges={data.badges.map(b => ({
+                title: b.title,
+                imageUrl: b.imageUrl,
+                previewUrl: `${API_URL}/files/${b.imageUrl}`
+              }))}
+              onSave={async badges => {
+                // 1) Prepara FormData
+                const form = new FormData()
+                form.append('badges', JSON.stringify(
+                  badges.map(b => ({ title: b.title, imageUrl: b.imageUrl }))
+                ))
+                badges.forEach(b => b.file && form.append('badgeFiles', b.file))
+
+                // 2) Chama API e recebe o objeto completo atualizado
+                const resp = await api.put(`/promotions/${promotion_id}`, form)
+                const updated = resp.data as { badges: { title: string; imageUrl: string }[] }
+
+                // 3) Atualiza apenas o estado global de data.badges
+                setData((d: any) => ({ ...d, badges: updated.badges }))
+
+                toast.success('Passo 5 salvo com sucesso!')
+              }}
               onBack={() => setStep(4)}
-              onFinish={handleUpdate}
+              onFinish={() => {
+                toast.success('Promoção atualizada com sucesso!')
+                router.push('/promotions/all_promotions')
+              }}
             />
           )}
         </div>

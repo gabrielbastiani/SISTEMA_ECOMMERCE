@@ -291,23 +291,16 @@ export default function PromotionStep1({ data, setData, onNext }: Props) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label className="block font-medium mb-1">Ativar Promoção?</label>
-                    <Tooltip
-                        content="Preencha se a promoção pode acumular com as demais já cadastradas. (Preenchimento Obrigatório)"
-                        placement="top-start"
-                        className="bg-white text-red-500 border border-gray-200 p-2"
+                    <select
+                        className="w-full border p-2 rounded text-black"
+                        value={data.active ? 'yes' : 'no'}
+                        onChange={e =>
+                            setData(d => ({ ...d, active: e.target.value === 'yes' }))
+                        }
                     >
-
-                        <select
-                            className="w-full border p-2 rounded text-black"
-                            value={data.active ? 'yes' : 'no'}
-                            onChange={e =>
-                                setData(d => ({ ...d, active: e.target.value === 'yes' }))
-                            }
-                        >
-                            <option value="yes">Sim</option>
-                            <option value="no">Não</option>
-                        </select>
-                    </Tooltip>
+                        <option value="yes">Sim</option>
+                        <option value="no">Não</option>
+                    </select>
                 </div>
                 <div>
                     <label className="block font-medium mb-1">Promoção Acumulativa?</label>

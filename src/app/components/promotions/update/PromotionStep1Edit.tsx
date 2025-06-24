@@ -1,94 +1,46 @@
 'use client'
-
-import React, {
-    FormEvent,
-    useState,
-    Dispatch,
-    SetStateAction
-} from 'react'
-import { Input, Checkbox, Button, Tooltip } from '@nextui-org/react'
-import { PromotionWizardDto } from 'Types/types'
+import { Tooltip } from '@nextui-org/react'
+import React, { FormEvent, useState } from 'react'
 
 export interface Step1Values {
     name: string
     description: string
-    startDate: string    // ISO sem fuso
-    endDate: string
+    startDate: Date
+    endDate: Date
     hasCoupon: boolean
     multipleCoupons: boolean
     reuseSameCoupon: boolean
+    coupons: string[]
     perUserCouponLimit?: number
     totalCouponCount?: number
-    coupons: string[]
     active: boolean
     cumulative: boolean
     priority: number
 }
 
 interface Props {
+    initial: Step1Values
+    onSave: (values: Step1Values) => Promise<void>
     onNext: () => void
-    onSaveStep1: (values: Step1Values) => Promise<void>
-    initialValues: Step1Values
 }
 
-export default function PromotionStep1Edit({
-    onNext,
-    onSaveStep1,
-    initialValues
-}: Props) {
-    // Estado local inicializado de initialValues
-    const [name, setName] = useState(initialValues.name)
-    const [description, setDescription] = useState(initialValues.description)
-    const [startDate, setStartDate] = useState(initialValues.startDate)
-    const [endDate, setEndDate] = useState(initialValues.endDate)
-    const [hasCoupon, setHasCoupon] = useState(initialValues.hasCoupon)
-    const [multipleCoupons, setMultipleCoupons] = useState(initialValues.multipleCoupons)
-    const [reuseSameCoupon, setReuseSameCoupon] = useState(initialValues.reuseSameCoupon)
-    const [perUserCouponLimit, setPerUserCouponLimit] = useState<string>(
-        initialValues.perUserCouponLimit != null ? String(initialValues.perUserCouponLimit) : ''
-    )
-    const [totalCouponCount, setTotalCouponCount] = useState<string>(
-        initialValues.totalCouponCount != null ? String(initialValues.totalCouponCount) : ''
-    )
-    const [priority, setPriority] = useState<string>(String(initialValues.priority))
-    const [couponsArray, setCouponsArray] = useState<string[]>(initialValues.coupons)
+export default function PromotionStep1Edit({ initial, onSave, onNext }: Props) {
+    // **inicializa uma única vez**, não reseta depois**
+    const [local, setLocal] = useState<Step1Values>({ ...initial })
     const [newCoupon, setNewCoupon] = useState('')
 
     const addCoupon = () => {
-        const code = newCoupon.trim()
-        if (!code || couponsArray.includes(code)) {
+        const c = newCoupon.trim()
+        if (!c || local.coupons.includes(c)) {
             setNewCoupon('')
             return
         }
-        setCouponsArray(prev => [...prev, code])
+        setLocal(l => ({ ...l, coupons: [...l.coupons, c] }))
         setNewCoupon('')
     }
-    const removeCoupon = (code: string) =>
-        setCouponsArray(prev => prev.filter(c => c !== code))
-    const handleCouponKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            e.preventDefault()
-            addCoupon()
-        }
-    }
 
-    const handleSave = async () => {
-        const vals: Step1Values = {
-            name,
-            description,
-            startDate,
-            endDate,
-            hasCoupon,
-            multipleCoupons,
-            reuseSameCoupon,
-            perUserCouponLimit: perUserCouponLimit ? Number(perUserCouponLimit) : undefined,
-            totalCouponCount: totalCouponCount ? Number(totalCouponCount) : undefined,
-            coupons: couponsArray,
-            active: initialValues.active,
-            cumulative: initialValues.cumulative,
-            priority: Number(priority)
-        }
-        await onSaveStep1(vals)
+    const removeCoupon = (c: string) => {
+        setLocal(l => ({ ...l, coupons: l.coupons.filter(x => x !== c) }))
     }
 
     const handleSubmit = (e: FormEvent) => {
@@ -96,175 +48,307 @@ export default function PromotionStep1Edit({
         onNext()
     }
 
+    const handleSave = async () => {
+        await onSave(local)
+    }
+
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
-            <h2 className="text-xl font-semibold">Passo 1: Defina a Promoção</h2>
+            <h2 className="text-xl font-semibold">Passo 1: Defina a Promoção</h2>
 
             {/* Nome */}
-            <Tooltip content="Nome da promoção" placement="top-start">
-                <Input
-                    placeholder="Nome da promoção"
-                    required
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    classNames={{ input: 'text-black bg-white border rounded-md' }}
-                />
-            </Tooltip>
+            <div>
+                <Tooltip content="De um nome coerente para sua promoção." placement="top-start" className="bg-white text-red-500 border border-gray-200 p-2">
+                    <input placeholder="Nome da promoção" type="text" required value={local.name} onChange={e => setLocal(l => ({ ...l, name: e.target.value }))}
+                        className="w-full border p-2 rounded text-black"
+                    />
+                </Tooltip>
+            </div>
 
             {/* Descrição */}
-            <Tooltip content="Descrição da promoção" placement="top-start">
-                <textarea
-                    placeholder="Descrição..."
-                    required
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                    className="w-full p-3 border-2 rounded-md h-32 text-black bg-white"
-                />
-            </Tooltip>
+            <div>
+                <Tooltip content="Faça uma descrição para que o cliente da loja, possa entender do que se trata a promoção, como regras da promoção etc..." placement="top-start" className="bg-white text-red-500 border border-gray-200 p-2">
+                    <textarea required value={local.description} onChange={e => setLocal(l => ({ ...l, description: e.target.value }))}
+                        className="w-full border p-2 rounded h-24 text-black"
+                    />
+                </Tooltip>
+            </div>
 
             {/* Datas */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                    <label className="block mb-1">Data/Hora Início*</label>
-                    <Tooltip content="Data de início" placement="top-start">
+                    <label className="block mb-1">Data/Hora Início</label>
+                    <Tooltip
+                        content="Digite a data e horario de inicio para essa promoção"
+                        placement="top-start"
+                        className="bg-white text-red-500 border border-gray-200 p-2"
+                    >
                         <input
-                            required
                             type="datetime-local"
-                            value={startDate}
-                            onChange={e => setStartDate(e.target.value)}
-                            className="w-full p-2 border rounded text-black bg-white"
+                            required
+                            value={local.startDate.toISOString().slice(0, 16)}
+                            onChange={e =>
+                                setLocal(l => ({ ...l, startDate: new Date(e.target.value) }))
+                            }
+                            className="w-full border p-2 rounded text-black"
                         />
                     </Tooltip>
                 </div>
                 <div>
-                    <label className="block mb-1">Data/Hora Término*</label>
-                    <Tooltip content="Data de término" placement="top-start">
+                    <label className="block mb-1">Data/Hora Término</label>
+                    <Tooltip
+                        content="Digite a data e horario de término para essa promoção"
+                        placement="top-start"
+                        className="bg-white text-red-500 border border-gray-200 p-2"
+                    >
                         <input
-                            required
                             type="datetime-local"
-                            value={endDate}
-                            onChange={e => setEndDate(e.target.value)}
-                            className="w-full p-2 border rounded text-black bg-white"
+                            required
+                            value={local.endDate.toISOString().slice(0, 16)}
+                            onChange={e =>
+                                setLocal(l => ({ ...l, endDate: new Date(e.target.value) }))
+                            }
+                            className="w-full border p-2 rounded text-black"
                         />
                     </Tooltip>
                 </div>
             </div>
 
-            {/* Cupons */}
-            <fieldset className="border p-4 rounded space-y-4">
-                <legend className="px-1 font-medium">Cupons</legend>
-                <div className="flex flex-wrap gap-4">
-                    <Checkbox isSelected={!hasCoupon} onChange={() => setHasCoupon(v => !v)}>
-                        Promoção sem cupom
-                    </Checkbox>
-                    <Checkbox
-                        isSelected={multipleCoupons}
-                        onChange={() => setMultipleCoupons(v => !v)}
-                        isDisabled={!hasCoupon}
-                    >
-                        Múltiplos cupons
-                    </Checkbox>
-                    <Checkbox
-                        isSelected={reuseSameCoupon}
-                        onChange={() => setReuseSameCoupon(v => !v)}
-                        isDisabled={!hasCoupon}
-                    >
-                        Reutilizar cupom
-                    </Checkbox>
-                </div>
+            {/* Usar cupom? */}
+            <div>
+                <span className="block mb-1">Usar cupom?</span>
+                <label className="inline-flex items-center mr-4">
+                    <input
+                        type="radio"
+                        name="hasCoupon"
+                        checked={local.hasCoupon}
+                        onChange={() => setLocal(l => ({ ...l, hasCoupon: true }))}
+                        className="mr-1"
+                    />
+                    Sim
+                </label>
 
-                {hasCoupon && (
-                    <>
-                        <div className="flex gap-2">
-                            <Input
-                                placeholder="Código do cupom"
-                                value={newCoupon}
-                                onChange={e => setNewCoupon(e.target.value)}
-                                onKeyDown={handleCouponKey}
-                                classNames={{ input: 'text-black' }}
-                            />
-                            <Button onPress={addCoupon} disabled={!newCoupon.trim()}>
-                                Adicionar
-                            </Button>
-                        </div>
-                        {couponsArray.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
-                                {couponsArray.map(code => (
-                                    <div
-                                        key={code}
-                                        className="flex items-center px-3 py-1 bg-gray-200 rounded-full"
+                <label className="inline-flex items-center">
+                    <input
+                        type="radio"
+                        name="hasCoupon"
+                        checked={!local.hasCoupon}
+                        onChange={() =>
+                            setLocal(l => ({
+                                ...l,
+                                hasCoupon: false,
+                                multipleCoupons: false,
+                                reuseSameCoupon: false,
+                                coupons: [],
+                                perUserCouponLimit: undefined,
+                                totalCouponCount: undefined
+                            }))
+                        }
+                        className="mr-1"
+                    />
+                    Não
+                </label>
+            </div>
+
+            {/* Opções de cupom */}
+            {local.hasCoupon && (
+                <>
+                    <div className="flex gap-6 mb-4">
+                        <Tooltip
+                            content="Selecione essa opção, caso sua promoção poderá usar diversos codigos diferentes de cupons."
+                            placement="top-start"
+                            className="bg-white text-red-500 border border-gray-200 p-2"
+                        >
+                            <label className="inline-flex items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={local.multipleCoupons}
+                                    onChange={() =>
+                                        setLocal(l => ({ ...l, multipleCoupons: !l.multipleCoupons }))
+                                    }
+                                    className="mr-1"
+                                />
+                                Múltiplos cupons
+                            </label>
+                        </Tooltip>
+
+                        <Tooltip
+                            content="Quando ativada essa opção, um mesmo numero de cupom da listagem poderá ser utilizado mais de uma vez na loja, incluisive pelo mesmo usurio."
+                            placement="top-start"
+                            className="bg-white text-red-500 border border-gray-200 p-2"
+                        >
+                            <label className="inline-flex items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={local.reuseSameCoupon}
+                                    onChange={() =>
+                                        setLocal(l => ({ ...l, reuseSameCoupon: !l.reuseSameCoupon }))
+                                    }
+                                    className="mr-1"
+                                />
+                                Reutilizar mesmo cupom
+                            </label>
+                        </Tooltip>
+                    </div>
+
+                    {/* Adicionar cupom */}
+                    <div className="flex gap-2 mb-4">
+                        <input
+                            type="text"
+                            placeholder="Novo cupom"
+                            value={newCoupon}
+                            onChange={e => setNewCoupon(e.target.value)}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault()
+                                    addCoupon()
+                                }
+                            }}
+                            className="flex-1 border p-2 rounded text-black"
+                        />
+                        <button
+                            type="button"
+                            onClick={addCoupon}
+                            disabled={!newCoupon.trim()}
+                            className="px-4 py-2 bg-violet-600 text-white rounded disabled:opacity-50"
+                        >
+                            Adicionar
+                        </button>
+                    </div>
+
+                    {/* Lista de cupons */}
+                    {local.coupons.length > 0 ? (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                            {local.coupons.map(c => (
+                                <div
+                                    key={c}
+                                    className="flex items-center bg-gray-200 px-3 py-1 rounded-full"
+                                >
+                                    <span className="mr-2 text-black">{c}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => removeCoupon(c)}
+                                        className="text-red-600 font-bold"
                                     >
-                                        <span className="mr-2 text-gray-800">{code}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => removeCoupon(code)}
-                                            className="text-red-600"
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="text-sm text-gray-500">Nenhum cupom adicionado.</p>
-                        )}
-                    </>
-                )}
-            </fieldset>
+                                        ×
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-gray-500 mb-4">
+                            Nenhum cupom adicionado.
+                        </p>
+                    )}
 
-            {/* Limites */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                    type="number"
-                    placeholder="Qtd por usuário"
-                    value={perUserCouponLimit}
-                    onChange={e => setPerUserCouponLimit(e.target.value)}
-                />
-                <Input
-                    type="number"
-                    placeholder="Qtd total"
-                    value={totalCouponCount}
-                    onChange={e => setTotalCouponCount(e.target.value)}
-                />
-            </div>
+                    {/* Limites */}
+                    <div className="grid md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <Tooltip
+                                content="Informe a quantidade vezes que um cupom poderá ser utlizado por de cliente. (Preenchimento Opcional)"
+                                placement="top-start"
+                                className="bg-white text-red-500 border border-gray-200 p-2"
+                            >
+                                <input
+                                    type="number"
+                                    value={local.perUserCouponLimit ?? ''}
+                                    onChange={e =>
+                                        setLocal(l => ({
+                                            ...l,
+                                            perUserCouponLimit:
+                                                e.target.value === '' ? undefined : Number(e.target.value)
+                                        }))
+                                    }
+                                    className="w-full border p-2 rounded text-black"
+                                />
+                            </Tooltip>
+                        </div>
+                        <div>
+                            <Tooltip
+                                content="Informe a quantidade total de cupons que serão usados na Promoção. (Preenchimento Opcional)"
+                                placement="top-start"
+                                className="bg-white text-red-500 border border-gray-200 p-2"
+                            >
+                                <input
+                                    type="number"
+                                    value={local.totalCouponCount ?? ''}
+                                    onChange={e =>
+                                        setLocal(l => ({
+                                            ...l,
+                                            totalCouponCount:
+                                                e.target.value === '' ? undefined : Number(e.target.value)
+                                        }))
+                                    }
+                                    className="w-full border p-2 rounded text-black"
+                                />
+                            </Tooltip>
+                        </div>
+                    </div>
+                </>
+            )}
 
-            {/* Atributos */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Active / Cumulative / Priority */}
+            <div className="grid md:grid-cols-3 gap-4 mb-6">
                 <div>
-                    <label>Ativa?</label>
+                    <label className="block mb-1">Ativa?</label>
                     <select
-                        value={hasCoupon ? 'yes' : 'no'}
-                        onChange={e => setHasCoupon(e.target.value === 'yes')}
-                        className="w-full p-2 border rounded bg-white text-black"
+                        value={local.active ? 'yes' : 'no'}
+                        onChange={e =>
+                            setLocal(l => ({ ...l, active: e.target.value === 'yes' }))
+                        }
+                        className="w-full border p-2 rounded text-black"
                     >
                         <option value="yes">Sim</option>
                         <option value="no">Não</option>
                     </select>
                 </div>
                 <div>
-                    <label>Acumulativa?</label>
+                    <label className="block mb-1">Acumulativa?</label>
                     <select
-                        value={multipleCoupons ? 'yes' : 'no'}
-                        onChange={e => setMultipleCoupons(e.target.value === 'yes')}
-                        className="w-full p-2 border rounded bg-white text-black"
+                        value={local.cumulative ? 'yes' : 'no'}
+                        onChange={e =>
+                            setLocal(l => ({ ...l, cumulative: e.target.value === 'yes' }))
+                        }
+                        className="w-full border p-2 rounded text-black"
                     >
                         <option value="yes">Sim</option>
                         <option value="no">Não</option>
                     </select>
                 </div>
-                <Input
-                    type="number"
-                    placeholder="Prioridade"
-                    value={priority}
-                    onChange={e => setPriority(e.target.value)}
-                />
+                <div>
+                    <label className="block mb-1">Ordem de aparecimento</label>
+                    <Tooltip
+                        content="Defina uma ordem de prioridade para a promoção; 1 sendo a maior prioridade."
+                        placement="top-start"
+                        className="bg-white text-red-500 border border-gray-200 p-2"
+                    >
+                        <input
+                            type="number"
+                            value={local.priority}
+                            onChange={e =>
+                                setLocal(l => ({ ...l, priority: Number(e.target.value) }))
+                            }
+                            className="w-full border p-2 rounded text-black"
+                        />
+                    </Tooltip>
+                </div>
             </div>
 
-            <div className="text-right space-x-2">
-                <Button onPress={handleSave} color="success">
-                    Salvar Passo 1
-                </Button>
-                <Button type="submit">Próximo</Button>
+            {/* Botões */}
+            <div className="flex justify-end gap-2">
+                <button
+                    type="button"
+                    onClick={handleSave}
+                    className="px-4 py-2 bg-green-600 text-white rounded"
+                >
+                    Salvar Passo 1
+                </button>
+                <button
+                    type="submit"
+                    className="px-4 py-2 bg-orange-600 text-white rounded"
+                >
+                    Próximo
+                </button>
             </div>
         </form>
     )
