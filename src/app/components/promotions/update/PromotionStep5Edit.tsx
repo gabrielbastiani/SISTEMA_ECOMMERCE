@@ -113,7 +113,7 @@ export default function PromotionStep5Edit({
                     {badges.map((b, i) => (
                         <tr
                             key={i}
-                            className={`border-b cursor-pointer ${editingIdx === i ? 'bg-gray-200' : ''}`}
+                            className={`border-b cursor-pointer ${editingIdx === i ? 'bg-red-100 text-black' : ''}`}
                             onClick={() => handleSelect(i)}
                         >
                             <td className="p-2">{b.title}</td>

@@ -25,7 +25,7 @@ function MultiSelect({ label, options, selected, onChange }: MultiSelectProps) {
 
     return (
         <div className="relative">
-            <span className="block mb-1 font-medium">{label}</span>
+            <span className="block mb-1 font-medium text-foreground">{label}</span>
             <button
                 type="button"
                 onClick={() => setOpen(o => !o)}

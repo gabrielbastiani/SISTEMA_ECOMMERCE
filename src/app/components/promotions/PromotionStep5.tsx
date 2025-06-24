@@ -32,7 +32,7 @@ export default function PromotionStep5({ data, setData, onBack, onFinish }: Prop
 
   const add = () => {
     if (!title || !file) return
-    setData(d => ({
+    setData((d: any) => ({
       ...d,
       badges: [
         ...(d.badges || []),

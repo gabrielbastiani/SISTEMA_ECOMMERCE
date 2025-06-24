@@ -556,7 +556,7 @@ export default function PromotionStep2Edit({
             {/* Form de nova condição */}
             <div className="grid md:grid-cols-3 gap-4">
                 <div>
-                    <label className="block mb-1 text-black">Condição</label>
+                    <label className="block mb-1">Condição</label>
                     <select
                         value={type}
                         onChange={e => setType(e.target.value as ConditionKey)}
@@ -568,7 +568,7 @@ export default function PromotionStep2Edit({
                     </select>
                 </div>
                 <div>
-                    <label className="block mb-1 text-black">Lógica</label>
+                    <label className="block mb-1">Lógica</label>
                     <select
                         value={operator}
                         onChange={e => setOperator(e.target.value)}
