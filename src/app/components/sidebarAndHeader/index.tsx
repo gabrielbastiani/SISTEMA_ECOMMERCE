@@ -68,6 +68,14 @@ export function SidebarAndHeader({ children }: Content) {
     const menuItems = {
         SUPER_ADMIN: [
             {
+                title: 'Pedidos',
+                name: 'orders',
+                items: [
+                    { title: 'Todos Pedidos', path: '/order/all_orders' },
+                    { title: 'Carrinhos Abandonados', path: '/order/abandoned_cart' }
+                ]
+            },
+            {
                 title: 'Usuários',
                 name: 'users',
                 items: [
@@ -91,6 +99,8 @@ export function SidebarAndHeader({ children }: Content) {
                 items: [
                     { title: 'Todos os produtos', path: '/products/all_products' },
                     { title: 'Adicionar novo produto', path: '/products/add_product' },
+                    { title: 'Avaliações', path: '/products/review' },
+                    { title: 'Compre junto', path: '/products/buy_together' },
                 ]
             },
             {
@@ -137,6 +147,14 @@ export function SidebarAndHeader({ children }: Content) {
         ],
         ADMIN: [
             {
+                title: 'Pedidos',
+                name: 'orders',
+                items: [
+                    { title: 'Todos Pedidos', path: '/order/all_orders' },
+                    { title: 'Carrinhos Abandonados', path: '/order/abandoned_cart' }
+                ]
+            },
+            {
                 title: 'Usuários',
                 name: 'users',
                 items: [
@@ -158,6 +176,8 @@ export function SidebarAndHeader({ children }: Content) {
                 items: [
                     { title: 'Todos os produtos', path: '/products/all_products' },
                     { title: 'Adicionar novo produto', path: '/products/add_product' },
+                    { title: 'Avaliações', path: '/products/review' },
+                    { title: 'Compre junto', path: '/products/buy_together' },
                 ]
             },
             {
@@ -196,6 +216,13 @@ export function SidebarAndHeader({ children }: Content) {
         ],
         EMPLOYEE: [
             {
+                title: 'Pedidos',
+                name: 'orders',
+                items: [
+                    { title: 'Todos Pedidos', path: '/order/all_orders' }
+                ]
+            },
+            {
                 title: 'Perfil',
                 name: 'profile',
                 items: [
@@ -210,11 +237,12 @@ export function SidebarAndHeader({ children }: Content) {
                 ]
             },
             {
-                title: 'Artigos',
-                name: 'posts',
+                title: 'Produtos',
+                name: 'products',
                 items: [
-                    { title: 'Todos os posts', path: '/posts/all_posts' },
-                    { title: 'Adicionar novo post', path: '/posts/add_post' }
+                    { title: 'Todos os produtos', path: '/products/all_products' },
+                    { title: 'Avaliações', path: '/products/review' },
+                    { title: 'Compre junto', path: '/products/buy_together' },
                 ]
             }
         ]

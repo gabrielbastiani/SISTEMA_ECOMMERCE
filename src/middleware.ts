@@ -32,6 +32,11 @@ const publicPaths = [
 // Configuração de permissões por role
 const rolePermissions: Record<UserRole, string[]> = {
     SUPER_ADMIN: [
+        '/order/abandoned_cart',
+        '/order/all_orders',
+        '/products/buy_together/add_buyTogether',
+        '/products/buy_together',
+        '/products/review',
         '/products/[product_id]',
         '/promotions/[promotion_id]',
         '/promotions/all_promotions',
@@ -62,6 +67,11 @@ const rolePermissions: Record<UserRole, string[]> = {
         '/'
     ],
     ADMIN: [
+        '/order/abandoned_cart',
+        '/order/all_orders',
+        '/products/buy_together/add_buyTogether',
+        '/products/buy_together',
+        '/products/review',
         '/products/[product_id]',
         '/promotions/add_promotion',
         '/promotions/[promotion_id]',
@@ -92,6 +102,9 @@ const rolePermissions: Record<UserRole, string[]> = {
         '/',
     ],
     EMPLOYEE: [
+        '/order/all_orders',
+        '/products/buy_together',
+        '/products/review',
         'central_notifications',
         '/unauthorized',
         '/user/profile',
