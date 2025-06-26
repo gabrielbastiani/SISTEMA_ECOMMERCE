@@ -5,8 +5,8 @@ import DataTable from "@/app/components/dataTable";
 import Image from "next/image";
 import { Section } from "@/app/components/section";
 import { SidebarAndHeader } from "@/app/components/sidebarAndHeader";
-import { TitlePage } from '@/app/components/section/titlePage'; 
-import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce'; 
+import { TitlePage } from '@/app/components/section/titlePage';
+import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce';
 import { zodResolver } from "@hookform/resolvers/zod";
 import moment from "moment";
 import { Key, useContext, useRef, useState } from "react";
@@ -15,7 +15,8 @@ import { toast } from "react-toastify";
 import { z } from "zod";
 import { MdNotInterested } from "react-icons/md";
 import noImage from '../../../../../public/no-image.png';
-import { AuthContext } from '@/app/contexts/AuthContext'; 
+import { AuthContext } from '@/app/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -33,6 +34,10 @@ interface CategoryProps {
         name: string;
         length: number;
     }
+    products: {
+        map: any;
+        length: number;
+    }[]
     created_at: string | number | Date;
 }
 
@@ -46,6 +51,8 @@ type FormData = z.infer<typeof schema>;
 
 export default function All_categories() {
 
+    const router = useRouter();
+
     const { user } = useContext(AuthContext);
     const apiClient = setupAPIClientEcommerce();
 
@@ -58,6 +65,8 @@ export default function All_categories() {
     const [showDescriptionPopup, setShowDescriptionPopup] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [currentCategoryId, setCurrentCategoryId] = useState("");
+
+    console.log(allCategories)
 
     const { formState: { errors }, reset } = useForm<FormData>({
         resolver: zodResolver(schema),
@@ -368,7 +377,28 @@ export default function All_categories() {
                                                         </span>
                                                     );
                                                 })}
-                                            </span>}
+                                            </span>
+                                        }
+                                    </>
+                                ),
+                            },
+                            {
+                                key: 'products',
+                                label: 'Produtos',
+                                render: (item: CategoryProps) => (
+                                    <>
+                                        {item.products.length >= 1 ?
+                                        <span
+                                        className="bg-gray-200 rounded-full text-xs whitespace-nowrap text-black p-2 cursor-pointer"
+                                        onClick={() => router.push(`/categories/products/${item.id}`)}
+                                    >
+                                            {item.products?.length + "= Quais?"}
+                                        </span>
+                                            :
+                                            <span className="text-gray-500">
+                                                Sem produtos
+                                            </span>
+                                    }
                                     </>
                                 ),
                             },

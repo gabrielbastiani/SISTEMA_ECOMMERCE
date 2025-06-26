@@ -98,6 +98,7 @@ function MultiSelect({
   selected,
   onChange
 }: MultiSelectProps) {
+
   const [open, setOpen] = useState(false)
 
   const toggle = (val: string) =>
@@ -107,7 +108,7 @@ function MultiSelect({
 
   return (
     <div className="relative">
-      <span className="block mb-1 font-medium text-black">{label}</span>
+      <span className="block mb-1 font-medium">{label}</span>
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
@@ -565,7 +566,7 @@ export default function PromotionStep2({ data, setData, onBack, onNext }: Props)
 
       <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
         <div>
-          <label className="block mb-1 font-medium text-black">
+          <label className="block mb-1 font-medium">
             Condição*
           </label>
           <Tooltip
@@ -588,7 +589,7 @@ export default function PromotionStep2({ data, setData, onBack, onNext }: Props)
 
         </div>
         <div>
-          <label className="block mb-1 font-medium text-black">
+          <label className="block mb-1 font-medium">
             Lógica*
           </label>
           <Tooltip

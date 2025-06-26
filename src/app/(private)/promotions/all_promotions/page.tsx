@@ -82,7 +82,7 @@ export default function All_promotions() {
         try {
             const data = {
                 promotion_id: id,
-                active: editedValue, // já boolean
+                active: editedValue,
             };
             await apiClient.put(`/promotion/active`, data);
 
@@ -94,6 +94,7 @@ export default function All_promotions() {
             );
 
             toast.success("Status atualizado com sucesso");
+
         } catch (error) {
             console.error("Erro ao atualizar status:", error);
             toast.error("Erro ao atualizar status");
@@ -166,7 +167,7 @@ export default function All_promotions() {
                         availableColumnsOrder={availableColumnsOrder}
                         columnsOrder={columnsOrder}
                         table_data="promotion"
-                        url_delete_data="/newsletter/delete_newsletter"
+                        url_delete_data="/promotions/delete"
                         data={promotions}
                         totalPages={totalPages}
                         onFetchData={fetchPromotions}
