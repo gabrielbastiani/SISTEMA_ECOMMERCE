@@ -9,7 +9,7 @@ import { SidebarAndHeader } from '@/app/components/sidebarAndHeader'
 import { Button, Tabs, Tab } from '@nextui-org/react'
 import { Category, initialFormData, ProductFormData, VideoInput } from 'Types/types'
 import { toast } from 'react-toastify'
-import { BasicProductInfo } from '@/app/components/add_product/BasicProductInfo'
+import { BasicProductInfo, BuyTogetherOption } from '@/app/components/add_product/BasicProductInfo'
 import { ProductDescriptionEditor } from '@/app/components/add_product/ProductDescriptionEditor'
 import { CategorySelector } from '@/app/components/add_product/CategorySelector'
 import { VariantManager } from '@/app/components/add_product/VariantManager'
@@ -35,6 +35,8 @@ export default function AddProductPage() {
   const [variantFiles, setVariantFiles] = useState<Record<string, File[]>>({})
   const [attributeFiles, setAttributeFiles] = useState<Record<string, Record<number, File[]>>>({})
 
+  const [buyTogetherOptions, setBuyTogetherOptions] = useState<BuyTogetherOption[]>([])
+
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -42,7 +44,8 @@ export default function AddProductPage() {
     api.get('/promotions/get').then(r => setPromotions(r.data.allow_promotions)).catch(console.error)
     api.get('/category/cms').then(r => setCategories(r.data.all_categories_disponivel)).catch(console.error)
     api.get('/get/products').then(r => setAllProducts(r.data.allow_products)).catch(console.error)
-  }, [])
+    api.get('/buy_together').then(r => setBuyTogetherOptions(r.data as BuyTogetherOption[])).catch(() => toast.error('Não foi possível carregar grupos Compre Junto.'))
+  }, []);
 
   const resetForm = () => {
     setFormData(initialFormData)
@@ -190,6 +193,7 @@ export default function AddProductPage() {
               onMainImagesChange={setMainImages}
               primaryIndex={primaryMainImageIndex}
               onSetPrimary={(i: number) => setPrimaryMainImageIndex(i)}
+              buyTogetherOptions={buyTogetherOptions}
             />
           </Tab>
 

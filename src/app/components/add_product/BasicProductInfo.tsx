@@ -5,14 +5,15 @@ import { CurrencyInput } from '@/app/components/add_product/CurrencyInput'
 import { MediaUploadComponent } from './MediaUploadComponent'
 import { ProductFormData, PromotionOption, StatusProduct } from 'Types/types'
 
+export interface BuyTogetherOption { id: string; name_group: string }
+
 interface ProductBasicInfoProps {
     formData: ProductFormData
     onFormDataChange: (data: ProductFormData) => void
     promotions: PromotionOption[]
     mainImages: File[]
     onMainImagesChange: (files: File[]) => void
-
-    // Novos props para controlar qual imagem principal
+    buyTogetherOptions: BuyTogetherOption[]
     primaryIndex?: number
     onSetPrimary?: (index: number) => void
 }
@@ -23,6 +24,7 @@ export const BasicProductInfo = ({
     promotions,
     mainImages,
     onMainImagesChange,
+    buyTogetherOptions,
     primaryIndex = -1,
     onSetPrimary,
 }: ProductBasicInfoProps) => {
@@ -41,6 +43,11 @@ export const BasicProductInfo = ({
         const newImages = mainImages.filter((_, i) => i !== index)
         onMainImagesChange(newImages)
     }
+
+    const buyTogetherItems = [
+        { id: '', name_group: 'Nenhum grupo' },
+        ...buyTogetherOptions
+    ]
 
     return (
         <div className="space-y-6 max-w-3xl">
@@ -258,6 +265,36 @@ export const BasicProductInfo = ({
                             </SelectItem>
                         )
                     }
+                </Select>
+            </Tooltip>
+
+            <Tooltip
+                content="Vincule este produto a um grupo ‘Compre Junto’"
+                placement="top-start"
+                className="bg-white text-red-500 border border-gray-200 p-2"
+            >
+                <Select
+                    placeholder="Compre Junto"
+                    items={buyTogetherItems}
+                    selectedKeys={
+                        formData.buyTogether_id
+                            ? new Set([formData.buyTogether_id])
+                            : new Set<string>()
+                    }
+                    onSelectionChange={(keys: SharedSelection) => {
+                        const key = typeof keys === 'string'
+                            ? keys
+                            : Array.from(keys)[0] ?? ''
+                        handleChange('buyTogether_id', key || null)
+                    }}
+                    className="bg-white border border-gray-200 rounded-md text-black"
+                    classNames={{ trigger: 'text-black border-gray-200' }}
+                >
+                    {item => (
+                        <SelectItem key={item.id} value={item.id} className="bg-white text-black">
+                            {item.name_group}
+                        </SelectItem>
+                    )}
                 </Select>
             </Tooltip>
 

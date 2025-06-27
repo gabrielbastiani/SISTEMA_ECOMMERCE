@@ -18,7 +18,7 @@ import {
   VariantFormData
 } from 'Types/types'
 import { toast } from 'react-toastify'
-import { BasicProductInfoUpdate } from '@/app/components/add_product/update_product/BasicProductInfoUpdate'
+import { BasicProductInfoUpdate, BuyTogetherOption } from '@/app/components/add_product/update_product/BasicProductInfoUpdate'
 import {
   ProductDescriptionEditorUpdate,
   ProductDescriptionWithId
@@ -38,6 +38,7 @@ export default function UpdateProductPage() {
 
   const router = useRouter();
 
+  const [buyTogetherOptions, setBuyTogetherOptions] = useState<BuyTogetherOption[]>([])
   const [formData, setFormData] = useState<ProductFormData>(initialFormData)
   const [categories, setCategories] = useState<Category[]>([])
   const [promotions, setPromotions] = useState<{ id: string; name: string }[]>([])
@@ -53,11 +54,12 @@ export default function UpdateProductPage() {
     async function load() {
       try {
         const api = setupAPIClientEcommerce()
-        const [catRes, prodRes, promoRes, dataRes] = await Promise.all([
+        const [catRes, prodRes, promoRes, dataRes, btRes] = await Promise.all([
           api.get('/category/cms'),
           api.get('/get/products'),
           api.get('/promotions/get'),
-          api.get(`/product/cms/get?product_id=${product_id}`)
+          api.get(`/product/cms/get?product_id=${product_id}`),
+          api.get('/buy_together')
         ])
 
         setCategories(catRes.data.all_categories_disponivel)
@@ -283,6 +285,7 @@ export default function UpdateProductPage() {
         setPrimaryMainImageId(initialPrimaryMainImage)
         setPrimaryVariantImageIdByVariantId(primVarMap)
         setPrimaryAttributeImageIdByVariantAndAttrIdx(primAttrMap)
+        setBuyTogetherOptions(btRes.data as BuyTogetherOption[])
       } catch (err) {
         console.error(err)
         toast.error('Erro ao carregar produto')
@@ -443,6 +446,10 @@ export default function UpdateProductPage() {
         })
       })
 
+      if (formData.buyTogether_id != null) {
+        productPayload.buyTogether_id = formData.buyTogether_id
+      }
+
       const api = setupAPIClientEcommerce()
       await api.put('/product/update', formPayload)
 
@@ -470,24 +477,20 @@ export default function UpdateProductPage() {
               newImages={formData.newImages ?? []}
               primaryImageId={primaryMainImageId}
               onSetPrimaryImageId={(id: string) => setPrimaryMainImageId(id)}
-              onAddNewImage={(files: File[]) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  newImages: [...(prev.newImages ?? []), ...files]
-                }))
-              }
-              onRemoveExistingImage={(imgId: string) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  existingImages: (prev.existingImages ?? []).filter((img) => img.id !== imgId)
-                }))
-              }
-              onRemoveNewImage={(index: number) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  newImages: (prev.newImages ?? []).filter((_, i) => i !== index)
-                }))
-              }
+              onAddNewImage={(files: File[]) => setFormData((prev) => ({
+                ...prev,
+                newImages: [...(prev.newImages ?? []), ...files]
+              }))}
+              onRemoveExistingImage={(imgId: string) => setFormData((prev) => ({
+                ...prev,
+                existingImages: (prev.existingImages ?? []).filter((img) => img.id !== imgId)
+              }))}
+              onRemoveNewImage={(index: number) => setFormData((prev) => ({
+                ...prev,
+                newImages: (prev.newImages ?? []).filter((_, i) => i !== index)
+              }))}
+              buyTogetherOptions={buyTogetherOptions}
+              onBuyTogetherChange={(id) => setFormData(d => ({ ...d, buyTogether_id: id }))}
             />
           </Tab>
 

@@ -115,6 +115,7 @@ export interface ProductFormData {
     height?: number;
     categories: string[];
     mainPromotion_id?: string;
+    buyTogether_id?: string | null;
     images: File[];
     videos: VideoInput[];
     variants: VariantFormData[];

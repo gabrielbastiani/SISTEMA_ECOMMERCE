@@ -36,6 +36,7 @@ const rolePermissions: Record<UserRole, string[]> = {
         '/order/all_orders',
         '/products/buy_together/add_buyTogether',
         '/products/buy_together',
+        '/products/buy_together/[buyTogether_id]',
         '/products/review',
         '/products/[product_id]',
         '/promotions/[promotion_id]',
@@ -71,6 +72,7 @@ const rolePermissions: Record<UserRole, string[]> = {
         '/order/all_orders',
         '/products/buy_together/add_buyTogether',
         '/products/buy_together',
+        '/products/buy_together/[buyTogether_id]',
         '/products/review',
         '/products/[product_id]',
         '/promotions/add_promotion',
@@ -104,6 +106,7 @@ const rolePermissions: Record<UserRole, string[]> = {
     EMPLOYEE: [
         '/order/all_orders',
         '/products/buy_together',
+        '/products/buy_together/[buyTogether_id]',
         '/products/review',
         'central_notifications',
         '/unauthorized',
