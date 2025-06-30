@@ -5,7 +5,7 @@ import { CurrencyInput } from '@/app/components/add_product/CurrencyInput'
 import { MediaUploadComponent } from './MediaUploadComponent'
 import { ProductFormData, PromotionOption, StatusProduct } from 'Types/types'
 
-export interface BuyTogetherOption { id: string; name_group: string }
+export interface BuyTogetherOption { id: string; name: string }
 
 interface ProductBasicInfoProps {
     formData: ProductFormData
@@ -45,7 +45,7 @@ export const BasicProductInfo = ({
     }
 
     const buyTogetherItems = [
-        { id: '', name_group: 'Nenhum grupo' },
+        { id: '', name: 'Nenhum grupo' },
         ...buyTogetherOptions
     ]
 
@@ -292,7 +292,7 @@ export const BasicProductInfo = ({
                 >
                     {item => (
                         <SelectItem key={item.id} value={item.id} className="bg-white text-black">
-                            {item.name_group}
+                            {item.name}
                         </SelectItem>
                     )}
                 </Select>

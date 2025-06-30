@@ -6,7 +6,7 @@ import { ProductFormData, PromotionOption, StatusProduct, ImageRecord } from 'Ty
 import { ChangeEvent } from 'react'
 import { MediaUpdateComponent } from './MediaUpdateComponent'
 
-export interface BuyTogetherOption { id: string; name_group: string }
+export interface BuyTogetherOption { id: string; name: string }
 
 interface BasicProductInfoUpdateProps {
     formData: ProductFormData
@@ -51,10 +51,7 @@ export const BasicProductInfoUpdate = ({
 
     const promoItems = [{ id: '', name: 'Nenhuma promoção' }, ...promotions]
 
-    const buyTogetherItems = [
-        { id: '', name_group: 'Nenhum grupo' },
-        ...buyTogetherOptions
-    ]
+    const buyTogetherItems = [{ id: '', name: 'Nenhum grupo' }, ...buyTogetherOptions]
 
     return (
         <div className="space-y-6 max-w-3xl">
@@ -212,7 +209,7 @@ export const BasicProductInfoUpdate = ({
                 >
                     {item => (
                         <SelectItem key={item.id} value={item.id} className="bg-white text-black">
-                            {item.name_group}
+                            {item.name}
                         </SelectItem>
                     )}
                 </Select>

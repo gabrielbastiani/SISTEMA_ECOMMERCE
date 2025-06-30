@@ -19,6 +19,7 @@ interface BuyTogetherProps {
     name: string
     status?: string
     edit?: string;
+    products?: any;
     created_at: string | number | Date
     product: {
         name: string
@@ -55,7 +56,7 @@ export default function Buy_together() {
             // Mapeia o payload para a shape correta
             const data: BuyTogetherProps[] = response.data.buyTogethers.map((bt: any) => ({
                 id: bt.id,
-                name: bt.name_group || '',
+                name: bt.name || '',
                 status: bt.status,
                 created_at: bt.created_at,
                 product: bt.product.map((p: any) => ({
@@ -102,10 +103,13 @@ export default function Buy_together() {
     };
 
     // Colunas permitidas para exportação/pesquisa
-    const availableColumns = ["name", "created_at"]  // agora só 'name' e 'created_at'
+    const availableColumns = ["name", "created_at", "product", "status"]
+
     const customNames: Record<string, string> = {
         name: "Nome do Grupo",
-        created_at: "Data de Criação"
+        created_at: "Data de Criação",
+        product: "Produtos do grupo",
+        status: "Status"
     }
 
     // Configuração de ordenação
@@ -113,7 +117,9 @@ export default function Buy_together() {
         { key: "name", label: "Nome do Grupo" },
         { key: "created_at", label: "Data de Criação" }
     ]
+
     const availableColumnsOrder = ["created_at", "name"]
+
     const customNamesOrder = {
         created_at: "Data de Registro",
         name: "Nome do Grupo"
@@ -136,7 +142,7 @@ export default function Buy_together() {
                         timeFilterButton={true}
                         checkbox_delete={true}
                         active_buttons_searchInput_comments={false}
-                        name_file_export="BuyTogether"
+                        name_file_export="Compre_junto"
                         modal_delete_bulk={false}
                         active_buttons_searchInput_notification={false}
                         active_export_data={true}
@@ -144,7 +150,7 @@ export default function Buy_together() {
                         availableColumnsOrder={availableColumnsOrder}
                         columnsOrder={columnsOrder}
                         table_data="buyTogether"
-                        url_delete_data="/newsletter/delete_newsletter"
+                        url_delete_data="/buyTogether/delete"
                         data={buyTogether}
                         totalPages={totalPages}
                         onFetchData={fetchBuyTogether}

@@ -166,6 +166,7 @@ export const initialFormData: ProductFormData = {
     videoLinks: [],
     newImages: [],
     mainPromotion_id: undefined,
+    buyTogether_id: undefined,
     existingImages: [],
 };
 

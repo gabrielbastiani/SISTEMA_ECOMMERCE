@@ -60,7 +60,7 @@ export default function UpdateProductPage() {
           api.get('/promotions/get'),
           api.get(`/product/cms/get?product_id=${product_id}`),
           api.get('/buy_together')
-        ])
+        ]);
 
         setCategories(catRes.data.all_categories_disponivel)
         setPromotions(
@@ -68,6 +68,11 @@ export default function UpdateProductPage() {
             id: String(p.id),
             name: p.name
           }))
+        )
+        setBuyTogetherOptions(btRes.data.map((p: any) => ({
+          id: String(p.id),
+          name: p.name
+        }))
         )
         setProducts(
           prodRes.data.allow_products.map((p: any) => ({
@@ -90,6 +95,7 @@ export default function UpdateProductPage() {
         const rawVariants: Array<any> = p.variants ?? []
         const primVarMap: Record<string, string> = {}
         const primAttrMap: Record<string, Record<number, string>> = {}
+        
         const formVariants: VariantFormData[] = rawVariants.map((v: any) => {
           const variantId: string = v.id
           const existingVarImgs: Array<{
@@ -209,6 +215,7 @@ export default function UpdateProductPage() {
           stock: p.stock ?? 0,
           status: p.status ?? ('DISPONIVEL' as StatusProduct),
           mainPromotion_id: p.mainPromotion_id ?? '',
+          buyTogether_id: p.buyTogether_id ?? '',
           categories: (p.categories ?? []).map((c: any) => c.category_id),
           description: p.description ?? '',
 
@@ -285,14 +292,13 @@ export default function UpdateProductPage() {
         setPrimaryMainImageId(initialPrimaryMainImage)
         setPrimaryVariantImageIdByVariantId(primVarMap)
         setPrimaryAttributeImageIdByVariantAndAttrIdx(primAttrMap)
-        setBuyTogetherOptions(btRes.data as BuyTogetherOption[])
       } catch (err) {
         console.error(err)
         toast.error('Erro ao carregar produto')
       }
     }
     load()
-  }, [product_id])
+  }, [product_id]);
 
   const handleSubmit = async () => {
     setLoading(true)
@@ -322,7 +328,8 @@ export default function UpdateProductPage() {
         'width',
         'height',
         'stock',
-        'mainPromotion_id'
+        'mainPromotion_id',
+        'buyTogether_id'
       ] as const
 
       camposSimples.forEach((campo) => {
@@ -446,9 +453,10 @@ export default function UpdateProductPage() {
         })
       })
 
-      if (formData.buyTogether_id != null) {
+      /* if (formData.buyTogether_id != null) {
+        console.log(formData.buyTogether_id)
         productPayload.buyTogether_id = formData.buyTogether_id
-      }
+      } */
 
       const api = setupAPIClientEcommerce()
       await api.put('/product/update', formPayload)

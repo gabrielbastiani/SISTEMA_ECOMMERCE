@@ -71,7 +71,7 @@ export default function AddBuyTogether() {
         }
         try {
             await api.post("/buy_together/create", {
-                name_group: groupName,
+                name: groupName,
                 products: selected.map(o => o.value),
             });
             toast.success("Grupo ‘Compre Junto’ criado com sucesso!");
