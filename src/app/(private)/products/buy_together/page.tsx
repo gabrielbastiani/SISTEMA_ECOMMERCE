@@ -39,6 +39,8 @@ export default function Buy_together() {
     const [editedValue, setEditedValue] = useState<string>("");
     const apiClient = setupAPIClientEcommerce();
 
+    console.log(buyTogether)
+
     async function fetchBuyTogether({
         page,
         limit,

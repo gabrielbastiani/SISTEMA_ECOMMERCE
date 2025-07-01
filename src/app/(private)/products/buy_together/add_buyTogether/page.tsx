@@ -163,7 +163,6 @@ export default function AddBuyTogether() {
                             value={selected}
                             onChange={(
                                 newValue: OnChangeValue<OptionType, true>,
-                                actionMeta: ActionMeta<OptionType>
                             ) => {
                                 setSelected(Array.isArray(newValue) ? [...newValue] : []);
                             }}
