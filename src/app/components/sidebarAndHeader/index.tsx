@@ -104,6 +104,15 @@ export function SidebarAndHeader({ children }: Content) {
                 ]
             },
             {
+                title: 'Filtros',
+                name: 'filter',
+                items: [
+                    { title: 'Todos os filtros', path: '/filters/all_filters' },
+                    { title: 'Grupo de filtro', path: '/filters/filterGroups' },
+                    { title: 'Adicionar filtro', path: '/filters/add_filter' },
+                ]
+            },
+            {
                 title: 'Promoções',
                 name: 'promotions',
                 items: [
@@ -181,10 +190,20 @@ export function SidebarAndHeader({ children }: Content) {
                 ]
             },
             {
+                title: 'Filtros',
+                name: 'filter',
+                items: [
+                    { title: 'Todos os filtros', path: '/filters/all_filters' },
+                    { title: 'Grupo de filtro', path: '/filters/filterGroups' },
+                    { title: 'Adicionar filtro', path: '/filters/add_filter' }
+                ]
+            },
+            {
                 title: 'Promoções',
                 name: 'promotions',
                 items: [
                     { title: 'Todos as promoções', path: '/promotions/all_promotions' },
+                    { title: 'Adicionar grupo de filtro', path: '/filters/filterGroups' },
                     { title: 'Adicionar nova promoção', path: '/promotions/add_promotion' },
                 ]
             },

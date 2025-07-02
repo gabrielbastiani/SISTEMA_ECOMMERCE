@@ -194,7 +194,7 @@ export default function UpdateBuyTogetherPage() {
                         disabled={loading}
                         className="w-full py-3 bg-green-600 text-white rounded hover:bg-green-700"
                     >
-                        {loading ? 'Salvando...' : 'Salvar'}
+                        {loading ? 'Atualizando...' : 'Atualizar'}
                     </button>
                 </div>
             </Section>
