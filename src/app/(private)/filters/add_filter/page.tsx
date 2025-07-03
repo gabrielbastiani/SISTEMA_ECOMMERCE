@@ -56,7 +56,7 @@ export default function AddFilterPage() {
 
     // ── Fetch inicial de grupos & categorias ───────────────────────────────
     useEffect(() => {
-        api.get<FilterGroup[]>('/filters/getAll').then(r => setGroups(r.data)).catch(() => toast.error('Não carregou grupos'));
+        api.get<FilterGroup[]>('/filterGroups/getAll').then(r => setGroups(r.data)).catch(() => toast.error('Não carregou grupos'));
         api.get<CategoryCmsResponse>('/category/cms').then(r => setCategories(r.data?.all_categories_disponivel)).catch(() => toast.error('Não carregou categorias'));
     }, []);
 
@@ -64,7 +64,7 @@ export default function AddFilterPage() {
     const handleCreateGroup = async () => {
         setGroupSubmitting(true);
         try {
-            const r = await api.post<FilterGroup>('/filter-groups/create', { name: newGroupName, order: newGroupOrder });
+            const r = await api.post<FilterGroup>('/filterGroups/create', { name: newGroupName, order: newGroupOrder });
             setGroups(g => [...g, r.data]);
             setGroupId(r.data.id);
             setNewGroupName(''); setNewGroupOrder(0);
@@ -77,7 +77,7 @@ export default function AddFilterPage() {
     };
     const handleDeleteGroup = async (id: string) => {
         try {
-            await api.delete(`/filter-groups/deleteGroup/${id}`);
+            await api.delete(`/filterGroups/deleteGroup/${id}`);
             setGroups(g => g.filter(x => x.id !== id));
             toast.success('Grupo excluído');
             if (groupId === id) setGroupId(groups[0]?.id || '');
@@ -127,12 +127,12 @@ export default function AddFilterPage() {
             // 2) Associação de categorias via CategoryFilter
             await Promise.all(
                 selectedCatIds.map(catId =>
-                    api.post('/category-filters/create', { category_id: catId, filter_id: filterId })
+                    api.post('/categoryFilters/create', { category_id: catId, id: filterId })
                 )
             );
 
             toast.success('Filtro cadastrado!');
-            router.push('/filters/all_filters');
+            router.push('/filters');
         } catch (err) {
             console.error(err);
             toast.error('Erro ao cadastrar filtro');

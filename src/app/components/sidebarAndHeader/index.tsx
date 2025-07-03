@@ -107,7 +107,7 @@ export function SidebarAndHeader({ children }: Content) {
                 title: 'Filtros',
                 name: 'filter',
                 items: [
-                    { title: 'Todos os filtros', path: '/filters/all_filters' },
+                    { title: 'Todos os filtros', path: '/filters' },
                     { title: 'Adicionar filtro', path: '/filters/add_filter' }
                 ]
             },
@@ -192,7 +192,7 @@ export function SidebarAndHeader({ children }: Content) {
                 title: 'Filtros',
                 name: 'filter',
                 items: [
-                    { title: 'Todos os filtros', path: '/filters/all_filters' },
+                    { title: 'Todos os filtros', path: '/filters' },
                     { title: 'Adicionar filtro', path: '/filters/add_filter' }
                 ]
             },

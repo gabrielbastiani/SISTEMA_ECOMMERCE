@@ -53,7 +53,7 @@ export default function UpdateProductPage() {
   useEffect(() => {
     async function load() {
       try {
-        const api = setupAPIClientEcommerce()
+        const api = setupAPIClientEcommerce();
         const [catRes, prodRes, promoRes, dataRes, btRes] = await Promise.all([
           api.get('/category/cms'),
           api.get('/get/products'),
@@ -452,11 +452,6 @@ export default function UpdateProductPage() {
           })
         })
       })
-
-      /* if (formData.buyTogether_id != null) {
-        console.log(formData.buyTogether_id)
-        productPayload.buyTogether_id = formData.buyTogether_id
-      } */
 
       const api = setupAPIClientEcommerce()
       await api.put('/product/update', formPayload)
