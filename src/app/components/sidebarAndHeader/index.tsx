@@ -108,8 +108,7 @@ export function SidebarAndHeader({ children }: Content) {
                 name: 'filter',
                 items: [
                     { title: 'Todos os filtros', path: '/filters/all_filters' },
-                    { title: 'Grupo de filtro', path: '/filters/filterGroups' },
-                    { title: 'Adicionar filtro', path: '/filters/add_filter' },
+                    { title: 'Adicionar filtro', path: '/filters/add_filter' }
                 ]
             },
             {
@@ -194,7 +193,6 @@ export function SidebarAndHeader({ children }: Content) {
                 name: 'filter',
                 items: [
                     { title: 'Todos os filtros', path: '/filters/all_filters' },
-                    { title: 'Grupo de filtro', path: '/filters/filterGroups' },
                     { title: 'Adicionar filtro', path: '/filters/add_filter' }
                 ]
             },

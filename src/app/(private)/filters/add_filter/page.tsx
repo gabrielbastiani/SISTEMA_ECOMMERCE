@@ -7,6 +7,7 @@ import { TitlePage } from '@/app/components/section/titlePage';
 import { SidebarAndHeader } from '@/app/components/sidebarAndHeader';
 import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce';
 import { toast } from 'react-toastify';
+import { Tooltip } from '@nextui-org/react';
 
 type FilterType = 'RANGE' | 'SELECT' | 'MULTI_SELECT';
 type FilterDataType = 'NUMBER' | 'STRING' | 'DATE' | 'BOOLEAN';
@@ -75,11 +76,10 @@ export default function AddFilterPage() {
         }
     };
     const handleDeleteGroup = async (id: string) => {
-        if (!confirm('Excluir grupo?')) return;
         try {
             await api.delete(`/filter-groups/deleteGroup/${id}`);
             setGroups(g => g.filter(x => x.id !== id));
-            toast.info('Grupo excluído');
+            toast.success('Grupo excluído');
             if (groupId === id) setGroupId(groups[0]?.id || '');
         } catch {
             toast.error('Erro ao excluir grupo');
@@ -145,7 +145,7 @@ export default function AddFilterPage() {
                     <nav className="-mb-px flex space-x-4">
                         {['Geral', 'Opções'].map((l, i) =>
                             <button key={i}
-                                className={`px-4 py-2 ${tab === i ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-gray-800'}`}
+                                className={`px-4 py-2 ${tab === i ? 'border-b-2 border-orange-600 text-orange-600' : 'text-gray-600 hover:text-gray-800'}`}
                                 onClick={() => setTab(i as 0 | 1)}
                             >{l}</button>
                         )}
@@ -159,49 +159,74 @@ export default function AddFilterPage() {
 
                             {/* Nome */}
                             <div>
-                                <label className="block text-sm font-medium">Nome</label>
-                                <input required value={name}
-                                    onChange={e => setName(e.target.value)}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm" />
+                                <Tooltip
+                                    content="Nome a ser exibido no front (ex.: Preço, Cor)"
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
+                                >
+                                    <input required value={name}
+                                        onChange={e => setName(e.target.value)}
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
+                                </Tooltip>
                             </div>
 
                             {/* FieldName */}
                             <div>
-                                <label className="block text-sm font-medium">Identificador</label>
-                                <input required value={fieldName}
-                                    onChange={e => setFieldName(e.target.value)}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm" />
+                                <Tooltip
+                                    content="Nome do campo ou identificador associado (ex.: price_per ou variantAttribute)"
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
+                                >
+                                    <input required value={fieldName}
+                                        onChange={e => setFieldName(e.target.value)}
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
+                                </Tooltip>
                             </div>
 
                             {/* Type */}
                             <div>
-                                <label className="block text-sm font-medium">Tipo</label>
-                                <select value={type}
-                                    onChange={e => setType(e.target.value as any)}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm">
-                                    <option>SELECT</option><option>MULTI_SELECT</option><option>RANGE</option>
-                                </select>
+                                <Tooltip
+                                    content="Tipo de filtro: RANGE, SELECT, MULTI_SELECT"
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
+                                >
+                                    <select value={type}
+                                        onChange={e => setType(e.target.value as any)}
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2">
+                                        <option>SELECT</option><option>MULTI_SELECT</option><option>RANGE</option>
+                                    </select>
+                                </Tooltip>
                             </div>
 
                             {/* DataType */}
                             <div>
-                                <label className="block text-sm font-medium">Tipo de Dado</label>
-                                <select value={dataType}
-                                    onChange={e => setDataType(e.target.value as any)}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm">
-                                    <option>STRING</option><option>NUMBER</option><option>DATE</option><option>BOOLEAN</option>
-                                </select>
+                                <Tooltip
+                                    content="Tipo de dado subjacente (NUMBER, STRING, etc.)"
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
+                                >
+                                    <select value={dataType}
+                                        onChange={e => setDataType(e.target.value as any)}
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2">
+                                        <option>STRING</option><option>NUMBER</option><option>DATE</option><option>BOOLEAN</option>
+                                    </select>
+                                </Tooltip>
                             </div>
 
                             {/* DisplayStyle */}
                             <div>
-                                <label className="block text-sm font-medium">Estilo</label>
-                                <select value={displayStyle}
-                                    onChange={e => setDisplayStyle(e.target.value as any)}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm">
-                                    <option>DROPDOWN</option><option>CHECKBOX</option><option>RADIO</option>
-                                    <option>SLIDER</option><option>COLOR_PICKER</option>
-                                </select>
+                                <Tooltip
+                                    content="Define o componente visual a ser usado"
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
+                                >
+                                    <select value={displayStyle}
+                                        onChange={e => setDisplayStyle(e.target.value as any)}
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2">
+                                        <option>DROPDOWN</option><option>CHECKBOX</option><option>RADIO</option>
+                                        <option>SLIDER</option><option>COLOR_PICKER</option>
+                                    </select>
+                                </Tooltip>
                             </div>
 
                             {/* isActive */}
@@ -213,10 +238,15 @@ export default function AddFilterPage() {
 
                             {/* Order */}
                             <div>
-                                <label className="block text-sm font-medium">Ordem</label>
-                                <input type="number" value={order}
-                                    onChange={e => setOrder(Number(e.target.value))}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm" />
+                                <Tooltip
+                                    content="Define a ordem de exibição entre os filtros"
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
+                                >
+                                    <input type="number" value={order}
+                                        onChange={e => setOrder(Number(e.target.value))}
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
+                                </Tooltip>
                             </div>
 
                             {/* AutoPopulate */}
@@ -229,29 +259,44 @@ export default function AddFilterPage() {
                             {/* Min/Max */}
                             {type === 'RANGE' && <>
                                 <div>
-                                    <label className="block text-sm font-medium">Min</label>
-                                    <input type="number" value={minValue}
-                                        onChange={e => setMinValue(e.target.value === '' ? '' : Number(e.target.value))}
-                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm" />
+                                    <Tooltip
+                                        content="Ex.: preço mínimo pré-configurado (opcional)"
+                                        placement="top-start"
+                                        className="bg-white text-red-500 border border-gray-200 p-2"
+                                    >
+                                        <input type="number" value={minValue}
+                                            onChange={e => setMinValue(e.target.value === '' ? '' : Number(e.target.value))}
+                                            className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
+                                    </Tooltip>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium">Max</label>
-                                    <input type="number" value={maxValue}
-                                        onChange={e => setMaxValue(e.target.value === '' ? '' : Number(e.target.value))}
-                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm" />
+                                    <Tooltip
+                                        content="Ex.: preço máximo pré-configurado (opcional)"
+                                        placement="top-start"
+                                        className="bg-white text-red-500 border border-gray-200 p-2"
+                                    >
+                                        <input type="number" value={maxValue}
+                                            onChange={e => setMaxValue(e.target.value === '' ? '' : Number(e.target.value))}
+                                            className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
+                                    </Tooltip>
                                 </div>
                             </>}
 
                             {/* Grupo + Modal */}
                             <div className="md:col-span-2 flex items-end space-x-2">
                                 <div className="flex-1">
-                                    <label className="block text-sm font-medium">Grupo</label>
-                                    <select value={groupId}
-                                        onChange={e => setGroupId(e.target.value)}
-                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm">
-                                        <option value="">— Nenhum —</option>
-                                        {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                                    </select>
+                                    <Tooltip
+                                        content="O grupo representa por exemplo: Caracteristicas, Preços etc..."
+                                        placement="top-start"
+                                        className="bg-white text-red-500 border border-gray-200 p-2"
+                                    >
+                                        <select value={groupId}
+                                            onChange={e => setGroupId(e.target.value)}
+                                            className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2">
+                                            <option value="">— Nenhum —</option>
+                                            {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                                        </select>
+                                    </Tooltip>
                                 </div>
                                 <button type="button"
                                     onClick={() => setShowGroupModal(true)}
@@ -262,7 +307,14 @@ export default function AddFilterPage() {
 
                             {/* Categorias */}
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium mb-1">Categorias</label>
+                                <Tooltip
+                                    content="Selecione uma ou mais categorias, caso esse filtro precise aparecer em pagina(s) dessas categorias."
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
+                                >
+                                    <label className="block text-sm font-medium mb-1">Categorias</label>
+                                </Tooltip>
+
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-40 overflow-auto p-2 border rounded">
                                     {categories.map(cat => (
                                         <label key={cat.id} className="flex items-center space-x-2">
@@ -287,22 +339,33 @@ export default function AddFilterPage() {
                             {options.map(opt => (
                                 <div key={opt.id} className="flex flex-col md:flex-row md:items-end md:space-x-4 p-4 border rounded">
                                     <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {(['label', 'value', 'order', 'iconUrl', 'colorCode'] as const).map((k, i) =>
+                                        {([
+                                            'Texto exibido (ex.: Azul, Médio, 2023)',
+                                            'Valor utilizado para a query',
+                                            'Ordem de exibição',
+                                            'URL para ícone (útil para filtros de cor ou ícones específicos)',
+                                            'Código de cor (ex.: "#FF0000"), se aplicável'
+                                        ] as const).map((k, i) =>
                                             <div key={i}>
                                                 <label className="block text-sm">{k}</label>
-                                                <input type={k === 'order' ? 'number' : 'text'}
-                                                    value={(opt as any)[k]}
-                                                    onChange={e => updateOption(opt.id, k,
-                                                        k === 'order' ? Number(e.target.value) : e.target.value
-                                                    )}
-                                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm" />
+                                                <input type={k === 'Ordem de exibição' ? 'number' : 'text'}
+                                                    value={(opt as any)[k]}// @ts-ignore
+                                                    onChange={e => updateOption(opt.id, k, k === 'Ordem de exibição' ? Number(e.target.value) : e.target.value)}
+                                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
                                             </div>
                                         )}
                                         <div className="flex items-center space-x-2">
                                             <input type="checkbox" checked={opt.isDefault}
                                                 onChange={e => updateOption(opt.id, 'isDefault', e.target.checked)}
                                                 className="h-4 w-4" />
-                                            <label className="text-sm">Padrão</label>
+                                            <Tooltip
+                                                content="Se essa opção for padrão na interface"
+                                                placement="top-start"
+                                                className="bg-white text-red-500 border border-gray-200 p-2"
+                                            >
+                                                <label className="text-sm">Padrão</label>
+                                            </Tooltip>
+
                                         </div>
                                     </div>
                                     <button type="button" onClick={() => removeOption(opt.id)}
@@ -317,7 +380,7 @@ export default function AddFilterPage() {
 
                     <div className="pt-4 border-t flex justify-end">
                         <button type="submit" disabled={submitting}
-                            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+                            className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">
                             {submitting ? 'Salvando...' : 'Salvar Filtro'}
                         </button>
                     </div>
@@ -328,12 +391,12 @@ export default function AddFilterPage() {
             {showGroupModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
                     <div className="bg-white p-6 rounded shadow-lg w-full max-w-lg">
-                        <h2 className="text-xl font-medium mb-4">Gerenciar Grupos</h2>
+                        <h2 className="text-xl font-medium mb-4 text-black">Gerenciar Grupos</h2>
 
                         <ul className="max-h-60 overflow-auto space-y-2 mb-4">
                             {groups.map(g => (
                                 <li key={g.id} className="flex items-center justify-between p-2 border rounded">
-                                    <span>{g.name} <small className="text-gray-500">({g.order})</small></span>
+                                    <span className="text-black">{g.name} <small className="text-gray-500">({g.order})</small></span>
                                     <button onClick={() => handleDeleteGroup(g.id)}
                                         className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700">
                                         Excluir
@@ -345,22 +408,32 @@ export default function AddFilterPage() {
 
                         <div className="space-y-3 mb-4">
                             <div>
-                                <label className="block text-sm">Nome do grupo</label>
-                                <input value={newGroupName}
-                                    onChange={e => setNewGroupName(e.target.value)}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm" />
+                                <Tooltip
+                                    content="Nome do grupo (ex.: Características, Preço)"
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
+                                >
+                                    <input value={newGroupName}
+                                        onChange={e => setNewGroupName(e.target.value)}
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
+                                </Tooltip>
                             </div>
                             <div>
-                                <label className="block text-sm">Ordem</label>
-                                <input type="number" value={newGroupOrder}
-                                    onChange={e => setNewGroupOrder(Number(e.target.value))}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm" />
+                                <Tooltip
+                                    content="Ordem de exibição do grupo na interface de usuário"
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
+                                >
+                                    <input type="number" value={newGroupOrder}
+                                        onChange={e => setNewGroupOrder(Number(e.target.value))}
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
+                                </Tooltip>
                             </div>
                         </div>
 
                         <div className="flex justify-end space-x-2">
                             <button onClick={() => setShowGroupModal(false)}
-                                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
+                                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 text-black">
                                 Fechar
                             </button>
                             <button onClick={handleCreateGroup} disabled={groupSubmitting}
