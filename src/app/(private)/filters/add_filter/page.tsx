@@ -87,6 +87,13 @@ export default function AddFilterPage() {
     };
 
     // ── Handlers de Opções ────────────────────────────────────────────────
+    const optionFieldConfig: { key: keyof OptionItem; label: string; type?: 'text' | 'number' }[] = [
+        { key: 'label', label: 'Texto exibido (ex.: Azul, Médio, 2023)', type: 'text' },
+        { key: 'value', label: 'Valor utilizado para a query', type: 'text' },
+        { key: 'order', label: 'Ordem de exibição', type: 'number' },
+        { key: 'iconUrl', label: 'URL para ícone (útil para filtros de cor ou ícones específicos)', type: 'text' },
+        { key: 'colorCode', label: 'Código de cor (ex.: "#FF0000"), se aplicável', type: 'text' }
+    ];
     const addOption = () =>
         setOptions(o => [...o, { id: Date.now(), label: '', value: '', order: o.length, iconUrl: '', colorCode: '', isDefault: false }]);
     const removeOption = (id: number) =>
@@ -253,7 +260,13 @@ export default function AddFilterPage() {
                             <div className="flex items-center space-x-2">
                                 <input id="auto" type="checkbox" checked={autoPopulate}
                                     onChange={e => setAutoPopulate(e.target.checked)} className="h-4 w-4" />
-                                <label htmlFor="auto" className="text-sm">Auto Popular</label>
+                                <Tooltip
+                                    content="Se verdadeiro, o sistema pode preencher opções baseado nos produtos cadastrados."
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
+                                >
+                                    <label htmlFor="auto" className="text-sm">Auto Popular</label>
+                                </Tooltip>
                             </div>
 
                             {/* Min/Max */}
@@ -330,53 +343,72 @@ export default function AddFilterPage() {
                         </div>
                     )}
 
+                    {/* Aba Opções */}
                     {tab === 1 && (
                         <div className="space-y-4">
-                            <button type="button" onClick={addOption}
-                                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                            <button
+                                type="button"
+                                onClick={addOption}
+                                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                            >
                                 + Nova Opção
                             </button>
-                            {options.map(opt => (
-                                <div key={opt.id} className="flex flex-col md:flex-row md:items-end md:space-x-4 p-4 border rounded">
-                                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {([
-                                            'Texto exibido (ex.: Azul, Médio, 2023)',
-                                            'Valor utilizado para a query',
-                                            'Ordem de exibição',
-                                            'URL para ícone (útil para filtros de cor ou ícones específicos)',
-                                            'Código de cor (ex.: "#FF0000"), se aplicável'
-                                        ] as const).map((k, i) =>
-                                            <div key={i}>
-                                                <label className="block text-sm">{k}</label>
-                                                <input type={k === 'Ordem de exibição' ? 'number' : 'text'}
-                                                    value={(opt as any)[k]}// @ts-ignore
-                                                    onChange={e => updateOption(opt.id, k, k === 'Ordem de exibição' ? Number(e.target.value) : e.target.value)}
-                                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
-                                            </div>
-                                        )}
-                                        <div className="flex items-center space-x-2">
-                                            <input type="checkbox" checked={opt.isDefault}
-                                                onChange={e => updateOption(opt.id, 'isDefault', e.target.checked)}
-                                                className="h-4 w-4" />
-                                            <Tooltip
-                                                content="Se essa opção for padrão na interface"
-                                                placement="top-start"
-                                                className="bg-white text-red-500 border border-gray-200 p-2"
-                                            >
-                                                <label className="text-sm">Padrão</label>
-                                            </Tooltip>
 
+                            {options.map(opt => (
+                                <div
+                                    key={opt.id}
+                                    className="flex flex-col md:flex-row md:items-end md:space-x-4 p-4 border rounded"
+                                >
+                                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {optionFieldConfig.map(({ key, label, type }) => (
+                                            <div key={key}>
+                                                <label className="block text-sm">{label}</label>
+                                                <input
+                                                    type={type}
+                                                    value={
+                                                        type === 'number'
+                                                            ? (opt[key] as number)
+                                                            : (opt[key] as string)
+                                                    }
+                                                    onChange={e =>
+                                                        updateOption(
+                                                            opt.id,
+                                                            key,
+                                                            type === 'number' ? Number(e.target.value) : e.target.value
+                                                        )
+                                                    }
+                                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                                />
+                                            </div>
+                                        ))}
+
+                                        <div className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={opt.isDefault}
+                                                onChange={e => updateOption(opt.id, 'isDefault', e.target.checked)}
+                                                className="h-4 w-4"
+                                            />
+                                            <label className="text-sm">Padrão</label>
                                         </div>
                                     </div>
-                                    <button type="button" onClick={() => removeOption(opt.id)}
-                                        className="mt-2 md:mt-0 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">
+
+                                    <button
+                                        type="button"
+                                        onClick={() => removeOption(opt.id)}
+                                        className="mt-2 md:mt-0 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                                    >
                                         Remover
                                     </button>
                                 </div>
                             ))}
-                            {options.length === 0 && <p className="text-gray-500">Nenhuma opção.</p>}
+
+                            {options.length === 0 && (
+                                <p className="text-gray-500">Nenhuma opção adicionada.</p>
+                            )}
                         </div>
                     )}
+
 
                     <div className="pt-4 border-t flex justify-end">
                         <button type="submit" disabled={submitting}
