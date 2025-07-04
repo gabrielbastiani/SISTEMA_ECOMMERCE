@@ -162,23 +162,32 @@ export default function FilterUpdate() {
         e.preventDefault();
         setSubmitting(true);
         try {
-            // 1) PUT filter + nested options
-            await api.put(`/filter/update/${id}`, {
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+            const payload = {
                 name, fieldName, type, dataType, displayStyle,
                 isActive, order, autoPopulate,
                 minValue: minValue === '' ? null : minValue,
                 maxValue: maxValue === '' ? null : maxValue,
                 groupId: groupId || null,
-                options: options.map(o => ({
-                    id: o.id,
-                    label: o.label,
-                    value: o.value,
-                    order: o.order,
-                    iconUrl: o.iconUrl || null,
-                    colorCode: o.colorCode || null,
-                    isDefault: o.isDefault
-                }))
-            });
+                options: options.map(o => {
+                    const base: any = {
+                        label: o.label,
+                        value: o.value,
+                        order: o.order,
+                        iconUrl: o.iconUrl || null,
+                        colorCode: o.colorCode || null,
+                        isDefault: o.isDefault,
+                    };
+                    if (uuidRegex.test(o.id)) {
+                        base.id = o.id;   // só inclua o id se for UUID válido (ou seja, entrado pelo backend)
+                    }
+                    return base;
+                })
+            };
+
+            // 1) PUT filter + nested options
+            await api.put(`/filter/update/${id}`, payload);
 
             // 2) sincroniza category-filters
             const toRemove = origCatFilters.filter(cf => !selectedCatIds.includes(cf.category_id));
@@ -208,11 +217,13 @@ export default function FilterUpdate() {
                             <button
                                 key={i}
                                 className={`px-4 py-2 ${tab === i
-                                        ? 'border-b-2 border-blue-600 text-blue-600'
-                                        : 'text-gray-600 hover:text-gray-800'
+                                    ? 'border-b-2 border-orange-600 text-orange-600'
+                                    : 'text-gray-600 hover:text-gray-800'
                                     }`}
                                 onClick={() => setTab(i as 0 | 1)}
-                            >{lbl}</button>
+                            >
+                                {lbl}
+                            </button>
                         ))}
                     </nav>
                 </div>
@@ -228,7 +239,7 @@ export default function FilterUpdate() {
                                     required
                                     value={name}
                                     onChange={e => setName(e.target.value)}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm"
+                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
                                 />
                             </div>
 
@@ -240,7 +251,7 @@ export default function FilterUpdate() {
                                     required
                                     value={fieldName}
                                     onChange={e => setFieldName(e.target.value)}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm"
+                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
                                 />
                             </div>
 
@@ -250,7 +261,7 @@ export default function FilterUpdate() {
                                 <select
                                     value={type}
                                     onChange={e => setType(e.target.value as FilterType)}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm"
+                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
                                 >
                                     <option value="SELECT">SELECT</option>
                                     <option value="MULTI_SELECT">MULTI_SELECT</option>
@@ -264,7 +275,7 @@ export default function FilterUpdate() {
                                 <select
                                     value={dataType}
                                     onChange={e => setDataType(e.target.value as FilterDataType)}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm"
+                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
                                 >
                                     <option value="STRING">STRING</option>
                                     <option value="NUMBER">NUMBER</option>
@@ -279,7 +290,7 @@ export default function FilterUpdate() {
                                 <select
                                     value={displayStyle}
                                     onChange={e => setDisplayStyle(e.target.value as FilterDisplayStyle)}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm"
+                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
                                 >
                                     <option value="DROPDOWN">DROPDOWN</option>
                                     <option value="CHECKBOX">CHECKBOX</option>
@@ -308,7 +319,7 @@ export default function FilterUpdate() {
                                     type="number"
                                     value={order}
                                     onChange={e => setOrder(Number(e.target.value))}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm"
+                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
                                 />
                             </div>
 
@@ -333,7 +344,7 @@ export default function FilterUpdate() {
                                             type="number"
                                             value={minValue}
                                             onChange={e => setMinValue(e.target.value === '' ? '' : Number(e.target.value))}
-                                            className="mt-1 block w-full rounded border-gray-300 shadow-sm"
+                                            className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
                                         />
                                     </div>
                                     <div>
@@ -342,7 +353,7 @@ export default function FilterUpdate() {
                                             type="number"
                                             value={maxValue}
                                             onChange={e => setMaxValue(e.target.value === '' ? '' : Number(e.target.value))}
-                                            className="mt-1 block w-full rounded border-gray-300 shadow-sm"
+                                            className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
                                         />
                                     </div>
                                 </>
@@ -355,7 +366,7 @@ export default function FilterUpdate() {
                                     <select
                                         value={groupId}
                                         onChange={e => setGroupId(e.target.value)}
-                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm"
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
                                     >
                                         <option value="">— Nenhum —</option>
                                         {groups.map(g => (
@@ -409,52 +420,52 @@ export default function FilterUpdate() {
                                     <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {/* Label */}
                                         <div>
-                                            <label className="block text-sm">Label</label>
+                                            <label className="block text-sm">Texto exibido (ex.: Azul, Médio, 2023)</label>
                                             <input
                                                 type="text"
                                                 value={opt.label}
                                                 onChange={e => updateOption(opt.id, 'label', e.target.value)}
-                                                className="mt-1 block w-full rounded border-gray-300 shadow-sm"
+                                                className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
                                             />
                                         </div>
                                         {/* Value */}
                                         <div>
-                                            <label className="block text-sm">Value</label>
+                                            <label className="block text-sm">Valor utilizado para a query</label>
                                             <input
                                                 type="text"
                                                 value={opt.value}
                                                 onChange={e => updateOption(opt.id, 'value', e.target.value)}
-                                                className="mt-1 block w-full rounded border-gray-300 shadow-sm"
+                                                className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
                                             />
                                         </div>
                                         {/* Order */}
                                         <div>
-                                            <label className="block text-sm">Ordem</label>
+                                            <label className="block text-sm">Ordem de exibição</label>
                                             <input
                                                 type="number"
                                                 value={opt.order}
                                                 onChange={e => updateOption(opt.id, 'order', Number(e.target.value))}
-                                                className="mt-1 block w-full rounded border-gray-300 shadow-sm"
+                                                className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
                                             />
                                         </div>
                                         {/* IconUrl */}
                                         <div>
-                                            <label className="block text-sm">Ícone (URL)</label>
+                                            <label className="block text-sm">URL para ícone (útil para filtros de cor ou ícones específicos)</label>
                                             <input
                                                 type="text"
                                                 value={opt.iconUrl}
                                                 onChange={e => updateOption(opt.id, 'iconUrl', e.target.value)}
-                                                className="mt-1 block w-full rounded border-gray-300 shadow-sm"
+                                                className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
                                             />
                                         </div>
                                         {/* ColorCode */}
                                         <div>
-                                            <label className="block text-sm">Cor (hex)</label>
+                                            <label className="block text-sm">Código de cor (ex.: "#FF0000"), se aplicável</label>
                                             <input
                                                 type="text"
                                                 value={opt.colorCode}
                                                 onChange={e => updateOption(opt.id, 'colorCode', e.target.value)}
-                                                className="mt-1 block w-full rounded border-gray-300 shadow-sm"
+                                                className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
                                             />
                                         </div>
                                         {/* IsDefault */}
@@ -485,7 +496,7 @@ export default function FilterUpdate() {
                         <button
                             type="submit"
                             disabled={submitting}
-                            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                            className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
                         >
                             {submitting ? 'Atualizando...' : 'Atualizar Filtro'}
                         </button>
@@ -497,11 +508,11 @@ export default function FilterUpdate() {
             {showGroupModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
                     <div className="bg-white p-6 rounded shadow-lg w-full max-w-lg">
-                        <h2 className="text-xl font-medium mb-4">Gerenciar Grupos</h2>
+                        <h2 className="text-xl font-medium mb-4 text-black">Gerenciar Grupos</h2>
                         <ul className="max-h-60 overflow-auto space-y-2 mb-4">
                             {groups.map(g => (
                                 <li key={g.id} className="flex justify-between p-2 border rounded">
-                                    <span>{g.name} ({g.order})</span>
+                                    <span className='text-black'>{g.name} ({g.order})</span>
                                     <button
                                         onClick={() => handleDeleteGroup(g.id)}
                                         className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
@@ -513,28 +524,28 @@ export default function FilterUpdate() {
                         </ul>
                         <div className="space-y-3 mb-4">
                             <div>
-                                <label className="block text-sm">Nome do grupo</label>
+                                <label className="block text-sm text-black">Nome do grupo</label>
                                 <input
                                     type="text"
                                     value={newGroupName}
                                     onChange={e => setNewGroupName(e.target.value)}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm"
+                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm">Ordem</label>
+                                <label className="block text-sm text-black">Ordem</label>
                                 <input
                                     type="number"
                                     value={newGroupOrder}
                                     onChange={e => setNewGroupOrder(Number(e.target.value))}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm"
+                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
                                 />
                             </div>
                         </div>
                         <div className="flex justify-end space-x-2">
                             <button
                                 onClick={() => setShowGroupModal(false)}
-                                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 text-black"
                             >
                                 Cancelar
                             </button>

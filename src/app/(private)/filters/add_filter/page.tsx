@@ -127,7 +127,7 @@ export default function AddFilterPage() {
             // 2) Associação de categorias via CategoryFilter
             await Promise.all(
                 selectedCatIds.map(catId =>
-                    api.post('/categoryFilters/create', { category_id: catId, id: filterId })
+                    api.post('/categoryFilters/create', { category_id: catId, filter_id: filterId })
                 )
             );
 

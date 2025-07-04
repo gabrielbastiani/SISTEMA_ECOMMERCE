@@ -32,6 +32,10 @@ const publicPaths = [
 // Configuração de permissões por role
 const rolePermissions: Record<UserRole, string[]> = {
     SUPER_ADMIN: [
+        '/menus',
+        '/menus/add_menu',
+        '/menus/add_itemMenu',
+        '/menus/[id]',
         '/filters/[id]',
         '/filters',
         '/filters/add_filter',
@@ -71,6 +75,9 @@ const rolePermissions: Record<UserRole, string[]> = {
         '/'
     ],
     ADMIN: [
+        '/menus',
+        '/menus/add_menu',
+        '/menus/add_itemMenu',
         '/filters/[id]',
         '/filters',
         '/filters/add_filter',

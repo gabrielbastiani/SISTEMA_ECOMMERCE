@@ -107,7 +107,7 @@ export function SidebarAndHeader({ children }: Content) {
                 title: 'Filtros',
                 name: 'filter',
                 items: [
-                    { title: 'Todos os filtros', path: '/filters' },
+                    { title: 'Filtros', path: '/filters' },
                     { title: 'Adicionar filtro', path: '/filters/add_filter' }
                 ]
             },
@@ -140,6 +140,14 @@ export function SidebarAndHeader({ children }: Content) {
                 name: 'newsletter',
                 items: [
                     { title: 'Gerenciar assinantes', path: '/newsletter' }
+                ]
+            },
+            {
+                title: 'Menus',
+                name: 'menu',
+                items: [
+                    { title: 'Menus', path: '/menus' },
+                    { title: 'Adicionar Menus', path: '/menus/add_menu' }
                 ]
             },
             {
