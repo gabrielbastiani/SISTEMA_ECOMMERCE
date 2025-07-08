@@ -281,14 +281,14 @@ export default function All_products() {
                                 label: "Estoque"
                             },
                             {
-                                key: "price_of",
+                                key: "price_per",
                                 label: "Preço",
                                 render: (item) => (
                                     <span>
                                         {new Intl.NumberFormat('pt-BR', {
                                             style: 'currency',
                                             currency: 'BRL'
-                                        }).format(item.price_of || 0)}
+                                        }).format(item.price_per || 0)}
                                     </span>
                                 ),
                             },

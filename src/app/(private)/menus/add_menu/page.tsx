@@ -1,6 +1,6 @@
 'use client'
 
-import { FormEvent, useState } from 'react'
+import { FormEvent, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Section } from '@/app/components/section'
 import { TitlePage } from '@/app/components/section/titlePage'
@@ -10,7 +10,7 @@ import { toast } from 'react-toastify'
 import { Tooltip } from '@nextui-org/react'
 
 export default function AddMenuPage() {
-    
+
     const router = useRouter()
     const api = setupAPIClientEcommerce()
 
@@ -18,14 +18,28 @@ export default function AddMenuPage() {
     const [name, setName] = useState('')
     const [order, setOrder] = useState(0)
     const [isActive, setIsActive] = useState(true)
+    // ícone
+    const [iconFile, setIconFile] = useState<File | null>(null)
+    const [iconPreview, setIconPreview] = useState<string | null>(null)
 
-    // estado de feedback
+    // estado de envio
     const [isSubmitting, setIsSubmitting] = useState(false)
+
+    // gerar preview sempre que trocar o arquivo
+    useEffect(() => {
+        if (!iconFile) {
+            setIconPreview(null)
+            return
+        }
+        const url = URL.createObjectURL(iconFile)
+        setIconPreview(url)
+        return () => URL.revokeObjectURL(url)
+    }, [iconFile])
 
     async function handleSubmit(e: FormEvent) {
         e.preventDefault()
 
-        // validações simples
+        // validações
         if (!name.trim()) {
             toast.error('O nome do menu é obrigatório.')
             return
@@ -34,16 +48,27 @@ export default function AddMenuPage() {
             toast.error('A ordem deve ser um número maior ou igual a zero.')
             return
         }
+        if (!iconFile) {
+            toast.error('O ícone do menu é obrigatório.')
+            return
+        }
 
         setIsSubmitting(true)
         try {
-            await api.post('/menu/create', { name, order, isActive })
+            const form = new FormData()
+            form.append('name', name)
+            form.append('order', String(order))
+            form.append('isActive', String(isActive))
+            form.append('file', iconFile)
+
+            await api.post('/menu/create', form)
+
             toast.success('Menu cadastrado com sucesso.')
             router.push('/menus')
+
         } catch (err: any) {
             console.error(err)
             toast.error('Erro ao criar o menu.')
-            console.log(err?.response?.data?.message || 'Erro ao criar o menu.');
         } finally {
             setIsSubmitting(false)
         }
@@ -58,7 +83,7 @@ export default function AddMenuPage() {
                     {/* Nome */}
                     <div>
                         <Tooltip
-                            content="Nome do menu (ex.: Header Menu, Footer Menu)"
+                            content="Ex.: Header Menu, Footer Menu"
                             placement="top-start"
                             className="bg-white text-red-500 border border-gray-200 p-2"
                         >
@@ -67,7 +92,7 @@ export default function AddMenuPage() {
                                 type="text"
                                 value={name}
                                 onChange={e => setName(e.target.value)}
-                                className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                className="block w-full rounded border-gray-300 shadow-sm p-2 text-black"
                                 placeholder="Ex.: Header Menu"
                                 disabled={isSubmitting}
                             />
@@ -77,7 +102,7 @@ export default function AddMenuPage() {
                     {/* Ordem */}
                     <div>
                         <Tooltip
-                            content="Caso queira ter vários menus e precise de ordenação"
+                            content="Define a posição deste menu"
                             placement="top-start"
                             className="bg-white text-red-500 border border-gray-200 p-2"
                         >
@@ -87,7 +112,7 @@ export default function AddMenuPage() {
                                 min={0}
                                 value={order}
                                 onChange={e => setOrder(Number(e.target.value))}
-                                className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                className="block w-full rounded border-gray-300 shadow-sm p-2 text-black"
                                 disabled={isSubmitting}
                             />
                         </Tooltip>
@@ -100,12 +125,37 @@ export default function AddMenuPage() {
                             type="checkbox"
                             checked={isActive}
                             onChange={e => setIsActive(e.target.checked)}
-                            className="h-4 w-4 rounded border-gray-300 focus:ring-orange-500"
                             disabled={isSubmitting}
+                            className="h-4 w-4 rounded border-gray-300 focus:ring-orange-500"
                         />
-                        <label htmlFor="isActive" className="ml-2 block text-sm">
+                        <label htmlFor="isActive" className="ml-2 text-sm">
                             Ativo
                         </label>
+                    </div>
+
+                    {/* Ícone */}
+                    <div>
+                        <label htmlFor="icon" className="block text-sm font-medium">
+                            Ícone do Menu <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="icon"
+                            type="file"
+                            accept="image/*"
+                            onChange={e => setIconFile(e.target.files?.[0] || null)}
+                            disabled={isSubmitting}
+                            className="mt-1 block w-full text-sm text-gray-600"
+                        />
+                        {iconPreview && (
+                            <div className="mt-2">
+                                <p className="text-xs text-gray-500">Preview:</p>
+                                <img
+                                    src={iconPreview}
+                                    alt="Preview do ícone"
+                                    className="h-20 w-20 object-cover rounded border"
+                                />
+                            </div>
+                        )}
                     </div>
 
                     {/* Botões */}
@@ -113,12 +163,23 @@ export default function AddMenuPage() {
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="inline-flex justify-center rounded-md border border-transparent
-                         bg-green-600 py-2 px-4 text-sm font-medium text-white shadow-sm
-                         hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500
-                         focus:ring-offset-2 disabled:opacity-50"
+                            className="inline-flex items-center justify-center rounded bg-green-600
+                         py-2 px-4 text-sm font-medium text-white shadow hover:bg-green-700
+                         focus:outline-none focus:ring-2 focus:ring-green-500
+                         disabled:opacity-50"
                         >
                             {isSubmitting ? 'Salvando...' : 'Salvar'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => router.push('/menus')}
+                            disabled={isSubmitting}
+                            className="inline-flex items-center justify-center rounded border border-gray-300
+                         bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow
+                         hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500
+                         disabled:opacity-50"
+                        >
+                            Cancelar
                         </button>
                     </div>
                 </form>

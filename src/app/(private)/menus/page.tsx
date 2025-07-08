@@ -24,7 +24,7 @@ interface MenusProps {
         type: string;
         url: string;
         category_id: string;
-        productId: string;
+        product_id: string;
         customPageSlug: string;
         icon: string;
         isActive: boolean;
@@ -92,6 +92,8 @@ export default function Menus() {
         }
     }
 
+    console.log(menus)
+
     // ---- COLUNAS PARA EXPORTAÇÂO DE DADOS ---- //
 
     const availableColumns = [
@@ -156,6 +158,30 @@ export default function Menus() {
                         columns={[
                             { key: "name", label: "Nome do menu" },
                             { key: "order", label: "Ordem" },
+                            {
+                                key: 'items',
+                                label: 'Itens do menu',
+                                render: (item: MenusProps) => (
+                                    <>
+                                        {item.items?.length === 0 ? (
+                                            <span className="text-gray-500">
+                                                Sem itens
+                                            </span>
+                                        ) : (
+                                            <span className="flex flex-wrap space-x-2 max-w-xs">
+                                                {item.items?.map((child, index) => (
+                                                    <span
+                                                        key={index}
+                                                        className="p-1 bg-gray-200 rounded-full text-xs whitespace-nowrap text-black"
+                                                    >
+                                                        {child.label}
+                                                    </span>
+                                                ))}
+                                            </span>
+                                        )}
+                                    </>
+                                ),
+                            },
                             {
                                 key: "isActive",
                                 label: "Ativado?",
