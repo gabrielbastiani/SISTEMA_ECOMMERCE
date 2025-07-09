@@ -497,7 +497,7 @@ export default function EditMenuPage() {
                                                 value={url}
                                                 onChange={e => setUrl(e.target.value)}
                                                 disabled={itemSaving}
-                                                className="mt-1 w-full border rounded px-2 py-1"
+                                                className="mt-1 w-full border rounded px-2 py-1 text-black"
                                             />
                                         </div>
                                     )}

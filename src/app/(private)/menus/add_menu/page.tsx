@@ -48,10 +48,6 @@ export default function AddMenuPage() {
             toast.error('A ordem deve ser um número maior ou igual a zero.')
             return
         }
-        if (!iconFile) {
-            toast.error('O ícone do menu é obrigatório.')
-            return
-        }
 
         setIsSubmitting(true)
         try {
@@ -59,7 +55,7 @@ export default function AddMenuPage() {
             form.append('name', name)
             form.append('order', String(order))
             form.append('isActive', String(isActive))
-            form.append('file', iconFile)
+            form.append('file', iconFile || "")
 
             await api.post('/menu/create', form)
 
@@ -136,7 +132,7 @@ export default function AddMenuPage() {
                     {/* Ícone */}
                     <div>
                         <label htmlFor="icon" className="block text-sm font-medium">
-                            Ícone do Menu <span className="text-red-500">*</span>
+                            Ícone do Menu
                         </label>
                         <input
                             id="icon"

@@ -147,7 +147,7 @@ export default function Menus() {
                         availableColumnsOrder={availableColumnsOrder}
                         columnsOrder={columnsOrder}
                         table_data="menu"
-                        url_delete_data="/filterData/delete"
+                        url_delete_data="/menu/delete"
                         data={menus}
                         totalPages={totalPages}
                         onFetchData={fetchMenus}
