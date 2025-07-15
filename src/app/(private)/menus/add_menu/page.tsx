@@ -16,6 +16,8 @@ export default function AddMenuPage() {
 
     // estado do formulário
     const [name, setName] = useState('')
+    const [identifier, setIdentifier] = useState('')
+    const [position, setPosition] = useState('topo_header_menu')
     const [order, setOrder] = useState(0)
     const [isActive, setIsActive] = useState(true)
     // ícone
@@ -49,6 +51,11 @@ export default function AddMenuPage() {
             return
         }
 
+        if (!position) {
+            toast.error('A posição do menu é obrigatória.')
+            return
+        }
+
         setIsSubmitting(true)
         try {
             const form = new FormData()
@@ -56,6 +63,8 @@ export default function AddMenuPage() {
             form.append('order', String(order))
             form.append('isActive', String(isActive))
             form.append('file', iconFile || "")
+            form.append('identifier', identifier)
+            form.append('position', position)
 
             await api.post('/menu/create', form)
 
@@ -93,6 +102,43 @@ export default function AddMenuPage() {
                                 disabled={isSubmitting}
                             />
                         </Tooltip>
+                    </div>
+
+                    {/* Identificador */}
+                    <div>
+                        <Tooltip
+                            content="Digite aqui, o slug da URL da pagina de onde deve aparecer esse menu, EX: acessorios-maquinas, camisa-preta"
+                            placement="top-start"
+                            className="bg-white text-red-500 border border-gray-200 p-2"
+                        >
+                            <input
+                                id="identifier"
+                                type="text"
+                                value={identifier}
+                                onChange={e => setIdentifier(e.target.value)}
+                                className="block w-full rounded border-gray-300 shadow-sm p-2 text-black"
+                                placeholder="Ex.: acessorios-maquinas"
+                                disabled={isSubmitting}
+                            />
+                        </Tooltip>
+                    </div>
+
+                    {/* Posição */}
+                    <div>
+                        <label htmlFor="position" className="block text-sm font-medium mb-1">
+                            Posição do Menu
+                        </label>
+                        <select
+                            id="position"
+                            value={position}
+                            onChange={e => setPosition(e.target.value)}
+                            disabled={isSubmitting}
+                            className="block w-full rounded border-gray-300 shadow-sm p-2 text-black"
+                        >
+                            <option value="topo_header_menu">Topo Header Menu</option>
+                            <option value="lateral_esquerda">Lateral Esquerda</option>
+                            <option value="footer_rodape">Footer Rodapé</option>
+                        </select>
                     </div>
 
                     {/* Ordem */}

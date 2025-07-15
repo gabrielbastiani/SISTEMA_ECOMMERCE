@@ -26,6 +26,8 @@ type Menu = {
     order: number
     isActive: boolean
     icon?: string
+    identifier?: string
+    position: string
 }
 
 type MenuItem = {
@@ -54,6 +56,8 @@ export default function EditMenuPage() {
     // — Menu state —
     const [menu, setMenu] = useState<Menu | null>(null)
     const [name, setName] = useState('')
+    const [identifier, setIdentifier] = useState('')
+    const [position, setPosition] = useState<string>('');
     const [order, setOrder] = useState(0)
     const [isActive, setIsActive] = useState(true)
     const [currentIcon, setCurrentIcon] = useState<string | null>(null)
@@ -167,6 +171,8 @@ export default function EditMenuPage() {
                 ])
                 setMenu(m)
                 setName(m.name)
+                setIdentifier(m.identifier || "")
+                setPosition(m.position || "topo_header_menu")
                 setOrder(m.order)
                 setIsActive(m.isActive)
                 setCurrentIcon(m.icon || null)
@@ -192,6 +198,8 @@ export default function EditMenuPage() {
             form.append('name', name)
             form.append('order', String(order))
             form.append('isActive', String(isActive))
+            form.append('identifier', identifier)
+            form.append('position', position);
             if (iconFile) form.append('file', iconFile)
             else if (currentIcon) form.append('file', currentIcon)
 
@@ -364,6 +372,28 @@ export default function EditMenuPage() {
                             disabled={menuSaving}
                             className="mt-1 w-full border rounded px-2 py-1 text-black"
                         />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium">Identificação</label>
+                        <input
+                            value={identifier}
+                            onChange={e => setIdentifier(e.target.value)}
+                            disabled={menuSaving}
+                            className="mt-1 w-full border rounded px-2 py-1 text-black"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium">Posição</label>
+                        <select
+                            value={position}
+                            onChange={e => setPosition(e.target.value)}
+                            disabled={menuSaving}
+                            className="mt-1 w-full border rounded px-2 py-1 text-black"
+                        >
+                            <option value="topo_header_menu">Topo Header Menu</option>
+                            <option value="lateral_esquerda">Lateral Esquerda</option>
+                            <option value="footer_rodape">Footer Rodapé</option>
+                        </select>
                     </div>
                     <div>
                         <label className="block text-sm font-medium">Ordem</label>
