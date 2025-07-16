@@ -103,26 +103,6 @@ export default function AddMenuPage() {
                             />
                         </Tooltip>
                     </div>
-
-                    {/* Identificador */}
-                    <div>
-                        <Tooltip
-                            content="Digite aqui, o slug da URL da pagina de onde deve aparecer esse menu, EX: acessorios-maquinas, camisa-preta"
-                            placement="top-start"
-                            className="bg-white text-red-500 border border-gray-200 p-2"
-                        >
-                            <input
-                                id="identifier"
-                                type="text"
-                                value={identifier}
-                                onChange={e => setIdentifier(e.target.value)}
-                                className="block w-full rounded border-gray-300 shadow-sm p-2 text-black"
-                                placeholder="Ex.: acessorios-maquinas"
-                                disabled={isSubmitting}
-                            />
-                        </Tooltip>
-                    </div>
-
                     {/* Posição */}
                     <div>
                         <label htmlFor="position" className="block text-sm font-medium mb-1">
@@ -140,6 +120,29 @@ export default function AddMenuPage() {
                             <option value="footer_rodape">Footer Rodapé</option>
                         </select>
                     </div>
+
+                    {(position === "topo_header_menu" || position === "footer_rodape")
+                        ? null
+                        : (
+                            <div>
+                                <Tooltip
+                                    content="Digite aqui, o slug da URL da pagina de onde deve aparecer esse menu, EX: acessorios-maquinas, camisa-preta"
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
+                                >
+                                    <input
+                                        id="identifier"
+                                        type="text"
+                                        value={identifier}
+                                        onChange={e => setIdentifier(e.target.value)}
+                                        className="block w-full rounded border-gray-300 shadow-sm p-2 text-black"
+                                        placeholder="Ex.: acessorios-maquinas"
+                                        disabled={isSubmitting}
+                                    />
+                                </Tooltip>
+                            </div>
+                        )
+                    }
 
                     {/* Ordem */}
                     <div>

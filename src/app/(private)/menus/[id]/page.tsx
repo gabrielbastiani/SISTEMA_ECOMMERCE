@@ -374,15 +374,6 @@ export default function EditMenuPage() {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium">Identificação</label>
-                        <input
-                            value={identifier}
-                            onChange={e => setIdentifier(e.target.value)}
-                            disabled={menuSaving}
-                            className="mt-1 w-full border rounded px-2 py-1 text-black"
-                        />
-                    </div>
-                    <div>
                         <label className="block text-sm font-medium">Posição</label>
                         <select
                             value={position}
@@ -395,6 +386,22 @@ export default function EditMenuPage() {
                             <option value="footer_rodape">Footer Rodapé</option>
                         </select>
                     </div>
+
+                    {(position === "topo_header_menu" || position === "footer_rodape")
+                        ? null
+                        : (
+                            <div>
+                                <label className="block text-sm font-medium">Identificação</label>
+                                <input
+                                    value={identifier}
+                                    onChange={e => setIdentifier(e.target.value)}
+                                    disabled={menuSaving}
+                                    className="mt-1 w-full border rounded px-2 py-1 text-black"
+                                />
+                            </div>
+                        )
+                    }
+
                     <div>
                         <label className="block text-sm font-medium">Ordem</label>
                         <input

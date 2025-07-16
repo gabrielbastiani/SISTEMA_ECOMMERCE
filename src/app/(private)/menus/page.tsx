@@ -15,6 +15,8 @@ interface MenusProps {
     id: string;
     name: string;
     isActive: boolean;
+    position: string;
+    identifier: string;
     order: number;
     created_at: string | number | Date;
     edit: string;
@@ -92,8 +94,6 @@ export default function Menus() {
         }
     }
 
-    console.log(menus)
-
     // ---- COLUNAS PARA EXPORTAÇÂO DE DADOS ---- //
 
     const availableColumns = [
@@ -158,6 +158,20 @@ export default function Menus() {
                         columns={[
                             { key: "name", label: "Nome do menu" },
                             { key: "order", label: "Ordem" },
+                            { key: "position", label: "Posição" },
+                            {
+                                key: "identifier",
+                                label: "Identificação",
+                                render: (item: MenusProps) => (
+                                    <>
+                                        {item.identifier == null ?
+                                            <span className='text-red-400'>Não aplicavel</span>
+                                            :
+                                            <span>{item.identifier}</span>
+                                        }
+                                    </>
+                                ),
+                            },
                             {
                                 key: 'items',
                                 label: 'Itens do menu',
@@ -168,16 +182,18 @@ export default function Menus() {
                                                 Sem itens
                                             </span>
                                         ) : (
-                                            <span className="flex flex-wrap space-x-2 max-w-xs">
-                                                {item.items?.map((child, index) => (
-                                                    <span
-                                                        key={index}
-                                                        className="p-1 bg-gray-200 rounded-full text-xs whitespace-nowrap text-black"
-                                                    >
-                                                        {child.label}
-                                                    </span>
-                                                ))}
-                                            </span>
+                                            <div className='px-60'>
+                                                <span className="flex flex-wrap space-x-2 max-w-xs">
+                                                    {item.items?.map((child, index) => (
+                                                        <span
+                                                            key={index}
+                                                            className="p-1 bg-gray-200 rounded-full text-xs whitespace-nowrap text-black"
+                                                        >
+                                                            {child.label}
+                                                        </span>
+                                                    ))}
+                                                </span>
+                                            </div>
                                         )}
                                     </>
                                 ),
