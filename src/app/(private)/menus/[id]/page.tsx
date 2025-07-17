@@ -9,6 +9,7 @@ import { SidebarAndHeader } from '@/app/components/sidebarAndHeader'
 import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce'
 import { toast } from 'react-toastify'
 import { Tooltip } from '@nextui-org/react'
+import { FaRegTrashAlt } from 'react-icons/fa'
 
 type Category = { id: string; name: string; slug: string }
 type Product = { id: string; name: string; slug: string }
@@ -283,7 +284,6 @@ export default function EditMenuPage() {
 
     // delete item
     async function handleDeleteItem(item: MenuItem) {
-        if (!confirm(`Excluir "${item.label}"?`)) return
         try {
             await api.delete(`/menuItem/get/delete/${item.id}`)
             setItems(prev => prev.filter(i => i.id !== item.id))
@@ -354,6 +354,31 @@ export default function EditMenuPage() {
                 ? [row, ...renderRows(node.children, depth + 1)]
                 : [row]
         })
+    }
+
+    async function deleteImageMenuItem(id: string) {
+        try {
+            const res = await api.delete(`/menuItem/icon/delete?menuItem_id=${id}`)
+            const saved = res.data
+            setItems(prev => editingItem
+                ? prev.map(i => i.id === saved.id ? saved : i)
+                : [...prev, saved]
+            )
+            toast.success('Imagem excluída')
+            setItemIconPreview(null)
+        } catch {
+            toast.error('Erro ao excluir imagem')
+        }
+    }
+
+    async function deleteMenuImageItem(id: string) {
+        try {
+            await api.delete(`/menu/icon/delete?menu_id=${id}`)
+            toast.success('Imagem excluída')
+            setIconPreview(null)
+        } catch {
+            toast.error('Erro ao excluir imagem')
+        }
     }
 
     if (menuLoading) return <p>Carregando menu…</p>
@@ -432,7 +457,15 @@ export default function EditMenuPage() {
                             className="mt-1 block w-full"
                         />
                         {iconPreview && (
+                            <div>
+                                <FaRegTrashAlt
+                                                color='red'
+                                                size={20}
+                                                style={{ cursor: 'pointer', margin: '10px' }}
+                                                onClick={() => deleteMenuImageItem(menu?.id || '')}
+                                            />
                             <img src={iconPreview} alt="Preview" className="mt-2 h-20 w-20 rounded border object-cover" />
+                            </div>
                         )}
                     </div>
                     {menuError && <p className="text-red-600">{menuError}</p>}
@@ -646,13 +679,21 @@ export default function EditMenuPage() {
                                         className="mt-1 block w-full text-black"
                                     />
                                     {itemIconPreview && (
-                                        <Image
-                                            src={itemIconPreview}
-                                            alt="Preview Item"
-                                            className="mt-2 rounded border object-cover"
-                                            height={100}
-                                            width={100}
-                                        />
+                                        <div>
+                                            <FaRegTrashAlt
+                                                color='red'
+                                                size={20}
+                                                style={{ cursor: 'pointer', margin: '10px' }}
+                                                onClick={() => deleteImageMenuItem(editingItem?.id || '')}
+                                            />
+                                            <Image
+                                                src={itemIconPreview}
+                                                alt="Preview Item"
+                                                className="mt-2 rounded border object-cover"
+                                                height={100}
+                                                width={100}
+                                            />
+                                        </div>
                                     )}
                                 </div>
                                 <div className="flex justify-end space-x-2 mt-4">
