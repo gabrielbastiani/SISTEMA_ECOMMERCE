@@ -65,7 +65,7 @@ export default function AddMarketingPublication() {
             errorMessages.interval_banner = "Selecione um tempo válido.";
         }
 
-        if (data.position && !["SLIDER", "SIDEBAR", "POPUP"].includes(data.position)) {
+        if (data.position && !["SLIDER", "SIDEBAR", "POPUP", "MOSAICO"].includes(data.position)) {
             errorMessages.position = "Selecione uma posição válida.";
         }
 
@@ -268,6 +268,7 @@ export default function AddMarketingPublication() {
                             <option value="">Selecione uma posição</option>
                             <option value="SLIDER">Slider banner</option>
                             <option value="SIDEBAR">No sidebar</option>
+                            <option value="MOSAICO">Mosaico</option>
                             {isPopup ? <option value="POPUP">Popup</option> : null}
                         </select>
                     </div>

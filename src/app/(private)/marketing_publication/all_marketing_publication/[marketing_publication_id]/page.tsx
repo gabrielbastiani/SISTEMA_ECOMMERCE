@@ -24,7 +24,7 @@ interface FormData {
     popup_time?: string;
     text_button?: string;
     status?: "Disponivel" | "Indisponivel";
-    position?: "SLIDER" | "SIDEBAR" | "POPUP";
+    position?: "SLIDER" | "SIDEBAR" | "POPUP" | "MOSAICO";
     conditions?: "scroll" | "setTimeout" | "beforeunload";
 }
 
@@ -270,6 +270,7 @@ export default function UpdateMarketingPublication() {
                             >
                                 <option value="SLIDER">Slider</option>
                                 <option value="SIDEBAR">Sidebar</option>
+                                <option value="MOSAICO">Mosaico</option>
                                 <option value="POPUP">Popup</option>
                             </select>
                         </label>
