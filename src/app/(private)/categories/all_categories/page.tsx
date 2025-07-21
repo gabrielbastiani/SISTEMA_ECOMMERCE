@@ -459,7 +459,7 @@ export default function All_categories() {
                                 </button>
                                 <button
                                     onClick={() => handleSave(showDescriptionPopup, "description")}
-                                    className="px-4 py-2 text-sm font-semibold text-[#FFFFFF] bg-backgroundButton rounded-md"
+                                    className="px-4 py-2 text-sm font-semibold text-[#FFFFFF] bg-green-500 rounded-md"
                                 >
                                     Salvar
                                 </button>
