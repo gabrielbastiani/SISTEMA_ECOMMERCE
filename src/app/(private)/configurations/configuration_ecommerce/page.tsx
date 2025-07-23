@@ -81,8 +81,29 @@ const schema = z.object({
     number: z.string().optional(),
     neighborhood: z.string().optional(),
     country: z.string().optional(),
-    cnpj: z.string().optional(),
-    cpf: z.string().optional(),
+    cnpj: z.preprocess<string | undefined | any>(
+    (val) => {
+      if (typeof val === "string") {
+        return val.replace(/\D/g, "");
+      }
+      return undefined;
+    },
+    z.string()
+     .length(14, "CNPJ inválido. Deve conter 14 dígitos.")
+     .optional()
+  ),
+
+  cpf: z.preprocess<string | undefined | any>(
+    (val) => {
+      if (typeof val === "string") {
+        return val.replace(/\D/g, "");
+      }
+      return undefined;
+    },
+    z.string()
+     .length(11, "CPF inválido. Deve conter 11 dígitos.")
+     .optional()
+  ),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -109,6 +130,10 @@ export default function Configuration_ecommerce() {
     const [aboutStoreContent, setAboutStoreContent] = useState("");
     const [activeTab, setActiveTab] = useState('about');
     const [zipCodeValue, setZipCodeValue] = useState("");
+    const [cnpjValue, setCnpjValue] = useState("");
+    const [cpfValue, setCpfValue] = useState("");
+
+    console.log(cnpjValue)
 
     const editorTabs = [
         {
@@ -221,6 +246,49 @@ export default function Configuration_ecommerce() {
         });
     }, [phoneValue, whatsappValue]);
 
+    // formatação de CNPJ
+    const formatCNPJ = (value: string) => {
+        const numbers = value.replace(/\D/g, "");
+        const match = numbers.match(
+            /^(\d{0,2})(\d{0,3})(\d{0,3})(\d{0,4})(\d{0,2})$/
+        );
+        if (!match) return "";
+        return [
+            match[1],
+            match[2] ? `.${match[2]}` : "",
+            match[3] ? `.${match[3]}` : "",
+            match[4] ? `/${match[4]}` : "",
+            match[5] ? `-${match[5]}` : "",
+        ].join("");
+    };
+    useEffect(() => {
+        setCnpjValue((prev) => {
+            const f = formatCNPJ(prev);
+            if (f !== prev) return f;
+            return prev;
+        });
+    }, [cnpjValue]);
+
+    // formatação de CPF
+    const formatCPF = (value: string) => {
+        const numbers = value.replace(/\D/g, "");
+        const match = numbers.match(/^(\d{0,3})(\d{0,3})(\d{0,3})(\d{0,2})$/);
+        if (!match) return "";
+        return [
+            match[1],
+            match[2] ? `.${match[2]}` : "",
+            match[3] ? `.${match[3]}` : "",
+            match[4] ? `-${match[4]}` : "",
+        ].join("");
+    };
+    useEffect(() => {
+        setCpfValue((prev) => {
+            const f = formatCPF(prev);
+            if (f !== prev) return f;
+            return prev;
+        });
+    }, [cpfValue]);
+
     useEffect(() => {
         setIsMounted(true);
     }, []);
@@ -274,6 +342,8 @@ export default function Configuration_ecommerce() {
             if (data.whatsapp) {
                 setWhatsappValue(data.whatsapp);
             }
+            if (data.cnpj) setCnpjValue(formatCNPJ(data.cnpj));
+            if (data.cpf) setCpfValue(formatCPF(data.cpf));
             setId(data?.id || "");
 
             setLogoUrl(data.logo || null);
@@ -321,8 +391,8 @@ export default function Configuration_ecommerce() {
         try {
             const formData = new FormData();
             formData.append("ecommerceData_id", id || "");
-            formData.append("cnpj", data.cnpj || "");
-            formData.append("cpf", data.cpf || "");
+            formData.append("cnpj", cnpjValue || "");
+            formData.append("cpf", cpfValue || "");
             formData.append("name", data.name || "");
             formData.append("phone", phoneValue.replace(/\D/g, '') || "");
             formData.append("whatsapp", whatsappValue.replace(/\D/g, '') || "");
@@ -452,26 +522,20 @@ export default function Configuration_ecommerce() {
                                 {errors.name && <span className="text-red-500 text-sm">{errors.name.message}</span>}
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium">CNPJ *</label>
-                                <input
-                                    type="text"
-                                    placeholder="CNPJ"
-                                    {...register("cnpj")}
-                                    className="w-full border-2 rounded-md px-4 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition text-black"
-                                />
-                                {errors.cnpj && <span className="text-red-500 text-sm">{errors.cnpj.message}</span>}
-                            </div>
-
+                            {/* CPF */}
                             <div className="space-y-2">
                                 <label className="block text-sm font-medium">CPF *</label>
                                 <input
                                     type="text"
-                                    placeholder="CPF"
-                                    {...register("cpf")}
-                                    className="w-full border-2 rounded-md px-4 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition text-black"
+                                    placeholder="000.000.000-00"
+                                    value={cpfValue}
+                                    onChange={(e) => {
+                                        setCpfValue(e.target.value);
+                                        setValue("cpf", e.target.value.replace(/\D/g, ""));
+                                    }}
+                                    maxLength={14}
+                                    className="w-full border-2 rounded-md px-4 py-2 focus:ring-2 focus:ring-orange-500 outline-none text-black"
                                 />
-                                {errors.cpf && <span className="text-red-500 text-sm">{errors.cpf.message}</span>}
                             </div>
 
                             <div className="space-y-2">
@@ -511,7 +575,7 @@ export default function Configuration_ecommerce() {
                                     onChange={(e) => {
                                         const value = e.target.value;
                                         setWhatsappValue(value);
-                                        setValue("whatsapp", value.replace(/\D/g, '')); // Adicione esta linha
+                                        setValue("whatsapp", value.replace(/\D/g, ''));
                                     }}
                                     className="text-black w-full border-2 rounded-md px-4 py-2 focus:ring-2 focus:ring-orange-500 outline-none transition"
                                     maxLength={15}
@@ -526,6 +590,22 @@ export default function Configuration_ecommerce() {
                         <h2 className="text-xl font-semibold mb-4">Endereço</h2>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium">CNPJ *</label>
+                                <input
+                                    type="text"
+                                    placeholder="00.000.000/0000-00"
+                                    value={cnpjValue}
+                                    onChange={(e) => {
+                                        setCnpjValue(e.target.value);
+                                        // mantém no RHF o valor puro (dígitos)
+                                        setValue("cnpj", e.target.value.replace(/\D/g, ""));
+                                    }}
+                                    maxLength={18}
+                                    className="w-full border-2 rounded-md px-4 py-2 focus:ring-2 focus:ring-orange-500 outline-none text-black"
+                                />
+                            </div>
+
                             <div className="space-y-2">
                                 <label className="block text-sm font-medium">CEP</label>
                                 <input
