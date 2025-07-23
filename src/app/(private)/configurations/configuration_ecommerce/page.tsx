@@ -80,7 +80,9 @@ const schema = z.object({
     zipCode: z.string().optional(),
     number: z.string().optional(),
     neighborhood: z.string().optional(),
-    country: z.string().optional()
+    country: z.string().optional(),
+    cnpj: z.string().optional(),
+    cpf: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -288,7 +290,9 @@ export default function Configuration_ecommerce() {
                 zipCode: data.zipCode,
                 number: data.number,
                 neighborhood: data.neighborhood,
-                country: data.country
+                country: data.country,
+                cnpj: data.cnpj,
+                cpf: data.cpf
             });
 
             setPrivacyPoliciesContent(data.privacy_policies || "");
@@ -317,6 +321,8 @@ export default function Configuration_ecommerce() {
         try {
             const formData = new FormData();
             formData.append("ecommerceData_id", id || "");
+            formData.append("cnpj", data.cnpj || "");
+            formData.append("cpf", data.cpf || "");
             formData.append("name", data.name || "");
             formData.append("phone", phoneValue.replace(/\D/g, '') || "");
             formData.append("whatsapp", whatsappValue.replace(/\D/g, '') || "");
@@ -444,6 +450,28 @@ export default function Configuration_ecommerce() {
                                     className="w-full border-2 rounded-md px-4 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition text-black"
                                 />
                                 {errors.name && <span className="text-red-500 text-sm">{errors.name.message}</span>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium">CNPJ *</label>
+                                <input
+                                    type="text"
+                                    placeholder="CNPJ"
+                                    {...register("cnpj")}
+                                    className="w-full border-2 rounded-md px-4 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition text-black"
+                                />
+                                {errors.cnpj && <span className="text-red-500 text-sm">{errors.cnpj.message}</span>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium">CPF *</label>
+                                <input
+                                    type="text"
+                                    placeholder="CPF"
+                                    {...register("cpf")}
+                                    className="w-full border-2 rounded-md px-4 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition text-black"
+                                />
+                                {errors.cpf && <span className="text-red-500 text-sm">{errors.cpf.message}</span>}
                             </div>
 
                             <div className="space-y-2">
@@ -615,7 +643,7 @@ export default function Configuration_ecommerce() {
                                                 plugins: "advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table code help wordcount",
                                                 toolbar: "undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help",
                                                 content_style: "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }"
-                                              }}
+                                            }}
                                         />
                                     )}
                                 </div>
