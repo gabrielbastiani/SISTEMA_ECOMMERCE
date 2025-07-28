@@ -131,7 +131,7 @@ export default function PromotionStep4({ data, setData, onBack, onNext }: Props)
           onClick={add}
           className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
         >
-          Adicionar Ação
+          Adicionar Conteúdo
         </button>
         <button
           type="button"
