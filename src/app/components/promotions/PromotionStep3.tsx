@@ -284,8 +284,8 @@ export default function PromotionStep3({
                             selected={params.categoryIds || []}
                             onChange={arr => setParams((p: any) => ({ ...p, categoryIds: arr }))}
                         />
-                        <div className='mt-10'>
-                            <label>
+                        <div className='mt-10 text-black'>
+                            <label className='text-black'>
                                 Percentual (%)*{' '}
                                 <input
                                     type="number"
@@ -451,20 +451,41 @@ export default function PromotionStep3({
             case ActionType.PERCENT_SHIPPING:
             case ActionType.PERCENT_SUBTOTAL:
             case ActionType.PERCENT_TOTAL_NO_SHIPPING:
+            // dentro de renderFields(), substitua o case existente:
+
             case ActionType.PERCENT_TOTAL_PER_PRODUCT:
                 return (
-                    <div className='mt-10'>
-                        <label>
-                            Percentual (%)*{' '}
+                    <>
+                        {/* Se você quiser, pode também oferecer includeList */}
+                        <div className="space-y-4">
+                            <label className="block font-medium">Excluir do desconto</label>
+                            <MultiSelect
+                                label="Produtos a excluir"
+                                options={productOptions}
+                                selected={params.excludeProductIds || []}
+                                onChange={(arr) =>
+                                    setParams((p: any) => ({ ...p, excludeProductIds: arr }))
+                                }
+                            />
+                        </div>
+                        <div className="mt-4">
+                            <label className="block font-medium">
+                                Percentual de desconto (%)*{" "}
+                            </label>
                             <input
                                 type="number"
-                                value={params.amount || ''}
-                                onChange={e => setParams({ ...params, amount: Number(e.target.value) })}
-                                className='p-2 text-black border-4'
+                                value={params.amount || ""}
+                                onChange={(e) =>
+                                    setParams((p: any) => ({
+                                        ...p,
+                                        amount: Number(e.target.value),
+                                    }))
+                                }
+                                className="w-full border p-2 rounded text-black"
                             />
-                        </label>
-                    </div>
-                )
+                        </div>
+                    </>
+                );
 
             case ActionType.FIXED_SHIPPING:
             case ActionType.FIXED_SUBTOTAL:

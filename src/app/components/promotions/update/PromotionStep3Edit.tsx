@@ -433,19 +433,26 @@ export default function PromotionStep3Edit({
             case ActionType.PERCENT_SUBTOTAL:
             case ActionType.PERCENT_TOTAL_NO_SHIPPING:
             case ActionType.PERCENT_TOTAL_PER_PRODUCT:
-                return (
-                    <div className='mt-10'>
-                        <label className='text-foreground'>
-                            Percentual (%)*{' '}
-                            <input
-                                type="number"
-                                value={params.amount || ''}
-                                onChange={e => setParams({ ...params, amount: Number(e.target.value) })}
-                                className='p-2 text-black border-4'
-                            />
-                        </label>
-                    </div>
-                )
+        return (
+          <>
+            {/* aqui adicionamos o select de exclusão */}
+            <MultiSelect
+              label="Excluir do desconto"
+              options={productOpts}
+              selected={params.excludeProductIds || []}
+              onChange={(arr) => setParams((p: any) => ({ ...p, excludeProductIds: arr }))}
+            />
+            <div className="mt-4">
+              <label className="block mb-1 font-medium text-black">Percentual (%)*</label>
+              <input
+                type="number"
+                value={params.amount || ''}
+                onChange={e => setParams((p: any) => ({ ...p, amount: Number(e.target.value) }))}
+                className="w-full border p-2 rounded text-black"
+              />
+            </div>
+          </>
+        )
 
             case ActionType.FIXED_SHIPPING:
             case ActionType.FIXED_SUBTOTAL:
@@ -547,7 +554,11 @@ export default function PromotionStep3Edit({
             case ActionType.PERCENT_SUBTOTAL:
             case ActionType.PERCENT_TOTAL_NO_SHIPPING:
             case ActionType.PERCENT_TOTAL_PER_PRODUCT:
-                return `Desconto: ${percent(p.amount)}`
+        const excluídos = Array.isArray(p.excludeProductIds) ? p.excludeProductIds : []
+        const nomes = products
+          .filter(prod => excluídos.includes(prod.id))
+          .map(prod => prod.name)
+        return `-${p.amount}% em todos os produtos exceto: ${nomes.join(', ')}`
 
             case ActionType.FIXED_SHIPPING:
             case ActionType.FIXED_SUBTOTAL:
