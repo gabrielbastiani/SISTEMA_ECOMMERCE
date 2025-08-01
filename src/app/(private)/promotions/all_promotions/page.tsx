@@ -23,7 +23,7 @@ interface PromotionRequest {
     reuseSameCoupon?: boolean;
     perUserCouponLimit?: number;
     totalCouponCount?: number;
-    active?: boolean;
+    status: string;
     cumulative?: boolean;
     priority?: number;
     coupons?: Array<{
@@ -44,10 +44,7 @@ interface PromotionRequest {
     edit?: string;
 }
 
-const statusOptions = [
-    { label: "Ativado", value: true },
-    { label: "Desativado", value: false },
-];
+const statusOptions = ["Disponivel", "Indisponivel"];
 
 export default function All_promotions() {
 
@@ -57,7 +54,7 @@ export default function All_promotions() {
     const [promotions, setPromotions] = useState<PromotionRequest[]>([]);
     const [totalPages, setTotalPages] = useState(1);
     const [editingPromotion, setEditingPromotion] = useState<{ id: string, field: string } | null>(null);
-    const [editedValue, setEditedValue] = useState<boolean>(false);
+    const [editedValue, setEditedValue] = useState<string>("");
 
     const apiClient = setupAPIClientEcommerce();
 
@@ -73,23 +70,24 @@ export default function All_promotions() {
         }
     }
 
-    const handleEdit = (id: string, field: string, currentValue: boolean) => {
+    const handleEdit = (id: string, field: string, currentValue: string) => {
         setEditingPromotion({ id, field });
         setEditedValue(currentValue);
     };
 
     const handleSave = async (id: string, field: keyof PromotionRequest) => {
         try {
-            const data = {
-                promotion_id: id,
-                active: editedValue,
-            };
+            let updatedField: Partial<PromotionRequest> = {};
+
+            updatedField = { status: editedValue };
+
+            const data = { ...updatedField, promotion_id: id };
             await apiClient.put(`/promotion/active`, data);
 
             // atualiza localmente
             setPromotions((prev) =>
                 prev.map((promo) =>
-                    promo.id === id ? { ...promo, active: editedValue } : promo
+                    promo.id === id ? { ...promo, status: editedValue } : promo
                 )
             );
 
@@ -225,33 +223,27 @@ export default function All_promotions() {
                                 )
                             },
                             {
-                                key: "active",
-                                label: "Ativado?",
+                                key: "status",
+                                label: "Status",
                                 render: (item: PromotionRequest) => (
                                     <span>
-                                        {editingPromotion?.id === item.id && editingPromotion.field === "active" ? (
+                                        {editingPromotion?.id === item.id && editingPromotion?.field === "status" ? (
                                             <select
-                                                value={editedValue.toString()}
-                                                onChange={(e) => setEditedValue(e.target.value === "true")}
-                                                onBlur={() => handleSave(item.id, "active")}
-                                                className="border-gray-300 rounded-md p-1 text-black"
-                                                autoFocus
+                                                value={editedValue || item.status}
+                                                onChange={(e) => setEditedValue(e.target.value)}
+                                                onBlur={() => handleSave(item.id, "status")}
+                                                className="appearance-auto text-black border-gray-300 rounded-md p-1"
                                             >
-                                                {statusOptions.map((opt) => (
-                                                    <option key={opt.value.toString()} value={opt.value.toString()}>
-                                                        {opt.label}
+                                                {statusOptions.map((status) => (
+                                                    <option key={status} value={status}>
+                                                        {status}
                                                     </option>
                                                 ))}
                                             </select>
                                         ) : (
-                                            <span
-                                                onClick={() =>
-                                                    user?.role !== "EMPLOYEE" &&
-                                                    handleEdit(item.id, "active", !!item.active)
-                                                }
-                                                className="cursor-pointer hover:underline"
-                                            >
-                                                {item.active ? "Ativado" : "Desativado"}
+                                            <span onClick={() => user?.role === "EMPLOYEE" ? "" : handleEdit(item.id, "status", item.status)}
+                                                className="cursor-pointer text-red-500 hover:underline">
+                                                {item.status}
                                             </span>
                                         )}
                                     </span>

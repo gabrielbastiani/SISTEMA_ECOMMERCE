@@ -268,7 +268,7 @@ export interface CreatePromotionDto {
     totalCouponCount?: number
     coupons?: string[]
 
-    active: boolean
+    status: string
     cumulative: boolean
     priority: number
 

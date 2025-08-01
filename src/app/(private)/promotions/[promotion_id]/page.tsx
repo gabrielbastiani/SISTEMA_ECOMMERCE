@@ -7,7 +7,7 @@ import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce'
 import { SidebarAndHeader } from '@/app/components/sidebarAndHeader'
 import { Section } from '@/app/components/section'
 import { TitlePage } from '@/app/components/section/titlePage'
-import PromotionStep1Edit from '@/app/components/promotions/update/PromotionStep1Edit'
+import PromotionStep1Edit, { Step1Values } from '@/app/components/promotions/update/PromotionStep1Edit'
 import { usePromotionForm } from '@/hooks/usePromotionForm'
 import PromotionStep2Edit from '@/app/components/promotions/update/PromotionStep2Edit'
 import PromotionStep3Edit from '@/app/components/promotions/update/PromotionStep3Edit'
@@ -43,15 +43,17 @@ export default function UpdatePromotionPage() {
               initial={{
                 name: data.name,
                 description: data.description || '',
-                startDate: data.startDate,
-                endDate: data.endDate,
+                startDate: data.startDate ? new Date(data.startDate) : undefined,
+                endDate: data.endDate ? new Date(data.endDate) : undefined,
                 hasCoupon: data.hasCoupon,
                 multipleCoupons: data.multipleCoupons,
                 reuseSameCoupon: data.reuseSameCoupon,
                 coupons: data.coupons || [],
                 perUserCouponLimit: data.perUserCouponLimit,
                 totalCouponCount: data.totalCouponCount,
-                active: data.active,
+                status: (['Disponivel', 'Indisponivel', 'Programado'] as const).includes(data.status as any)
+                  ? data.status as Step1Values['status']
+                  : '',
                 cumulative: data.cumulative,
                 priority: data.priority
               }}
@@ -59,26 +61,43 @@ export default function UpdatePromotionPage() {
                 const form = new FormData()
                 form.append('name', values.name)
                 if (values.description) form.append('description', values.description)
-                form.append('startDate', values.startDate.toISOString())
-                form.append('endDate', values.endDate.toISOString())
+
+                // 3) ENVIA exata string local "YYYY-MM-DDThh:mm"
+                if (values.startDate) {
+                  // mesmo método de formatação usado no component
+                  const tzOffsetMs = values.startDate.getTimezoneOffset() * 60000
+                  const localISO = new Date(values.startDate.getTime() - tzOffsetMs)
+                    .toISOString()
+                    .slice(0, 16)
+                  form.append('startDate', localISO)
+                } else {
+                  form.append('startDate', '')
+                }
+                if (values.endDate) {
+                  const tzOffsetMs = values.endDate.getTimezoneOffset() * 60000
+                  const localISO = new Date(values.endDate.getTime() - tzOffsetMs)
+                    .toISOString()
+                    .slice(0, 16)
+                  form.append('endDate', localISO)
+                } else {
+                  form.append('endDate', '')
+                }
+
                 form.append('hasCoupon', String(values.hasCoupon))
                 form.append('multipleCoupons', String(values.multipleCoupons))
                 form.append('reuseSameCoupon', String(values.reuseSameCoupon))
-                if (values.perUserCouponLimit != null)
-                  form.append('perUserCouponLimit', String(values.perUserCouponLimit))
-                if (values.totalCouponCount != null)
-                  form.append('totalCouponCount', String(values.totalCouponCount))
+                // sempre append, mesmo vazio, para perUserCouponLimit/totalCouponCount
+                form.append('perUserCouponLimit', values.perUserCouponLimit != null ? String(values.perUserCouponLimit) : '')
+                form.append('totalCouponCount', values.totalCouponCount != null ? String(values.totalCouponCount) : '')
+
                 values.coupons.forEach(c => form.append('coupons', c))
-                form.append('active', String(values.active))
+                if (values.status) form.append('status', values.status)
                 form.append('cumulative', String(values.cumulative))
                 form.append('priority', String(values.priority))
 
                 await api.put(`/promotions/${promotion_id}`, form)
-                setData(d => ({
-                  ...d,
-                  ...values
-                }))
-                toast.success('Passo 1 salvo com sucesso!')
+                setData(d => ({ ...d, ...values }))
+                toast.success('Passo 1 salvo com sucesso!')
               }}
               onNext={() => setStep(2)}
             />

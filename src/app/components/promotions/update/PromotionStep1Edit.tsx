@@ -6,15 +6,15 @@ import React, { FormEvent, useState } from 'react'
 export interface Step1Values {
     name: string
     description: string
-    startDate: Date
-    endDate: Date
+    startDate?: Date
+    endDate?: Date
     hasCoupon: boolean
     multipleCoupons: boolean
     reuseSameCoupon: boolean
     coupons: string[]
     perUserCouponLimit?: number
     totalCouponCount?: number
-    active: boolean
+    status: 'Disponivel' | 'Indisponivel' | 'Programado' | ''
     cumulative: boolean
     priority: number
 }
@@ -26,9 +26,17 @@ interface Props {
 }
 
 export default function PromotionStep1Edit({ initial, onSave, onNext }: Props) {
-    // **inicializa uma única vez**, não reseta depois**
+
     const [local, setLocal] = useState<Step1Values>({ ...initial })
     const [newCoupon, setNewCoupon] = useState('')
+
+    const toInputValue = (d?: Date) => {
+    if (!d) return ''
+    // compensa o offset: cria um Date deslocado para UTC
+    const tzOffsetMs = d.getTimezoneOffset() * 60000
+    const localISO = new Date(d.getTime() - tzOffsetMs).toISOString()
+    return localISO.slice(0, 16)
+  }
 
     const addCoupon = () => {
         const c = newCoupon.trim()
@@ -48,19 +56,21 @@ export default function PromotionStep1Edit({ initial, onSave, onNext }: Props) {
         e.preventDefault()
         onNext()
     }
-
-    const handleSave = async () => {
-        await onSave(local)
-    }
+    const handleSave = () => onSave(local)
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
-            <h2 className="text-xl font-semibold">Passo 1: Defina a Promoção</h2>
+            <h2 className="text-xl font-semibold">Passo 1: Defina a Promoção</h2>
 
             {/* Nome */}
             <div>
                 <Tooltip content="De um nome coerente para sua promoção." placement="top-start" className="bg-white text-red-500 border border-gray-200 p-2">
-                    <input placeholder="Nome da promoção" type="text" required value={local.name} onChange={e => setLocal(l => ({ ...l, name: e.target.value }))}
+                    <input
+                        placeholder="Nome da promoção"
+                        type="text"
+                        required
+                        value={local.name}
+                        onChange={e => setLocal(l => ({ ...l, name: e.target.value }))}
                         className="w-full border p-2 rounded text-black"
                     />
                 </Tooltip>
@@ -69,7 +79,10 @@ export default function PromotionStep1Edit({ initial, onSave, onNext }: Props) {
             {/* Descrição */}
             <div>
                 <Tooltip content="Faça uma descrição para que o cliente da loja, possa entender do que se trata a promoção, como regras da promoção etc..." placement="top-start" className="bg-white text-red-500 border border-gray-200 p-2">
-                    <textarea required value={local.description} onChange={e => setLocal(l => ({ ...l, description: e.target.value }))}
+                    <textarea
+                        required
+                        value={local.description}
+                        onChange={e => setLocal(l => ({ ...l, description: e.target.value }))}
                         className="w-full border p-2 rounded h-24 text-black"
                     />
                 </Tooltip>
@@ -87,10 +100,8 @@ export default function PromotionStep1Edit({ initial, onSave, onNext }: Props) {
                         <input
                             type="datetime-local"
                             required
-                            value={local.startDate.toISOString().slice(0, 16)}
-                            onChange={e =>
-                                setLocal(l => ({ ...l, startDate: new Date(e.target.value) }))
-                            }
+                            value={toInputValue(local.startDate)}
+                            onChange={e => setLocal(l => ({ ...l, startDate: new Date(e.target.value) }))}
                             className="w-full border p-2 rounded text-black"
                         />
                     </Tooltip>
@@ -105,17 +116,15 @@ export default function PromotionStep1Edit({ initial, onSave, onNext }: Props) {
                         <input
                             type="datetime-local"
                             required
-                            value={local.endDate.toISOString().slice(0, 16)}
-                            onChange={e =>
-                                setLocal(l => ({ ...l, endDate: new Date(e.target.value) }))
-                            }
+                            value={toInputValue(local.endDate)}
+                            onChange={e => setLocal(l => ({ ...l, endDate: new Date(e.target.value) }))}
                             className="w-full border p-2 rounded text-black"
                         />
                     </Tooltip>
                 </div>
             </div>
 
-            {/* Usar cupom? */}
+            {/* Cupom */}
             <div>
                 <span className="block mb-1">Usar cupom?</span>
                 <label className="inline-flex items-center mr-4">
@@ -128,7 +137,6 @@ export default function PromotionStep1Edit({ initial, onSave, onNext }: Props) {
                     />
                     Sim
                 </label>
-
                 <label className="inline-flex items-center">
                     <input
                         type="radio"
@@ -151,7 +159,6 @@ export default function PromotionStep1Edit({ initial, onSave, onNext }: Props) {
                 </label>
             </div>
 
-            {/* Opções de cupom */}
             {local.hasCoupon && (
                 <>
                     <div className="flex gap-6 mb-4">
@@ -164,15 +171,12 @@ export default function PromotionStep1Edit({ initial, onSave, onNext }: Props) {
                                 <input
                                     type="checkbox"
                                     checked={local.multipleCoupons}
-                                    onChange={() =>
-                                        setLocal(l => ({ ...l, multipleCoupons: !l.multipleCoupons }))
-                                    }
+                                    onChange={() => setLocal(l => ({ ...l, multipleCoupons: !l.multipleCoupons }))}
                                     className="mr-1"
                                 />
                                 Múltiplos cupons
                             </label>
                         </Tooltip>
-
                         <Tooltip
                             content="Quando ativada essa opção, um mesmo numero de cupom da listagem poderá ser utilizado mais de uma vez na loja, incluisive pelo mesmo usurio."
                             placement="top-start"
@@ -182,9 +186,7 @@ export default function PromotionStep1Edit({ initial, onSave, onNext }: Props) {
                                 <input
                                     type="checkbox"
                                     checked={local.reuseSameCoupon}
-                                    onChange={() =>
-                                        setLocal(l => ({ ...l, reuseSameCoupon: !l.reuseSameCoupon }))
-                                    }
+                                    onChange={() => setLocal(l => ({ ...l, reuseSameCoupon: !l.reuseSameCoupon }))}
                                     className="mr-1"
                                 />
                                 Reutilizar mesmo cupom
@@ -192,7 +194,6 @@ export default function PromotionStep1Edit({ initial, onSave, onNext }: Props) {
                         </Tooltip>
                     </div>
 
-                    {/* Adicionar cupom */}
                     <div className="flex gap-2 mb-4">
                         <input
                             type="text"
@@ -217,32 +218,21 @@ export default function PromotionStep1Edit({ initial, onSave, onNext }: Props) {
                         </button>
                     </div>
 
-                    {/* Lista de cupons */}
                     {local.coupons.length > 0 ? (
                         <div className="flex flex-wrap gap-2 mb-4">
                             {local.coupons.map(c => (
-                                <div
-                                    key={c}
-                                    className="flex items-center bg-gray-200 px-3 py-1 rounded-full"
-                                >
+                                <div key={c} className="flex items-center bg-gray-200 px-3 py-1 rounded-full">
                                     <span className="mr-2 text-black">{c}</span>
-                                    <button
-                                        type="button"
-                                        onClick={() => removeCoupon(c)}
-                                        className="text-red-600 font-bold"
-                                    >
+                                    <button type="button" onClick={() => removeCoupon(c)} className="text-red-600 font-bold">
                                         ×
                                     </button>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <p className="text-sm text-gray-500 mb-4">
-                            Nenhum cupom adicionado.
-                        </p>
+                        <p className="text-sm text-gray-500 mb-4">Nenhum cupom adicionado.</p>
                     )}
 
-                    {/* Limites */}
                     <div className="grid md:grid-cols-2 gap-4 mb-6">
                         <div>
                             <Tooltip
@@ -256,8 +246,7 @@ export default function PromotionStep1Edit({ initial, onSave, onNext }: Props) {
                                     onChange={e =>
                                         setLocal(l => ({
                                             ...l,
-                                            perUserCouponLimit:
-                                                e.target.value === '' ? undefined : Number(e.target.value)
+                                            perUserCouponLimit: e.target.value === '' ? undefined : Number(e.target.value)
                                         }))
                                     }
                                     className="w-full border p-2 rounded text-black"
@@ -276,8 +265,7 @@ export default function PromotionStep1Edit({ initial, onSave, onNext }: Props) {
                                     onChange={e =>
                                         setLocal(l => ({
                                             ...l,
-                                            totalCouponCount:
-                                                e.target.value === '' ? undefined : Number(e.target.value)
+                                            totalCouponCount: e.target.value === '' ? undefined : Number(e.target.value)
                                         }))
                                     }
                                     className="w-full border p-2 rounded text-black"
@@ -288,29 +276,28 @@ export default function PromotionStep1Edit({ initial, onSave, onNext }: Props) {
                 </>
             )}
 
-            {/* Active / Cumulative / Priority */}
+            {/* Status / Acumulativa / Prioridade */}
             <div className="grid md:grid-cols-3 gap-4 mb-6">
                 <div>
-                    <label className="block mb-1">Ativa?</label>
+                    <label className="block mb-1">Status Promoção</label>
                     <select
-                        value={local.active ? 'yes' : 'no'}
-                        onChange={e =>
-                            setLocal(l => ({ ...l, active: e.target.value === 'yes' }))
-                        }
                         className="w-full border p-2 rounded text-black"
+                        value={local.status}
+                        onChange={e => setLocal(l => ({ ...l, status: e.target.value as Step1Values['status'] }))}
+                        required
                     >
-                        <option value="yes">Sim</option>
-                        <option value="no">Não</option>
+                        <option value="">Selecione o status</option>
+                        <option value="Disponivel">Disponível</option>
+                        <option value="Indisponivel">Indisponível</option>
+                        <option value="Programado">Programado</option>
                     </select>
                 </div>
                 <div>
                     <label className="block mb-1">Acumulativa?</label>
                     <select
-                        value={local.cumulative ? 'yes' : 'no'}
-                        onChange={e =>
-                            setLocal(l => ({ ...l, cumulative: e.target.value === 'yes' }))
-                        }
                         className="w-full border p-2 rounded text-black"
+                        value={local.cumulative ? 'yes' : 'no'}
+                        onChange={e => setLocal(l => ({ ...l, cumulative: e.target.value === 'yes' }))}
                     >
                         <option value="yes">Sim</option>
                         <option value="no">Não</option>
@@ -326,9 +313,7 @@ export default function PromotionStep1Edit({ initial, onSave, onNext }: Props) {
                         <input
                             type="number"
                             value={local.priority}
-                            onChange={e =>
-                                setLocal(l => ({ ...l, priority: Number(e.target.value) }))
-                            }
+                            onChange={e => setLocal(l => ({ ...l, priority: Number(e.target.value) }))}
                             className="w-full border p-2 rounded text-black"
                         />
                     </Tooltip>
@@ -337,17 +322,10 @@ export default function PromotionStep1Edit({ initial, onSave, onNext }: Props) {
 
             {/* Botões */}
             <div className="flex justify-end gap-2">
-                <button
-                    type="button"
-                    onClick={handleSave}
-                    className="px-4 py-2 bg-green-600 text-white rounded"
-                >
-                    Salvar Passo 1
+                <button type="button" onClick={handleSave} className="px-4 py-2 bg-green-600 text-white rounded">
+                    Salvar Passo 1
                 </button>
-                <button
-                    type="submit"
-                    className="px-4 py-2 bg-orange-600 text-white rounded"
-                >
+                <button type="submit" className="px-4 py-2 bg-orange-600 text-white rounded">
                     Próximo
                 </button>
             </div>

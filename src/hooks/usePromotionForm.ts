@@ -17,7 +17,7 @@ export function usePromotionForm(promotion_id: string) {
         perUserCouponLimit: undefined,
         totalCouponCount: undefined,
         coupons: [],
-        active: false,
+        status: "",
         cumulative: false,
         priority: 0,
         conditions: [],
@@ -45,7 +45,7 @@ export function usePromotionForm(promotion_id: string) {
                     perUserCouponLimit: p.perUserCouponLimit ?? undefined,
                     totalCouponCount: p.totalCouponCount ?? undefined,
                     coupons: p.coupons.map((c: any) => c.code),
-                    active: p.active,
+                    status: p.status,
                     cumulative: p.cumulative,
                     priority: p.priority,
                     conditions: p.conditions.map((c: any) => ({

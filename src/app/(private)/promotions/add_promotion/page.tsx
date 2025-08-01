@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { toast } from 'react-toastify'
 import { SidebarAndHeader } from '@/app/components/sidebarAndHeader'
 import { Section } from '@/app/components/section'
@@ -26,7 +26,7 @@ export default function AddPromotion() {
         perUserCouponLimit: undefined,
         totalCouponCount: undefined,
         coupons: [],
-        active: false,
+        status: '',
         cumulative: false,
         priority: 0,
         conditions: [],
@@ -40,13 +40,17 @@ export default function AddPromotion() {
     const handleFinish = async () => {
         try {
             const form = new FormData()
-
-            // campos textuais tradicionais
             form.append('name', data.name)
             if (data.description) form.append('description', data.description)
-            form.append('startDate', data.startDate.toISOString())
-            form.append('endDate', data.endDate.toISOString())
-
+            // compensação UTC–3
+            const fmt = (dt: Date) => {
+                const tzOffsetMs = dt.getTimezoneOffset() * 60000
+                return new Date(dt.getTime() - tzOffsetMs)
+                    .toISOString()
+                    .slice(0, 16)
+            }
+            form.append('startDate', fmt(data.startDate))
+            form.append('endDate', fmt(data.endDate))
             form.append('hasCoupon', String(data.hasCoupon))
             form.append('multipleCoupons', String(data.multipleCoupons))
             form.append('reuseSameCoupon', String(data.reuseSameCoupon))
@@ -54,35 +58,23 @@ export default function AddPromotion() {
                 form.append('perUserCouponLimit', String(data.perUserCouponLimit))
             if (data.totalCouponCount != null)
                 form.append('totalCouponCount', String(data.totalCouponCount))
+                    ; (data.coupons ?? []).forEach(c => form.append('coupons', c))
 
-            // array de cupons
-            const validCoupons = (data.coupons ?? [])
-                .map(c => c.trim())
-                .filter(c => c.length > 0)
-
-            // 2) Append de cada cupom
-            validCoupons.forEach(c => form.append('coupons', c))
-
-            form.append('active', String(data.active))
+            form.append('status', data.status)
             form.append('cumulative', String(data.cumulative))
             form.append('priority', String(data.priority))
 
-            // enviamos como JSON e deixamos o controller desserializar
             form.append('conditions', JSON.stringify(data.conditions))
             form.append('actions', JSON.stringify(data.actions))
             form.append('displays', JSON.stringify(data.displays))
 
-            // badges: título + arquivo
             data.badges.forEach(b => {
                 form.append('badgeTitles', b.title)
                 form.append('badgeFiles', b.file)
             })
 
-            // **Não setar Content-Type**: deixa Axios incluir o boundary
             await api.post('/promotions', form)
-
             toast.success('Promoção criada com sucesso!')
-            // reset wizard
             setStep(1)
             setData({
                 name: '',
@@ -95,7 +87,7 @@ export default function AddPromotion() {
                 perUserCouponLimit: undefined,
                 totalCouponCount: undefined,
                 coupons: [],
-                active: false,
+                status: '',
                 cumulative: false,
                 priority: 0,
                 conditions: [],
@@ -114,11 +106,45 @@ export default function AddPromotion() {
             <Section>
                 <TitlePage title="CADASTRAR PROMOÇÃO" />
                 <div className="max-w-3xl mx-auto p-6 space-y-6">
-                    {step === 1 && <PromotionStep1 data={data} setData={setData} onNext={() => setStep(2)} />}
-                    {step === 2 && <PromotionStep2 data={data} setData={setData} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
-                    {step === 3 && <PromotionStep3 data={data} setData={setData} onNext={() => setStep(4)} onBack={() => setStep(2)} />}
-                    {step === 4 && <PromotionStep4 data={data} setData={setData} onNext={() => setStep(5)} onBack={() => setStep(3)} />}
-                    {step === 5 && <PromotionStep5 data={data} setData={setData} onBack={() => setStep(4)} onFinish={handleFinish} />}
+                    {step === 1 && (
+                        <PromotionStep1
+                            data={data}
+                            setData={setData}
+                            onNext={() => setStep(2)}
+                        />
+                    )}
+                    {step === 2 && (
+                        <PromotionStep2
+                            data={data}
+                            setData={setData}
+                            onNext={() => setStep(3)}
+                            onBack={() => setStep(1)}
+                        />
+                    )}
+                    {step === 3 && (
+                        <PromotionStep3
+                            data={data}
+                            setData={setData}
+                            onNext={() => setStep(4)}
+                            onBack={() => setStep(2)}
+                        />
+                    )}
+                    {step === 4 && (
+                        <PromotionStep4
+                            data={data}
+                            setData={setData}
+                            onNext={() => setStep(5)}
+                            onBack={() => setStep(3)}
+                        />
+                    )}
+                    {step === 5 && (
+                        <PromotionStep5
+                            data={data}
+                            setData={setData}
+                            onBack={() => setStep(4)}
+                            onFinish={handleFinish}
+                        />
+                    )}
                 </div>
             </Section>
         </SidebarAndHeader>
