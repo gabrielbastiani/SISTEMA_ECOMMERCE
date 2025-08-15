@@ -7,6 +7,7 @@ import { Section } from '@/app/components/section';
 import { TitlePage } from '@/app/components/section/titlePage';
 import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce';
 import { toast } from 'react-toastify';
+import { Tooltip } from '@nextui-org/react';
 
 type FilterType = 'RANGE' | 'SELECT' | 'MULTI_SELECT';
 type FilterDataType = 'NUMBER' | 'STRING' | 'DATE' | 'BOOLEAN';
@@ -24,6 +25,23 @@ interface OptionItem {
     isDefault: boolean;
 }
 interface CategoryFilter { id: string; category_id: string }
+
+// Opções com labels amigáveis
+const FIELD_NAME_OPTIONS = [
+    { value: 'price_of', label: 'Preço Original' },
+    { value: 'price_per', label: 'Preço Promocional' },
+    { value: 'variantAttribute', label: 'Atributo da Variante' },
+    { value: 'sku', label: 'SKU da Variante' },
+    { value: 'skuMaster', label: 'SKU Mestre' },
+    { value: 'brand', label: 'Marca' },
+    { value: 'weight', label: 'Peso' },
+    { value: 'length', label: 'Comprimento' },
+    { value: 'width', label: 'Largura' },
+    { value: 'height', label: 'Altura' },
+    { value: 'view', label: 'Visualizações' },
+    { value: 'rating', label: 'Avaliação' },
+    { value: 'category', label: 'Categoria' }
+];
 
 export default function FilterUpdate() {
     const { id } = useParams<{ id: string }>();
@@ -233,71 +251,103 @@ export default function FilterUpdate() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Nome */}
                             <div>
-                                <label className="block text-sm">Nome</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={name}
-                                    onChange={e => setName(e.target.value)}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
-                                />
+                                <Tooltip
+                                    content="Nome a ser exibido no front (ex.: Preço, Cor)"
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
+                                >
+                                    <input
+                                        type="text"
+                                        required
+                                        value={name}
+                                        onChange={e => setName(e.target.value)}
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                        placeholder="Nome do filtro"
+                                    />
+                                </Tooltip>
                             </div>
 
                             {/* Identificador */}
                             <div>
-                                <label className="block text-sm">Identificador (fieldName)</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={fieldName}
-                                    onChange={e => setFieldName(e.target.value)}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
-                                />
+                                <Tooltip
+                                    content="Nome do campo ou identificador associado (ex.: price_per ou variantAttribute)"
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
+                                >
+                                    <select
+                                        required
+                                        value={fieldName}
+                                        onChange={e => setFieldName(e.target.value)}
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                    >
+                                        <option value="">Selecione um campo</option>
+                                        {FIELD_NAME_OPTIONS.map(option => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </Tooltip>
                             </div>
 
                             {/* Tipo */}
                             <div>
-                                <label className="block text-sm">Tipo de Filtro</label>
-                                <select
-                                    value={type}
-                                    onChange={e => setType(e.target.value as FilterType)}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                <Tooltip
+                                    content="Tipo de filtro: RANGE, SELECT, MULTI_SELECT"
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
                                 >
-                                    <option value="SELECT">SELECT</option>
-                                    <option value="MULTI_SELECT">MULTI_SELECT</option>
-                                    <option value="RANGE">RANGE</option>
-                                </select>
+                                    <select
+                                        value={type}
+                                        onChange={e => setType(e.target.value as FilterType)}
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                    >
+                                        <option value="SELECT">SELECT</option>
+                                        <option value="MULTI_SELECT">MULTI_SELECT</option>
+                                        <option value="RANGE">RANGE</option>
+                                    </select>
+                                </Tooltip>
                             </div>
 
                             {/* Tipo de Dado */}
                             <div>
-                                <label className="block text-sm">Tipo de Dado</label>
-                                <select
-                                    value={dataType}
-                                    onChange={e => setDataType(e.target.value as FilterDataType)}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                <Tooltip
+                                    content="Tipo de dado subjacente (NUMBER, STRING, etc.)"
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
                                 >
-                                    <option value="STRING">STRING</option>
-                                    <option value="NUMBER">NUMBER</option>
-                                    <option value="DATE">DATE</option>
-                                    <option value="BOOLEAN">BOOLEAN</option>
-                                </select>
+                                    <select
+                                        value={dataType}
+                                        onChange={e => setDataType(e.target.value as FilterDataType)}
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                    >
+                                        <option value="STRING">STRING</option>
+                                        <option value="NUMBER">NUMBER</option>
+                                        <option value="DATE">DATE</option>
+                                        <option value="BOOLEAN">BOOLEAN</option>
+                                    </select>
+                                </Tooltip>
                             </div>
 
                             {/* Estilo */}
                             <div>
-                                <label className="block text-sm">Estilo de Exibição</label>
-                                <select
-                                    value={displayStyle}
-                                    onChange={e => setDisplayStyle(e.target.value as FilterDisplayStyle)}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                <Tooltip
+                                    content="Define o componente visual a ser usado"
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
                                 >
-                                    <option value="DROPDOWN">DROPDOWN</option>
-                                    <option value="CHECKBOX">CHECKBOX</option>
-                                    <option value="RADIO">RADIO</option>
-                                    <option value="SLIDER">SLIDER</option>
-                                    <option value="COLOR_PICKER">COLOR_PICKER</option>
-                                </select>
+                                    <select
+                                        value={displayStyle}
+                                        onChange={e => setDisplayStyle(e.target.value as FilterDisplayStyle)}
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                    >
+                                        <option value="DROPDOWN">DROPDOWN</option>
+                                        <option value="CHECKBOX">CHECKBOX</option>
+                                        <option value="RADIO">RADIO</option>
+                                        <option value="SLIDER">SLIDER</option>
+                                        <option value="COLOR_PICKER">COLOR_PICKER</option>
+                                    </select>
+                                </Tooltip>
                             </div>
 
                             {/* Ativo */}
@@ -309,18 +359,29 @@ export default function FilterUpdate() {
                                     onChange={e => setIsActive(e.target.checked)}
                                     className="h-4 w-4"
                                 />
-                                <label htmlFor="active" className="text-sm">Ativo</label>
+                                <Tooltip
+                                    content="Ativar/desativar este filtro"
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
+                                >
+                                    <label htmlFor="active" className="text-sm">Ativo</label>
+                                </Tooltip>
                             </div>
 
                             {/* Ordem */}
                             <div>
-                                <label className="block text-sm">Ordem</label>
-                                <input
-                                    type="number"
-                                    value={order}
-                                    onChange={e => setOrder(Number(e.target.value))}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
-                                />
+                                <Tooltip
+                                    content="Define a ordem de exibição entre os filtros"
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
+                                >
+                                    <input
+                                        type="number"
+                                        value={order}
+                                        onChange={e => setOrder(Number(e.target.value))}
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                    />
+                                </Tooltip>
                             </div>
 
                             {/* AutoPopulate */}
@@ -332,29 +393,45 @@ export default function FilterUpdate() {
                                     onChange={e => setAutoPopulate(e.target.checked)}
                                     className="h-4 w-4"
                                 />
-                                <label htmlFor="auto" className="text-sm">Auto Popular</label>
+                                <Tooltip
+                                    content="Se verdadeiro, o sistema pode preencher opções baseado nos produtos cadastrados."
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
+                                >
+                                    <label htmlFor="auto" className="text-sm">Auto Popular</label>
+                                </Tooltip>
                             </div>
 
                             {/* Min/Max (RANGE) */}
                             {type === 'RANGE' && (
                                 <>
                                     <div>
-                                        <label className="block text-sm">Valor Mínimo</label>
-                                        <input
-                                            type="number"
-                                            value={minValue}
-                                            onChange={e => setMinValue(e.target.value === '' ? '' : Number(e.target.value))}
-                                            className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
-                                        />
+                                        <Tooltip
+                                            content="Ex.: preço mínimo pré-configurado (opcional)"
+                                            placement="top-start"
+                                            className="bg-white text-red-500 border border-gray-200 p-2"
+                                        >
+                                            <input
+                                                type="number"
+                                                value={minValue}
+                                                onChange={e => setMinValue(e.target.value === '' ? '' : Number(e.target.value))}
+                                                className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                            />
+                                        </Tooltip>
                                     </div>
                                     <div>
-                                        <label className="block text-sm">Valor Máximo</label>
-                                        <input
-                                            type="number"
-                                            value={maxValue}
-                                            onChange={e => setMaxValue(e.target.value === '' ? '' : Number(e.target.value))}
-                                            className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
-                                        />
+                                        <Tooltip
+                                            content="Ex.: preço máximo pré-configurado (opcional)"
+                                            placement="top-start"
+                                            className="bg-white text-red-500 border border-gray-200 p-2"
+                                        >
+                                            <input
+                                                type="number"
+                                                value={maxValue}
+                                                onChange={e => setMaxValue(e.target.value === '' ? '' : Number(e.target.value))}
+                                                className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                            />
+                                        </Tooltip>
                                     </div>
                                 </>
                             )}
@@ -362,17 +439,22 @@ export default function FilterUpdate() {
                             {/* Grupo + botão */}
                             <div className="md:col-span-2 flex items-end space-x-2">
                                 <div className="flex-1">
-                                    <label className="block text-sm">Grupo</label>
-                                    <select
-                                        value={groupId}
-                                        onChange={e => setGroupId(e.target.value)}
-                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                    <Tooltip
+                                        content="O grupo representa por exemplo: Caracteristicas, Preços etc..."
+                                        placement="top-start"
+                                        className="bg-white text-red-500 border border-gray-200 p-2"
                                     >
-                                        <option value="">— Nenhum —</option>
-                                        {groups.map(g => (
-                                            <option key={g.id} value={g.id}>{g.name}</option>
-                                        ))}
-                                    </select>
+                                        <select
+                                            value={groupId}
+                                            onChange={e => setGroupId(e.target.value)}
+                                            className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                        >
+                                            <option value="">— Nenhum —</option>
+                                            {groups.map(g => (
+                                                <option key={g.id} value={g.id}>{g.name}</option>
+                                            ))}
+                                        </select>
+                                    </Tooltip>
                                 </div>
                                 <button
                                     type="button"
@@ -385,7 +467,13 @@ export default function FilterUpdate() {
 
                             {/* Categorias */}
                             <div className="md:col-span-2">
-                                <label className="block text-sm mb-1">Categorias</label>
+                                <Tooltip
+                                    content="Selecione uma ou mais categorias, caso esse filtro precise aparecer em pagina(s) dessas categorias."
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
+                                >
+                                    <label className="block text-sm mb-1">Categorias</label>
+                                </Tooltip>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-40 overflow-auto p-2 border rounded">
                                     {categories.map(cat => (
                                         <label key={cat.id} className="flex items-center space-x-2">
@@ -420,53 +508,83 @@ export default function FilterUpdate() {
                                     <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {/* Label */}
                                         <div>
-                                            <label className="block text-sm">Texto exibido (ex.: Azul, Médio, 2023)</label>
-                                            <input
-                                                type="text"
-                                                value={opt.label}
-                                                onChange={e => updateOption(opt.id, 'label', e.target.value)}
-                                                className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
-                                            />
+                                            <Tooltip
+                                                content="Texto exibido (ex.: Azul, Médio, 2023)"
+                                                placement="top-start"
+                                                className="bg-white text-red-500 border border-gray-200 p-2"
+                                            >
+                                                <input
+                                                    type="text"
+                                                    value={opt.label}
+                                                    onChange={e => updateOption(opt.id, 'label', e.target.value)}
+                                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                                    placeholder="Texto exibido"
+                                                />
+                                            </Tooltip>
                                         </div>
                                         {/* Value */}
                                         <div>
-                                            <label className="block text-sm">Valor utilizado para a query</label>
-                                            <input
-                                                type="text"
-                                                value={opt.value}
-                                                onChange={e => updateOption(opt.id, 'value', e.target.value)}
-                                                className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
-                                            />
+                                            <Tooltip
+                                                content="Valor utilizado para a query"
+                                                placement="top-start"
+                                                className="bg-white text-red-500 border border-gray-200 p-2"
+                                            >
+                                                <input
+                                                    type="text"
+                                                    value={opt.value}
+                                                    onChange={e => updateOption(opt.id, 'value', e.target.value)}
+                                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                                    placeholder="Valor da query"
+                                                />
+                                            </Tooltip>
                                         </div>
                                         {/* Order */}
                                         <div>
-                                            <label className="block text-sm">Ordem de exibição</label>
-                                            <input
-                                                type="number"
-                                                value={opt.order}
-                                                onChange={e => updateOption(opt.id, 'order', Number(e.target.value))}
-                                                className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
-                                            />
+                                            <Tooltip
+                                                content="Ordem de exibição"
+                                                placement="top-start"
+                                                className="bg-white text-red-500 border border-gray-200 p-2"
+                                            >
+                                                <input
+                                                    type="number"
+                                                    value={opt.order}
+                                                    onChange={e => updateOption(opt.id, 'order', Number(e.target.value))}
+                                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                                    placeholder="Ordem"
+                                                />
+                                            </Tooltip>
                                         </div>
                                         {/* IconUrl */}
                                         <div>
-                                            <label className="block text-sm">URL para ícone (útil para filtros de cor ou ícones específicos)</label>
-                                            <input
-                                                type="text"
-                                                value={opt.iconUrl}
-                                                onChange={e => updateOption(opt.id, 'iconUrl', e.target.value)}
-                                                className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
-                                            />
+                                            <Tooltip
+                                                content="URL para ícone (útil para filtros de cor ou ícones específicos)"
+                                                placement="top-start"
+                                                className="bg-white text-red-500 border border-gray-200 p-2"
+                                            >
+                                                <input
+                                                    type="text"
+                                                    value={opt.iconUrl}
+                                                    onChange={e => updateOption(opt.id, 'iconUrl', e.target.value)}
+                                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                                    placeholder="URL do ícone"
+                                                />
+                                            </Tooltip>
                                         </div>
                                         {/* ColorCode */}
                                         <div>
-                                            <label className="block text-sm">Código de cor (ex.: "#FF0000"), se aplicável</label>
-                                            <input
-                                                type="text"
-                                                value={opt.colorCode}
-                                                onChange={e => updateOption(opt.id, 'colorCode', e.target.value)}
-                                                className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
-                                            />
+                                            <Tooltip
+                                                content="Código de cor (ex.: #FF0000), se aplicável"
+                                                placement="top-start"
+                                                className="bg-white text-red-500 border border-gray-200 p-2"
+                                            >
+                                                <input
+                                                    type="text"
+                                                    value={opt.colorCode}
+                                                    onChange={e => updateOption(opt.id, 'colorCode', e.target.value)}
+                                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                                    placeholder="Código da cor"
+                                                />
+                                            </Tooltip>
                                         </div>
                                         {/* IsDefault */}
                                         <div className="flex items-center space-x-2">
@@ -476,7 +594,13 @@ export default function FilterUpdate() {
                                                 onChange={e => updateOption(opt.id, 'isDefault', e.target.checked)}
                                                 className="h-4 w-4"
                                             />
-                                            <label className="text-sm">Padrão</label>
+                                            <Tooltip
+                                                content="Marcar como opção padrão"
+                                                placement="top-start"
+                                                className="bg-white text-red-500 border border-gray-200 p-2"
+                                            >
+                                                <label className="text-sm">Padrão</label>
+                                            </Tooltip>
                                         </div>
                                     </div>
                                     <button
@@ -524,22 +648,34 @@ export default function FilterUpdate() {
                         </ul>
                         <div className="space-y-3 mb-4">
                             <div>
-                                <label className="block text-sm text-black">Nome do grupo</label>
-                                <input
-                                    type="text"
-                                    value={newGroupName}
-                                    onChange={e => setNewGroupName(e.target.value)}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
-                                />
+                                <Tooltip
+                                    content="Nome do grupo (ex.: Características, Preço)"
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
+                                >
+                                    <input
+                                        type="text"
+                                        value={newGroupName}
+                                        onChange={e => setNewGroupName(e.target.value)}
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                        placeholder="Nome do grupo"
+                                    />
+                                </Tooltip>
                             </div>
                             <div>
-                                <label className="block text-sm text-black">Ordem</label>
-                                <input
-                                    type="number"
-                                    value={newGroupOrder}
-                                    onChange={e => setNewGroupOrder(Number(e.target.value))}
-                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
-                                />
+                                <Tooltip
+                                    content="Ordem de exibição do grupo na interface de usuário"
+                                    placement="top-start"
+                                    className="bg-white text-red-500 border border-gray-200 p-2"
+                                >
+                                    <input
+                                        type="number"
+                                        value={newGroupOrder}
+                                        onChange={e => setNewGroupOrder(Number(e.target.value))}
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
+                                        placeholder="Ordem"
+                                    />
+                                </Tooltip>
                             </div>
                         </div>
                         <div className="flex justify-end space-x-2">

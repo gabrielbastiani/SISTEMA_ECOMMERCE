@@ -18,6 +18,23 @@ interface Category { id: string; name: string; }
 interface CategoryCmsResponse { all_categories_disponivel: Category[]; }
 interface OptionItem { id: number; label: string; value: string; order: number; iconUrl: string; colorCode: string; isDefault: boolean }
 
+// Opções com labels amigáveis
+const FIELD_NAME_OPTIONS = [
+    { value: 'price_of', label: 'Preço Original' },
+    { value: 'price_per', label: 'Preço Promocional' },
+    { value: 'variantAttribute', label: 'Atributo da Variante' },
+    { value: 'sku', label: 'SKU da Variante' },
+    { value: 'skuMaster', label: 'SKU Mestre' },
+    { value: 'brand', label: 'Marca' },
+    { value: 'weight', label: 'Peso' },
+    { value: 'length', label: 'Comprimento' },
+    { value: 'width', label: 'Largura' },
+    { value: 'height', label: 'Altura' },
+    { value: 'view', label: 'Visualizações' },
+    { value: 'rating', label: 'Avaliação' },
+    { value: 'category', label: 'Categoria' }
+];
+
 export default function AddFilterPage() {
 
     const api = setupAPIClientEcommerce();
@@ -177,16 +194,23 @@ export default function AddFilterPage() {
                                 </Tooltip>
                             </div>
 
-                            {/* FieldName */}
+                            {/* FieldName - Com labels descritivas */}
                             <div>
                                 <Tooltip
                                     content="Nome do campo ou identificador associado (ex.: price_per ou variantAttribute)"
                                     placement="top-start"
                                     className="bg-white text-red-500 border border-gray-200 p-2"
                                 >
-                                    <input required value={fieldName}
+                                    <select required value={fieldName}
                                         onChange={e => setFieldName(e.target.value)}
-                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2">
+                                        <option value="">Selecione um campo</option>
+                                        {FIELD_NAME_OPTIONS.map(option => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </Tooltip>
                             </div>
 
