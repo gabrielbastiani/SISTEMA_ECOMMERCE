@@ -1,4 +1,4 @@
-'use client';
+'use client'
 
 import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
@@ -14,16 +14,14 @@ type FilterDataType = 'NUMBER' | 'STRING' | 'DATE' | 'BOOLEAN';
 type FilterDisplayStyle = 'SLIDER' | 'DROPDOWN' | 'CHECKBOX' | 'RADIO' | 'COLOR_PICKER';
 
 interface FilterGroup { id: string; name: string; order: number }
-interface Category { id: string; name: string; }
+interface Category { id: string; name: string; slug?: string }
 interface CategoryCmsResponse { all_categories_disponivel: Category[]; }
-interface OptionItem { id: number; label: string; value: string; order: number; iconUrl: string; colorCode: string; isDefault: boolean }
 
-// Opções com labels amigáveis
 const FIELD_NAME_OPTIONS = [
     { value: 'price_of', label: 'Preço Original' },
     { value: 'price_per', label: 'Preço Promocional' },
-    { value: 'variantAttribute', label: 'Atributo da Variante' },
-    { value: 'sku', label: 'SKU da Variante' },
+    { value: 'variantAttribute', label: 'Atributo da Variante (ex: cor, tamanho)' },
+    { value: 'variant.sku', label: 'SKU da Variante' }, // <-- usar variant.sku (compatível com backend)
     { value: 'skuMaster', label: 'SKU Mestre' },
     { value: 'brand', label: 'Marca' },
     { value: 'weight', label: 'Peso' },
@@ -31,7 +29,7 @@ const FIELD_NAME_OPTIONS = [
     { value: 'width', label: 'Largura' },
     { value: 'height', label: 'Altura' },
     { value: 'view', label: 'Visualizações' },
-    { value: 'rating', label: 'Avaliação' },
+    { value: 'rating', label: 'Avaliação (reviews)' },
     { value: 'category', label: 'Categoria' }
 ];
 
@@ -40,7 +38,7 @@ export default function AddFilterPage() {
     const api = setupAPIClientEcommerce();
     const router = useRouter();
 
-    // ── Estados do filtro ───────────────────────────────────────────────────
+    // estados
     const [name, setName] = useState('');
     const [fieldName, setFieldName] = useState('');
     const [type, setType] = useState<FilterType>('SELECT');
@@ -54,31 +52,30 @@ export default function AddFilterPage() {
     const [groupId, setGroupId] = useState<string>('');
     const [selectedCatIds, setSelectedCatIds] = useState<string[]>([]);
 
-    // ── Listas externas ────────────────────────────────────────────────────
+    // attribute keys (novo): chaves detectadas ou escolhidas pelo admin
+    const [attributeKeys, setAttributeKeys] = useState<string[]>([]);
+    // chaves detectadas (lista de todas possiveis detectadas com amostras)
+    const [detectedKeys, setDetectedKeys] = useState<Record<string, string[]>>({});
+
     const [groups, setGroups] = useState<FilterGroup[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
 
-    // ── Modal de Grupos ────────────────────────────────────────────────────
     const [showGroupModal, setShowGroupModal] = useState(false);
     const [newGroupName, setNewGroupName] = useState('');
     const [newGroupOrder, setNewGroupOrder] = useState(0);
     const [groupSubmitting, setGroupSubmitting] = useState(false);
 
-    // ── Aba e opções ──────────────────────────────────────────────────────
-    const [tab, setTab] = useState<0 | 1>(0);
-    const [options, setOptions] = useState<OptionItem[]>([]);
-
-    // ── Submit geral ──────────────────────────────────────────────────────
     const [submitting, setSubmitting] = useState(false);
+    const [detecting, setDetecting] = useState(false);
 
-    // ── Fetch inicial de grupos & categorias ───────────────────────────────
     useEffect(() => {
         api.get<FilterGroup[]>('/filterGroups/getAll').then(r => setGroups(r.data)).catch(() => toast.error('Não carregou grupos'));
         api.get<CategoryCmsResponse>('/category/cms').then(r => setCategories(r.data?.all_categories_disponivel)).catch(() => toast.error('Não carregou categorias'));
     }, []);
 
-    // ── Handlers de Modal de Grupo ────────────────────────────────────────
+    // Grupo handlers (sem alterações importantes)
     const handleCreateGroup = async () => {
+        if (!newGroupName.trim()) { toast.error('Nome do grupo obrigatório'); return; }
         setGroupSubmitting(true);
         try {
             const r = await api.post<FilterGroup>('/filterGroups/create', { name: newGroupName, order: newGroupOrder });
@@ -103,45 +100,117 @@ export default function AddFilterPage() {
         }
     };
 
-    // ── Handlers de Opções ────────────────────────────────────────────────
-    const optionFieldConfig: { key: keyof OptionItem; label: string; type?: 'text' | 'number' }[] = [
-        { key: 'label', label: 'Texto exibido (ex.: Azul, Médio, 2023)', type: 'text' },
-        { key: 'value', label: 'Valor utilizado para a query', type: 'text' },
-        { key: 'order', label: 'Ordem de exibição', type: 'number' },
-        { key: 'iconUrl', label: 'URL para ícone (útil para filtros de cor ou ícones específicos)', type: 'text' },
-        { key: 'colorCode', label: 'Código de cor (ex.: "#FF0000"), se aplicável', type: 'text' }
-    ];
-    const addOption = () =>
-        setOptions(o => [...o, { id: Date.now(), label: '', value: '', order: o.length, iconUrl: '', colorCode: '', isDefault: false }]);
-    const removeOption = (id: number) =>
-        setOptions(o => o.filter(x => x.id !== id));
-    const updateOption = (id: number, k: keyof OptionItem, v: any) =>
-        setOptions(o => o.map(x => x.id === id ? { ...x, [k]: v } : x));
-
-    // ── Handler de Categorias (checkbox) ─────────────────────────────────
+    // Categorias
     const toggleCategory = (id: string) =>
         setSelectedCatIds(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
 
-    // ── Submit final ──────────────────────────────────────────────────────
+    // DETECT attribute keys: chama endpoint que retorna keys com amostras (recomendado)
+    async function detectAttributeKeysForSelectedCategories() {
+        if (selectedCatIds.length === 0) { toast.info('Selecione ao menos 1 categoria para detectar atributos'); return; }
+        setDetecting(true);
+        try {
+            // 1) Tentar endpoint dedicado (recomendado)
+            // Backend sugerido: POST /filters/detectAttributeKeys { categoryIds: string[] } -> { keys: { key: string, samples: string[] } }
+            const r = await api.post('/filters/detectAttributeKeys', { categoryIds: selectedCatIds });
+            if (r?.data?.keys) {
+                const map: Record<string, string[]> = {};
+                for (const k of r.data.keys) {
+                    // suporte chave simples ou objeto { key, samples }
+                    if (typeof k === 'string') map[k] = [];
+                    else if (k.key) map[k.key] = k.samples ?? [];
+                }
+                setDetectedKeys(map);
+                toast.success('Chaves detectadas (backend)');
+                return;
+            }
+        } catch (err) {
+            // se endpoint não existe/falha, fallback para uso do endpoint público: obter produtos por categoria e inferir keys
+            console.warn('detectAttributeKeys: endpoint dedicado falhou (fallback):', err);
+        }
+
+        // FALLBACK: tentar inferir chamando /categories/:slug/products (depende de ter slug na lista de categorias CMS)
+        try {
+            const mapSamples: Record<string, Set<string>> = {};
+            // encontrar slugs das categorias selecionadas (se disponíveis)
+            const catsWithSlugs = categories.filter(c => selectedCatIds.includes(c.id) && c.slug).map(c => c.slug as string);
+            if (catsWithSlugs.length === 0) {
+                toast.error('Não foi possível detectar chaves automaticamente (faltam slugs nas categorias). Implemente endpoint /filters/detectAttributeKeys no backend ou inclua slugs no endpoint /category/cms.');
+                setDetecting(false);
+                return;
+            }
+
+            // para cada slug, paginar produtos (cuidado com muitos produtos): pegamos primeiro 1000 por categoria
+            for (const slug of catsWithSlugs) {
+                const resp = await api.get(`/categories/${encodeURIComponent(slug)}/products`, { params: { perPage: 200, page: 1 } });
+                const products = resp.data?.products ?? [];
+                for (const p of products) {
+                    if (Array.isArray(p.variants)) {
+                        for (const v of p.variants) {
+                            if (Array.isArray(v.attributes)) {
+                                for (const a of v.attributes) {
+                                    const k = a.key
+                                    const val = a.value
+                                    if (!k) continue
+                                    if (!mapSamples[k]) mapSamples[k] = new Set()
+                                    if (val !== undefined && val !== null) mapSamples[k].add(String(val))
+                                }
+                            } else if (Array.isArray(v.variantAttribute)) {
+                                // suporte caso a API retorne variantAttribute (nome antigo)
+                                for (const a of v.variantAttribute) {
+                                    const k = a.key
+                                    const val = a.value
+                                    if (!k) continue
+                                    if (!mapSamples[k]) mapSamples[k] = new Set()
+                                    if (val !== undefined && val !== null) mapSamples[k].add(String(val))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // converte para detectedKeys
+            const mapObj: Record<string, string[]> = {}
+            for (const k of Object.keys(mapSamples)) mapObj[k] = Array.from(mapSamples[k]).slice(0, 10)
+            setDetectedKeys(mapObj)
+            toast.success('Chaves detectadas (fallback por produtos)');
+        } catch (err) {
+            console.error('detectAttributeKeys fallback error', err)
+            toast.error('Erro ao detectar chaves de atributos');
+        } finally {
+            setDetecting(false);
+        }
+    }
+
+    // selecionar/deselecionar keys detectadas
+    function toggleAttributeKey(key: string) {
+        setAttributeKeys(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key])
+    }
+
+    // SUBMIT
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
         try {
-            // 1) Cria o filter + options + group
+            // Se for variantAttribute, e admin não escolheu attributeKeys,
+            // mantemos behavior antigo: enviar fieldName 'variantAttribute' (backend pode usar filter.name ou fieldName:variantAttribute:xxx)
+            let finalFieldName = fieldName
+            if (fieldName === 'variantAttribute') {
+                // se admin marcou exatamente 1 chave e quer usar o old-style string, podemos compactar
+                if (attributeKeys.length === 1) finalFieldName = `variantAttribute:${attributeKeys[0]}`;
+                // otherwise keep as 'variantAttribute' and send attributeKeys separately
+            }
+
             const r = await api.post<{ id: string }>('/filters/create', {
-                name, fieldName, type, dataType, displayStyle,
+                name, fieldName: finalFieldName, type, dataType, displayStyle,
                 isActive, order, autoPopulate,
                 minValue: minValue === '' ? null : minValue,
                 maxValue: maxValue === '' ? null : maxValue,
                 groupId: groupId || null,
-                options: options.map(o => ({
-                    label: o.label, value: o.value, order: o.order,
-                    iconUrl: o.iconUrl || null, colorCode: o.colorCode || null, isDefault: o.isDefault
-                }))
+                attributeKeys
             });
             const filterId = r.data.id;
 
-            // 2) Associação de categorias via CategoryFilter
             await Promise.all(
                 selectedCatIds.map(catId =>
                     api.post('/categoryFilters/create', { category_id: catId, filter_id: filterId })
@@ -164,276 +233,222 @@ export default function AddFilterPage() {
 
                 <TitlePage title="ADICIONAR FILTRO" />
 
-                {/* Abas */}
-                <div className="mt-6 border-b">
-                    <nav className="-mb-px flex space-x-4">
-                        {['Geral', 'Opções'].map((l, i) =>
-                            <button key={i}
-                                className={`px-4 py-2 ${tab === i ? 'border-b-2 border-orange-600 text-orange-600' : 'text-gray-600 hover:text-gray-800'}`}
-                                onClick={() => setTab(i as 0 | 1)}
-                            >{l}</button>
-                        )}
-                    </nav>
-                </div>
-
                 <form onSubmit={handleSubmit} className="mt-6 space-y-6">
 
-                    {tab === 0 && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                            {/* Nome */}
-                            <div>
-                                <Tooltip
-                                    content="Nome a ser exibido no front (ex.: Preço, Cor)"
-                                    placement="top-start"
-                                    className="bg-white text-red-500 border border-gray-200 p-2"
-                                >
-                                    <input required value={name}
-                                        onChange={e => setName(e.target.value)}
-                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
-                                </Tooltip>
-                            </div>
+                        {/* Categorias */}
+                        <div className="md:col-span-2">
+                            <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Selecione uma ou mais categorias, caso esse filtro precise aparecer em pagina(s) dessas categorias." placement="top-start">
+                                <label className="block text-sm font-medium mb-1">Página de categorias</label>
+                            </Tooltip>
 
-                            {/* FieldName - Com labels descritivas */}
-                            <div>
-                                <Tooltip
-                                    content="Nome do campo ou identificador associado (ex.: price_per ou variantAttribute)"
-                                    placement="top-start"
-                                    className="bg-white text-red-500 border border-gray-200 p-2"
-                                >
-                                    <select required value={fieldName}
-                                        onChange={e => setFieldName(e.target.value)}
-                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2">
-                                        <option value="">Selecione um campo</option>
-                                        {FIELD_NAME_OPTIONS.map(option => (
-                                            <option key={option.value} value={option.value}>
-                                                {option.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </Tooltip>
-                            </div>
-
-                            {/* Type */}
-                            <div>
-                                <Tooltip
-                                    content="Tipo de filtro: RANGE, SELECT, MULTI_SELECT"
-                                    placement="top-start"
-                                    className="bg-white text-red-500 border border-gray-200 p-2"
-                                >
-                                    <select value={type}
-                                        onChange={e => setType(e.target.value as any)}
-                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2">
-                                        <option>SELECT</option><option>MULTI_SELECT</option><option>RANGE</option>
-                                    </select>
-                                </Tooltip>
-                            </div>
-
-                            {/* DataType */}
-                            <div>
-                                <Tooltip
-                                    content="Tipo de dado subjacente (NUMBER, STRING, etc.)"
-                                    placement="top-start"
-                                    className="bg-white text-red-500 border border-gray-200 p-2"
-                                >
-                                    <select value={dataType}
-                                        onChange={e => setDataType(e.target.value as any)}
-                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2">
-                                        <option>STRING</option><option>NUMBER</option><option>DATE</option><option>BOOLEAN</option>
-                                    </select>
-                                </Tooltip>
-                            </div>
-
-                            {/* DisplayStyle */}
-                            <div>
-                                <Tooltip
-                                    content="Define o componente visual a ser usado"
-                                    placement="top-start"
-                                    className="bg-white text-red-500 border border-gray-200 p-2"
-                                >
-                                    <select value={displayStyle}
-                                        onChange={e => setDisplayStyle(e.target.value as any)}
-                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2">
-                                        <option>DROPDOWN</option><option>CHECKBOX</option><option>RADIO</option>
-                                        <option>SLIDER</option><option>COLOR_PICKER</option>
-                                    </select>
-                                </Tooltip>
-                            </div>
-
-                            {/* isActive */}
-                            <div className="flex items-center space-x-2">
-                                <input id="active" type="checkbox" checked={isActive}
-                                    onChange={e => setIsActive(e.target.checked)} className="h-4 w-4" />
-                                <label htmlFor="active" className="text-sm">Ativo</label>
-                            </div>
-
-                            {/* Order */}
-                            <div>
-                                <Tooltip
-                                    content="Define a ordem de exibição entre os filtros"
-                                    placement="top-start"
-                                    className="bg-white text-red-500 border border-gray-200 p-2"
-                                >
-                                    <input type="number" value={order}
-                                        onChange={e => setOrder(Number(e.target.value))}
-                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
-                                </Tooltip>
-                            </div>
-
-                            {/* AutoPopulate */}
-                            <div className="flex items-center space-x-2">
-                                <input id="auto" type="checkbox" checked={autoPopulate}
-                                    onChange={e => setAutoPopulate(e.target.checked)} className="h-4 w-4" />
-                                <Tooltip
-                                    content="Se verdadeiro, o sistema pode preencher opções baseado nos produtos cadastrados."
-                                    placement="top-start"
-                                    className="bg-white text-red-500 border border-gray-200 p-2"
-                                >
-                                    <label htmlFor="auto" className="text-sm">Auto Popular</label>
-                                </Tooltip>
-                            </div>
-
-                            {/* Min/Max */}
-                            {type === 'RANGE' && <>
-                                <div>
-                                    <Tooltip
-                                        content="Ex.: preço mínimo pré-configurado (opcional)"
-                                        placement="top-start"
-                                        className="bg-white text-red-500 border border-gray-200 p-2"
-                                    >
-                                        <input type="number" value={minValue}
-                                            onChange={e => setMinValue(e.target.value === '' ? '' : Number(e.target.value))}
-                                            className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
-                                    </Tooltip>
-                                </div>
-                                <div>
-                                    <Tooltip
-                                        content="Ex.: preço máximo pré-configurado (opcional)"
-                                        placement="top-start"
-                                        className="bg-white text-red-500 border border-gray-200 p-2"
-                                    >
-                                        <input type="number" value={maxValue}
-                                            onChange={e => setMaxValue(e.target.value === '' ? '' : Number(e.target.value))}
-                                            className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
-                                    </Tooltip>
-                                </div>
-                            </>}
-
-                            {/* Grupo + Modal */}
-                            <div className="md:col-span-2 flex items-end space-x-2">
-                                <div className="flex-1">
-                                    <Tooltip
-                                        content="O grupo representa por exemplo: Caracteristicas, Preços etc..."
-                                        placement="top-start"
-                                        className="bg-white text-red-500 border border-gray-200 p-2"
-                                    >
-                                        <select value={groupId}
-                                            onChange={e => setGroupId(e.target.value)}
-                                            className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2">
-                                            <option value="">— Nenhum —</option>
-                                            {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                                        </select>
-                                    </Tooltip>
-                                </div>
-                                <button type="button"
-                                    onClick={() => setShowGroupModal(true)}
-                                    className="mb-1 px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                                    + Grupo
-                                </button>
-                            </div>
-
-                            {/* Categorias */}
-                            <div className="md:col-span-2">
-                                <Tooltip
-                                    content="Selecione uma ou mais categorias, caso esse filtro precise aparecer em pagina(s) dessas categorias."
-                                    placement="top-start"
-                                    className="bg-white text-red-500 border border-gray-200 p-2"
-                                >
-                                    <label className="block text-sm font-medium mb-1">Categorias</label>
-                                </Tooltip>
-
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-40 overflow-auto p-2 border rounded">
-                                    {categories.map(cat => (
-                                        <label key={cat.id} className="flex items-center space-x-2">
-                                            <input type="checkbox"
-                                                checked={selectedCatIds.includes(cat.id)}
-                                                onChange={() => toggleCategory(cat.id)}
-                                                className="h-4 w-4" />
-                                            <span className="text-sm">{cat.name}</span>
-                                        </label>
-                                    ))}
-                                </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-40 overflow-auto p-2 border rounded">
+                                {categories.map(cat => (
+                                    <label key={cat.id} className="flex items-center space-x-2">
+                                        <input type="checkbox"
+                                            checked={selectedCatIds.includes(cat.id)}
+                                            onChange={() => toggleCategory(cat.id)}
+                                            className="h-4 w-4" />
+                                        <span className="text-sm">{cat.name}</span>
+                                    </label>
+                                ))}
                             </div>
                         </div>
-                    )}
 
-                    {/* Aba Opções */}
-                    {tab === 1 && (
-                        <div className="space-y-4">
-                            <button
-                                type="button"
-                                onClick={addOption}
-                                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                        {/* Nome */}
+                        <div>
+                            <Tooltip
+                                className="bg-white text-red-500 border border-gray-200 p-2"
+                                content="Nome a ser exibido no front (ex.: Preço, Cor)"
+                                placement="top-start"
                             >
-                                + Nova Opção
-                            </button>
-
-                            {options.map(opt => (
-                                <div
-                                    key={opt.id}
-                                    className="flex flex-col md:flex-row md:items-end md:space-x-4 p-4 border rounded"
-                                >
-                                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {optionFieldConfig.map(({ key, label, type }) => (
-                                            <div key={key}>
-                                                <label className="block text-sm">{label}</label>
-                                                <input
-                                                    type={type}
-                                                    value={
-                                                        type === 'number'
-                                                            ? (opt[key] as number)
-                                                            : (opt[key] as string)
-                                                    }
-                                                    onChange={e =>
-                                                        updateOption(
-                                                            opt.id,
-                                                            key,
-                                                            type === 'number' ? Number(e.target.value) : e.target.value
-                                                        )
-                                                    }
-                                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2"
-                                                />
-                                            </div>
-                                        ))}
-
-                                        <div className="flex items-center space-x-2">
-                                            <input
-                                                type="checkbox"
-                                                checked={opt.isDefault}
-                                                onChange={e => updateOption(opt.id, 'isDefault', e.target.checked)}
-                                                className="h-4 w-4"
-                                            />
-                                            <label className="text-sm">Padrão</label>
-                                        </div>
-                                    </div>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => removeOption(opt.id)}
-                                        className="mt-2 md:mt-0 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                                    >
-                                        Remover
-                                    </button>
-                                </div>
-                            ))}
-
-                            {options.length === 0 && (
-                                <p className="text-gray-500">Nenhuma opção adicionada.</p>
-                            )}
+                                <input required value={name}
+                                    onChange={e => setName(e.target.value)}
+                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
+                            </Tooltip>
                         </div>
-                    )}
 
+                        {/* FieldName - Com labels descritivas */}
+                        <div>
+                            <Tooltip
+                                className="bg-white text-red-500 border border-gray-200 p-2"
+                                content="Nome do campo ou identificador associado (ex.: price_per ou variantAttribute)"
+                                placement="top-start"
+                            >
+                                <select required value={fieldName}
+                                    onChange={e => setFieldName(e.target.value)}
+                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2">
+                                    <option value="">Selecione um campo</option>
+                                    {FIELD_NAME_OPTIONS.map(option => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </Tooltip>
+                        </div>
 
+                        {/* Se escolheu variantAttribute, mostramos UI melhorada */}
+                        {fieldName === 'variantAttribute' && (
+                            <div className="md:col-span-2 p-2 border rounded">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div>
+                                        <strong>Chaves de atributo (variant attributes)</strong>
+                                        <div className="text-xs text-gray-500">Selecione as chaves que este filtro deve considerar ao popular opções automaticamente.</div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button type="button" onClick={detectAttributeKeysForSelectedCategories} disabled={detecting || selectedCatIds.length === 0}
+                                            className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+                                            {detecting ? 'Detectando...' : 'Detectar chaves da(s) categoria(s)'}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    {Object.keys(detectedKeys).length === 0 && (
+                                        <div className="text-sm text-gray-500">Nenhuma chave detectada ainda. Clique em "Detectar chaves" ou forneça chaves manualmente.</div>
+                                    )}
+
+                                    {Object.entries(detectedKeys).map(([k, samples]) => {
+                                        const checked = attributeKeys.includes(k)
+                                        return (
+                                            <div key={k} className="flex items-start justify-between bg-gray-50 p-2 rounded">
+                                                <div>
+                                                    <label className="flex items-center gap-2">
+                                                        <input type="checkbox" checked={checked} onChange={() => toggleAttributeKey(k)} />
+                                                        <span className="font-medium">{k}</span>
+                                                    </label>
+                                                    <div className="text-xs text-gray-500 mt-1">Ex.: {samples.slice(0, 6).join(', ') || '—'}</div>
+                                                </div>
+                                                <div className="text-xs text-gray-500">Valores ≈ {samples.length}</div>
+                                            </div>
+                                        )
+                                    })}
+
+                                    <div className="mt-2">
+                                        <label className="block text-sm">Chaves manualmente (se precisar adicionar)</label>
+                                        <input type="text" placeholder="Ex.: cor" onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault()
+                                                const val = (e.target as HTMLInputElement).value.trim()// @ts-ignore
+                                                if (val && !attributeKeys.includes(val)) setAttributeKeys(prev => [...prev, val])
+                                                    (e.target as HTMLInputElement).value = ''
+                                            }
+                                        }} className="mt-1 block w-full rounded border-gray-300 text-black p-2" />
+                                        <div className="text-xs text-gray-500 mt-1">Pressione Enter para adicionar</div>
+
+                                        {attributeKeys.length > 0 && (
+                                            <div className="mt-2 flex flex-wrap gap-2 text-black">
+                                                {attributeKeys.map(k => (
+                                                    <div key={k} className="px-2 py-1 bg-gray-200 rounded flex items-center gap-2">
+                                                        <span className="text-sm">{k}</span>
+                                                        <button type="button" onClick={() => setAttributeKeys(prev => prev.filter(x => x !== k))} className="text-xs px-1">x</button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Type */}
+                        <div>
+                            <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Tipo de filtro: RANGE, SELECT, MULTI_SELECT" placement="top-start">
+                                <select value={type}
+                                    onChange={e => setType(e.target.value as any)}
+                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2">
+                                    <option>SELECT</option><option>MULTI_SELECT</option><option>RANGE</option>
+                                </select>
+                            </Tooltip>
+                        </div>
+
+                        {/* DataType */}
+                        <div>
+                            <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Tipo de dado subjacente (NUMBER, STRING, etc.)" placement="top-start">
+                                <select value={dataType}
+                                    onChange={e => setDataType(e.target.value as any)}
+                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2">
+                                    <option>STRING</option><option>NUMBER</option>
+                                </select>
+                            </Tooltip>
+                        </div>
+
+                        {/* DisplayStyle */}
+                        <div>
+                            <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Define o componente visual a ser usado" placement="top-start">
+                                <select value={displayStyle}
+                                    onChange={e => setDisplayStyle(e.target.value as any)}
+                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2">
+                                    <option>DROPDOWN</option><option>CHECKBOX</option>
+                                    <option>SLIDER</option>
+                                </select>
+                            </Tooltip>
+                        </div>
+
+                        {/* isActive */}
+                        <div className="flex items-center space-x-2">
+                            <input id="active" type="checkbox" checked={isActive}
+                                onChange={e => setIsActive(e.target.checked)} className="h-4 w-4" />
+                            <label htmlFor="active" className="text-sm">Ativo</label>
+                        </div>
+
+                        {/* Order */}
+                        <div>
+                            <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Define a ordem de exibição entre os filtros" placement="top-start">
+                                <input type="number" value={order}
+                                    onChange={e => setOrder(Number(e.target.value))}
+                                    className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
+                            </Tooltip>
+                        </div>
+
+                        {/* AutoPopulate */}
+                        <div className="flex items-center space-x-2">
+                            <input id="auto" type="checkbox" checked={autoPopulate}
+                                onChange={e => setAutoPopulate(e.target.checked)} className="h-4 w-4" />
+                            <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Se verdadeiro, o sistema pode preencher opções baseado nos produtos cadastrados." placement="top-start">
+                                <label htmlFor="auto" className="text-sm">Auto Popular</label>
+                            </Tooltip>
+                        </div>
+
+                        {/* Min/Max */}
+                        {type === 'RANGE' && <>
+                            <div>
+                                <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Ex.: preço mínimo pré-configurado (opcional)" placement="top-start">
+                                    <input type="number" value={minValue}
+                                        onChange={e => setMinValue(e.target.value === '' ? '' : Number(e.target.value))}
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
+                                </Tooltip>
+                            </div>
+                            <div>
+                                <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Ex.: preço máximo pré-configurado (opcional)" placement="top-start">
+                                    <input type="number" value={maxValue}
+                                        onChange={e => setMaxValue(e.target.value === '' ? '' : Number(e.target.value))}
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
+                                </Tooltip>
+                            </div>
+                        </>}
+
+                        {/* Grupo + Modal */}
+                        <div className="md:col-span-2 flex items-end space-x-2">
+                            <div className="flex-1">
+                                <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="O grupo representa por exemplo: Caracteristicas, Preços etc..." placement="top-start">
+                                    <select value={groupId}
+                                        onChange={e => setGroupId(e.target.value)}
+                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2">
+                                        <option value="">— Nenhum —</option>
+                                        {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                                    </select>
+                                </Tooltip>
+                            </div>
+                            <button type="button"
+                                onClick={() => setShowGroupModal(true)}
+                                className="mb-1 px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                                + Grupo
+                            </button>
+                        </div>
+                    </div>
                     <div className="pt-4 border-t flex justify-end">
                         <button type="submit" disabled={submitting}
                             className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">
@@ -464,25 +479,17 @@ export default function AddFilterPage() {
 
                         <div className="space-y-3 mb-4">
                             <div>
-                                <Tooltip
-                                    content="Nome do grupo (ex.: Características, Preço)"
-                                    placement="top-start"
-                                    className="bg-white text-red-500 border border-gray-200 p-2"
-                                >
+                                <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Nome do grupo (ex.: Características, Preço)" placement="top-start">
                                     <input value={newGroupName}
                                         onChange={e => setNewGroupName(e.target.value)}
-                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
+                                        className="mt-1 block w-full rounded border-black border-2 shadow-sm text-black p-2" />
                                 </Tooltip>
                             </div>
                             <div>
-                                <Tooltip
-                                    content="Ordem de exibição do grupo na interface de usuário"
-                                    placement="top-start"
-                                    className="bg-white text-red-500 border border-gray-200 p-2"
-                                >
+                                <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Ordem de exibição do grupo na interface de usuário" placement="top-start">
                                     <input type="number" value={newGroupOrder}
                                         onChange={e => setNewGroupOrder(Number(e.target.value))}
-                                        className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
+                                        className="mt-1 block w-full rounded border-black border-2 shadow-sm text-black p-2" />
                                 </Tooltip>
                             </div>
                         </div>
