@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 import { useParams } from "next/navigation";
 import { Section } from "@/app/components/section";
 import { SidebarAndHeader } from "@/app/components/sidebarAndHeader";
-import { setupAPIClientEcommerce } from "@/app/services/apiEcommerce"; 
+import { setupAPIClientEcommerce } from "@/app/services/apiEcommerce";
 import { ChangeEvent, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { FiUpload } from "react-icons/fi";
@@ -165,13 +165,11 @@ export default function UpdateMarketingPublication() {
                         >
                             <option value="">Selecione o local</option>
                             <option value="Pagina_inicial">Página inicial</option>
-                            <option value="Pagina_artigo">Página do artigo</option>
-                            <option value="Pagina_todos_artigos">Página de todos artigos</option>
+                            <option value="Pagina_produto">Página do produto</option>
+                            <option value="Pagina_produtos_categoria">Página de produtos na categoria</option>
                             <option value="Pagina_categoria">Página de categoria</option>
-                            <option value="Pagina_todas_categorias">Página de todas as categorias</option>
-                            <option value="Pagina_sobre">Página sobre</option>
                             <option value="Pagina_contato">Página de contato</option>
-                            <option value="Pagina_politicas_de_privacidade">Página politicas de privacidade</option>
+                            <option value="Pagina_favoritos">Página favoritos</option>
                         </select>
                     </label>
 
