@@ -128,12 +128,11 @@ export default function Configuration_ecommerce() {
     const [paymentMethodsContent, setPaymentMethodsContent] = useState("");
     const [technicalAssistanceContent, setTechnicalAssistanceContent] = useState("");
     const [aboutStoreContent, setAboutStoreContent] = useState("");
+    const [resumeAboutStoreContent, setResumeAboutStoreContent] = useState("");
     const [activeTab, setActiveTab] = useState('about');
     const [zipCodeValue, setZipCodeValue] = useState("");
     const [cnpjValue, setCnpjValue] = useState("");
     const [cpfValue, setCpfValue] = useState("");
-
-    console.log(cnpjValue)
 
     const editorTabs = [
         {
@@ -141,6 +140,12 @@ export default function Configuration_ecommerce() {
             title: 'Sobre a Loja',
             content: aboutStoreContent,
             setContent: setAboutStoreContent
+        },
+        {
+            id: 'resume',
+            title: 'Texto Resumo Sobre a Loja',
+            content: resumeAboutStoreContent,
+            setContent: setResumeAboutStoreContent
         },
         {
             id: 'policies',
@@ -373,7 +378,7 @@ export default function Configuration_ecommerce() {
             setPaymentMethodsContent(data.payment_methods || "");
             setTechnicalAssistanceContent(data.technical_assistance || "");
             setAboutStoreContent(data.about_store);
-
+            setResumeAboutStoreContent(data.resume_about_store || "");
             setZipCodeValue(data.zipCode ? formatZipCode(data.zipCode) : "");
 
         } catch (error) {
@@ -405,6 +410,7 @@ export default function Configuration_ecommerce() {
             formData.append("neighborhood", data.neighborhood || "");
             formData.append("country", data.country || "");
             formData.append("about_store", aboutStoreContent || "");
+            formData.append("resume_about_store", resumeAboutStoreContent || "");
             formData.append("technical_assistance", technicalAssistanceContent || "");
             formData.append("payment_methods", paymentMethodsContent || "");
             formData.append("privacy_policies", privacyPoliciesContent || "");
