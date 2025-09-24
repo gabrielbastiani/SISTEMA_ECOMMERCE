@@ -32,11 +32,58 @@ import {
   ProductRelationsUpdate
 } from '@/app/components/add_product/update_product/ProductRelationsUpdate'
 
+/**
+ * Skeleton helpers (simples, baseadas em Tailwind animate-pulse).
+ * Você pode substituir por componentes visuais do NextUI se preferir.
+ */
+const SkeletonLine: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div className={`h-4 rounded bg-gray-200 ${className} animate-pulse`} />
+)
+
+const SkeletonBox: React.FC<{ w?: string; h?: string; className?: string }> = ({ w = 'w-full', h = 'h-6', className = '' }) => (
+  <div className={`${w} ${h} rounded bg-gray-200 ${className} animate-pulse`} />
+)
+
+const SkeletonInputRow: React.FC = () => (
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <SkeletonBox className="h-10" />
+    <SkeletonBox className="h-10" />
+  </div>
+)
+
+const SkeletonVariantCard: React.FC = () => (
+  <div className="border rounded-lg p-4 bg-white shadow">
+    <div className="flex justify-between items-center mb-4">
+      <div className="w-48"><SkeletonLine className="h-5" /></div>
+      <div className="w-10"><SkeletonBox className="h-8 w-8" /></div>
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <SkeletonBox className="h-10" />
+      <SkeletonBox className="h-10" />
+      <SkeletonBox className="h-10" />
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <SkeletonBox className="h-10" />
+      <SkeletonBox className="h-10" />
+    </div>
+  </div>
+)
+
+const SkeletonImagesRow: React.FC<{ count?: number }> = ({ count = 4 }) => (
+  <div className="flex gap-2 mt-2 overflow-x-auto pb-3">
+    {Array.from({ length: count }).map((_, i) => (
+      <div key={i} className="shrink-0">
+        <div className="w-20 h-20 rounded-lg bg-gray-200 animate-pulse" />
+      </div>
+    ))}
+  </div>
+)
+
 export default function UpdateProductPage() {
-
-  const { product_id } = useParams<{ product_id: string }>();
-
-  const router = useRouter();
+  const { product_id } = useParams<{ product_id: string }>()
+  const router = useRouter()
 
   const [buyTogetherOptions, setBuyTogetherOptions] = useState<BuyTogetherOption[]>([])
   const [formData, setFormData] = useState<ProductFormData>(initialFormData)
@@ -45,45 +92,45 @@ export default function UpdateProductPage() {
   const [products, setProducts] = useState<Array<{ id: string; name: string }>>([])
   const [variantFiles, setVariantFiles] = useState<Record<string, File[]>>({})
   const [attributeFiles, setAttributeFiles] = useState<Record<string, Record<number, File[]>>>({})
+
+  // primary states: for existing images we store id; for new images we store file.name
   const [primaryMainImageId, setPrimaryMainImageId] = useState<string>("")
+  const [primaryMainImageName, setPrimaryMainImageName] = useState<string>("")
+
+  // variant / attribute primaries (kept as before for variants existing images)
   const [primaryVariantImageIdByVariantId, setPrimaryVariantImageIdByVariantId] = useState<Record<string, string>>({})
   const [primaryAttributeImageIdByVariantAndAttrIdx, setPrimaryAttributeImageIdByVariantAndAttrIdx] = useState<Record<string, Record<number, string>>>({})
+
+  // loading for submit
   const [loading, setLoading] = useState(false)
+  // initial loading for page data (separate and non-blocking skeletons)
+  const [initialLoading, setInitialLoading] = useState(true)
 
   useEffect(() => {
+    let mounted = true
     async function load() {
+      setInitialLoading(true)
       try {
-        const api = setupAPIClientEcommerce();
+        const api = setupAPIClientEcommerce()
         const [catRes, prodRes, promoRes, dataRes, btRes] = await Promise.all([
           api.get('/category/cms'),
           api.get('/get/products'),
           api.get('/promotions/get'),
           api.get(`/product/cms/get?product_id=${product_id}`),
           api.get('/buy_together')
-        ]);
+        ])
+
+        if (!mounted) return
 
         setCategories(catRes.data.all_categories_disponivel)
         setPromotions(
-          promoRes.data.allow_promotions.map((p: any) => ({
-            id: String(p.id),
-            name: p.name
-          }))
+          promoRes.data.allow_promotions.map((p: any) => ({ id: String(p.id), name: p.name }))
         )
-        setBuyTogetherOptions(btRes.data.map((p: any) => ({
-          id: String(p.id),
-          name: p.name
-        }))
-        )
-        setProducts(
-          prodRes.data.allow_products.map((p: any) => ({
-            id: p.id,
-            name: p.name
-          }))
-        )
+        setBuyTogetherOptions(btRes.data.map((p: any) => ({ id: String(p.id), name: p.name })))
+        setProducts(prodRes.data.allow_products.map((p: any) => ({ id: p.id, name: p.name })))
 
         const p = dataRes.data
 
-        // Helper para extrair ID do YouTube
         function extractYouTubeId(url: string): string | null {
           const regExp = /(?:v=|\/)([0-9A-Za-z_-]{11})/
           const match = url.match(regExp)
@@ -95,28 +142,18 @@ export default function UpdateProductPage() {
         const rawVariants: Array<any> = p.variants ?? []
         const primVarMap: Record<string, string> = {}
         const primAttrMap: Record<string, Record<number, string>> = {}
-        
+
         const formVariants: VariantFormData[] = rawVariants.map((v: any) => {
           const variantId: string = v.id
-          const existingVarImgs: Array<{
-            id: string
-            url: string
-            altText: string
-            isPrimary: boolean
-          }> = v.productVariantImage ?? []
+          const existingVarImgs: Array<any> = v.productVariantImage ?? []
 
           const primaryVar = existingVarImgs.find((img) => img.isPrimary)
-          if (primaryVar) {
-            primVarMap[variantId] = primaryVar.id
-          } else {
-            primVarMap[variantId] = ""
-          }
+          primVarMap[variantId] = primaryVar ? primaryVar.id : ""
 
           const attributesRaw: Array<any> = v.variantAttribute ?? []
           primAttrMap[variantId] = {}
           attributesRaw.forEach((a: any, idx: number) => {
-            const imagesOfAttr: Array<{ id: string; url: string; altText: string; isPrimary: boolean }> =
-              a.variantAttributeImage ?? []
+            const imagesOfAttr: Array<any> = a.variantAttributeImage ?? []
             const primaryAttrImg = imagesOfAttr.find((img) => img.isPrimary)
             primAttrMap[variantId][idx] = primaryAttrImg ? primaryAttrImg.id : ""
           })
@@ -134,15 +171,7 @@ export default function UpdateProductPage() {
             ean: v.ean,
             mainPromotion_id: v.mainPromotion_id,
 
-            existingImages: existingVarImgs.map(
-              (i: any) =>
-              ({
-                id: i.id,
-                url: i.url,
-                altText: i.altText
-              } as ImageRecord)
-            ),
-
+            existingImages: existingVarImgs.map((i: any) => ({ id: i.id, url: i.url, altText: i.altText } as ImageRecord)),
             newImages: [] as File[],
 
             attributes: attributesRaw.map((a: any) => {
@@ -152,48 +181,29 @@ export default function UpdateProductPage() {
                 key: a.key,
                 value: a.value,
                 status: a.status as StatusProduct,
-                existingImages: imagesOfAttr.map(
-                  (ai: any) =>
-                  ({
-                    id: ai.id,
-                    url: ai.url,
-                    altText: ai.altText
-                  } as ImageRecord)
-                ),
+                existingImages: imagesOfAttr.map((ai: any) => ({ id: ai.id, url: ai.url, altText: ai.altText } as ImageRecord)),
                 newImages: [] as File[]
               } as VariantAttribute
             }),
 
             videos: rawVideosVariant.map((vv) => {
               const ytId = extractYouTubeId(vv.url)
-              return {
-                url: vv.url,
-                thumbnail: ytId ? `https://img.youtube.com/vi/${ytId}/0.jpg` : undefined
-              } as VideoInput
+              return { url: vv.url, thumbnail: ytId ? `https://img.youtube.com/vi/${ytId}/0.jpg` : undefined } as VideoInput
             }),
 
-            // Campos extras para satisfazer o tipo VariantFormData
             images: [] as File[],
-            productVariantImage: existingVarImgs.map(
-              (i: any) =>
-              ({
-                id: i.id,
-                url: i.url,
-                altText: i.altText
-              } as ImageRecord)
-            ),
+            productVariantImage: existingVarImgs.map((i: any) => ({ id: i.id, url: i.url, altText: i.altText } as ImageRecord)),
             productVariantVideo: rawVideosVariant.map((vv) => {
               const ytId = extractYouTubeId(vv.url)
-              return {
-                url: vv.url,
-                thumbnail: ytId ? `https://img.youtube.com/vi/${ytId}/0.jpg` : undefined
-              } as VideoInput
+              return { url: vv.url, thumbnail: ytId ? `https://img.youtube.com/vi/${ytId}/0.jpg` : undefined } as VideoInput
             }),
             created_at: undefined,
             product_id: v.product_id ?? product_id,
             variantAttributes: [] as any[]
           } as VariantFormData
         })
+
+        if (!mounted) return
 
         setFormData({
           ...initialFormData,
@@ -219,58 +229,21 @@ export default function UpdateProductPage() {
           categories: (p.categories ?? []).map((c: any) => c.category_id),
           description: p.description ?? '',
 
-          // Imagens do produto
-          existingImages: rawImages.map(
-            (i) =>
-            ({
-              id: i.id,
-              url: i.url,
-              altText: i.altText
-            } as ImageRecord)
-          ),
+          existingImages: rawImages.map((i) => ({ id: i.id, url: i.url, altText: i.altText } as ImageRecord)),
           newImages: [] as File[],
 
-          // Vídeos do produto
           videos: (p.videos ?? []).map((v: any) => {
             const id = extractYouTubeId(v.url)
-            return {
-              url: v.url,
-              thumbnail: id ? `https://img.youtube.com/vi/${id}/0.jpg` : undefined
-            } as VideoInput
+            return { url: v.url, thumbnail: id ? `https://img.youtube.com/vi/${id}/0.jpg` : undefined } as VideoInput
           }),
 
-          // Descrições
-          productDescriptions: (p.productsDescriptions ?? []).map(
-            (d: any) =>
-            ({
-              id: d.id,
-              title: d.title,
-              description: d.description,
-              status: d.status as any
-            } as ProductDescriptionWithId)
-          ),
+          productDescriptions: (p.productsDescriptions ?? []).map((d: any) => ({ id: d.id, title: d.title, description: d.description, status: d.status as any } as ProductDescriptionWithId)),
 
-          // Variantes
           variants: formVariants,
 
-          // Relações (união de parentRelations e childRelations)
           relations: [
-            ...(p.parentRelations ?? []).map((r: any) => ({
-              id: r.id,
-              relationDirection: 'parent' as const,
-              relatedProductId: r.childProduct_id,
-              relationType: r.relationType,
-              sortOrder: r.sortOrder,
-              isRequired: r.isRequired
-            })),
-            ...(p.childRelations ?? []).map((r: any) => ({
-              id: r.id,
-              relationDirection: 'child' as const,
-              relatedProductId: r.parentProduct_id,
-              relationType: r.relationType,
-              sortOrder: r.sortOrder,
-              isRequired: r.isRequired
-            }))
+            ...(p.parentRelations ?? []).map((r: any) => ({ id: r.id, relationDirection: 'parent' as const, relatedProductId: r.childProduct_id, relationType: r.relationType, sortOrder: r.sortOrder, isRequired: r.isRequired })),
+            ...(p.childRelations ?? []).map((r: any) => ({ id: r.id, relationDirection: 'child' as const, relatedProductId: r.parentProduct_id, relationType: r.relationType, sortOrder: r.sortOrder, isRequired: r.isRequired }))
           ]
         })
 
@@ -288,96 +261,78 @@ export default function UpdateProductPage() {
         setVariantFiles(vfInit)
         setAttributeFiles(afInit)
 
-        // Finalmente, popula os estados de “primárias”:
+        // popula os estados de primárias
         setPrimaryMainImageId(initialPrimaryMainImage)
+        setPrimaryMainImageName("")
         setPrimaryVariantImageIdByVariantId(primVarMap)
         setPrimaryAttributeImageIdByVariantAndAttrIdx(primAttrMap)
       } catch (err) {
         console.error(err)
-        toast.error('Erro ao carregar produto')
+        if (mounted) toast.error('Erro ao carregar produto')
+      } finally {
+        if (mounted) setInitialLoading(false)
       }
     }
     load()
-  }, [product_id]);
+    return () => {
+      mounted = false
+    }
+  }, [product_id])
+
+  // handler central para definir primary do produto (existing id || new by name)
+  const handleSetPrimaryMainImage = (idOrName: string, isNew?: boolean) => {
+    if (isNew) {
+      setPrimaryMainImageName(idOrName)
+      setPrimaryMainImageId("")
+    } else {
+      setPrimaryMainImageId(idOrName)
+      setPrimaryMainImageName("")
+    }
+  }
 
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      // 1) Monta o objeto “productPayload”
       const productPayload: Record<string, any> = {}
-
-      // Garante que id existe
       const finalId = formData.id?.trim() ? formData.id : product_id
       productPayload.id = finalId
 
-      // Campos simples
       const camposSimples = [
-        'name',
-        'slug',
-        'description',
-        'status',
-        'price_per',
-        'price_of',
-        'metaTitle',
-        'metaDescription',
-        'brand',
-        'ean',
-        'skuMaster',
-        'weight',
-        'length',
-        'width',
-        'height',
-        'stock',
-        'mainPromotion_id',
-        'buyTogether_id'
+        'name', 'slug', 'description', 'status', 'price_per', 'price_of', 'metaTitle', 'metaDescription', 'brand', 'ean', 'skuMaster', 'weight', 'length', 'width', 'height', 'stock', 'mainPromotion_id', 'buyTogether_id'
       ] as const
 
       camposSimples.forEach((campo) => {
         const valor = (formData as any)[campo]
-        if (valor !== undefined && valor !== null) {
-          productPayload[campo] = valor
-        }
+        if (valor !== undefined && valor !== null) productPayload[campo] = valor
       })
 
-      if (formData.keywords && formData.keywords.length > 0) {
-        productPayload.keywords = formData.keywords
-      }
-      if (formData.categories && formData.categories.length > 0) {
-        productPayload.categories = formData.categories
-      }
+      if (formData.keywords && formData.keywords.length > 0) productPayload.keywords = formData.keywords
+      if (formData.categories && formData.categories.length > 0) productPayload.categories = formData.categories
 
-      // Descrições
-      if (formData.productDescriptions && formData.productDescriptions.length > 0) {
-        productPayload.descriptions = formData.productDescriptions.map((d) => ({
-          id: d.id,
-          title: d.title,
-          description: d.description,
-          status: d.status
-        }))
-      } else {
-        productPayload.descriptions = []
-      }
-
-      // Vídeos de Produto
-      if (formData.videos && formData.videos.length > 0) {
-        productPayload.videoLinks = formData.videos.map((v) => v.url)
-      }
-
-      productPayload.existingImages = formData.existingImages
-        ? formData.existingImages.map((img) => img.id)
+      productPayload.descriptions = (formData.productDescriptions && formData.productDescriptions.length > 0)
+        ? formData.productDescriptions.map((d) => ({ id: d.id, title: d.title, description: d.description, status: d.status }))
         : []
 
-      if (primaryMainImageId) {
-        productPayload.primaryMainImageId = primaryMainImageId
+      if (formData.videos && formData.videos.length > 0) productPayload.videoLinks = formData.videos.map((v) => v.url)
+
+      // existing images (ids)
+      if (formData.existingImages) {
+        productPayload.existingImages = formData.existingImages.map((img) => img.id)
       }
 
+      // primary: prefer id (existing), otherwise name for new images
+      if (primaryMainImageId && primaryMainImageId.trim() !== "") {
+        productPayload.primaryMainImageId = primaryMainImageId
+      } else if (primaryMainImageName && primaryMainImageName.trim() !== "") {
+        productPayload.primaryMainImageName = primaryMainImageName
+      }
+
+      // new images list (names) — backend will map originalname -> altText
       if (formData.newImages && formData.newImages.length > 0) {
         productPayload.newImages = formData.newImages.map((file) => file.name)
       }
 
-      if (formData.relations && formData.relations.length > 0) {
-        productPayload.relations = formData.relations
-      }
+      if (formData.relations && formData.relations.length > 0) productPayload.relations = formData.relations
 
       const cleanVariants: Array<Record<string, any>> = (formData.variants || []).map((v) => {
         const objVar: Record<string, any> = {
@@ -393,17 +348,14 @@ export default function UpdateProductPage() {
 
           existingImages: (v.existingImages || []).map((img) => img.id),
 
+          // primary for variant uses existing id map (unchanged)
           primaryImageId: primaryVariantImageIdByVariantId[v.id] || ""
         }
 
         const arquivosDaVariante = variantFiles[v.id] || []
-        if (arquivosDaVariante.length > 0) {
-          objVar.newImages = arquivosDaVariante.map((file) => file.name)
-        }
+        if (arquivosDaVariante.length > 0) objVar.newImages = arquivosDaVariante.map((file) => file.name)
 
-        if (v.videos && v.videos.length > 0) {
-          objVar.videos = v.videos.map((vl) => vl.url)
-        }
+        if (v.videos && v.videos.length > 0) objVar.videos = v.videos.map((vl) => vl.url)
 
         objVar.attributes = (v.attributes || []).map((at, ai) => {
           const objAttr: Record<string, any> = {
@@ -415,40 +367,33 @@ export default function UpdateProductPage() {
             primaryAttributeImageId: (primaryAttributeImageIdByVariantAndAttrIdx[v.id] || {})[ai] || ""
           }
           const arquivosDoAtributo = attributeFiles[v.id]?.[ai] || []
-          if (arquivosDoAtributo.length > 0) {
-            objAttr.newImages = arquivosDoAtributo.map((file) => file.name)
-          }
-
+          if (arquivosDoAtributo.length > 0) objAttr.newImages = arquivosDoAtributo.map((file) => file.name)
           return objAttr
         })
 
         return objVar
       })
 
-      if (cleanVariants.length > 0) {
-        productPayload.variants = cleanVariants
-      }
+      if (cleanVariants.length > 0) productPayload.variants = cleanVariants
 
       const formPayload = new FormData()
       formPayload.append('payload', JSON.stringify(productPayload))
 
+        // append files — use a safer separator '::' in field names
         ; (formData.newImages || []).forEach((file) => {
-          formPayload.append(`productImage_${file.name}`, file)
+          formPayload.append(`productImage::${file.name}`, file)
         })
 
       Object.entries(variantFiles).forEach(([variantId, arquivos]) => {
         arquivos.forEach((file) => {
-          formPayload.append(`variantImage_${variantId}_${file.name}`, file)
+          formPayload.append(`variantImage::${variantId}::${file.name}`, file)
         })
       })
 
       Object.entries(attributeFiles).forEach(([variantId, mapaDeAttrs]) => {
         Object.entries(mapaDeAttrs).forEach(([attrIdxStr, arquivos]) => {
           arquivos.forEach((file) => {
-            formPayload.append(
-              `attributeImage_${variantId}_${attrIdxStr}_${file.name}`,
-              file
-            )
+            formPayload.append(`attributeImage::${variantId}::${attrIdxStr}::${file.name}`, file)
           })
         })
       })
@@ -472,137 +417,170 @@ export default function UpdateProductPage() {
         <TitlePage title="ATUALIZAR PRODUTO" />
         <Tabs variant="bordered" color="danger" className="my-tabs bg-white rounded-lg shadow-sm">
           <Tab key="info" title="Informações Básicas">
-            <BasicProductInfoUpdate
-              formData={formData}
-              onFormDataChange={setFormData}
-              promotions={promotions}
-              existingImages={formData.existingImages ?? []}
-              newImages={formData.newImages ?? []}
-              primaryImageId={primaryMainImageId}
-              onSetPrimaryImageId={(id: string) => setPrimaryMainImageId(id)}
-              onAddNewImage={(files: File[]) => setFormData((prev) => ({
-                ...prev,
-                newImages: [...(prev.newImages ?? []), ...files]
-              }))}
-              onRemoveExistingImage={(imgId: string) => setFormData((prev) => ({
-                ...prev,
-                existingImages: (prev.existingImages ?? []).filter((img) => img.id !== imgId)
-              }))}
-              onRemoveNewImage={(index: number) => setFormData((prev) => ({
-                ...prev,
-                newImages: (prev.newImages ?? []).filter((_, i) => i !== index)
-              }))}
-              buyTogetherOptions={buyTogetherOptions}
-              onBuyTogetherChange={(id) => setFormData(d => ({ ...d, buyTogether_id: id }))}
-            />
+            {initialLoading ? (
+              <div className="space-y-6 max-w-3xl">
+                <div className="grid grid-cols-1 gap-4">
+                  <SkeletonBox className="h-12 w-3/4" />
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <SkeletonBox className="h-10" />
+                  <SkeletonBox className="h-10" />
+                  <SkeletonBox className="h-10" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <SkeletonBox className="h-10" />
+                  <SkeletonBox className="h-10" />
+                </div>
+
+                <div className="grid grid-cols-4 gap-4">
+                  <SkeletonBox className="h-10" />
+                  <SkeletonBox className="h-10" />
+                  <SkeletonBox className="h-10" />
+                  <SkeletonBox className="h-10" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <SkeletonBox className="h-10" />
+                  <SkeletonBox className="h-10" />
+                </div>
+
+                <div>
+                  <SkeletonLine className="h-5 w-32 mb-2" />
+                  <SkeletonImagesRow count={4} />
+                </div>
+              </div>
+            ) : (
+              <BasicProductInfoUpdate
+                formData={formData}
+                onFormDataChange={setFormData}
+                promotions={promotions}
+                existingImages={formData.existingImages ?? []}
+                newImages={formData.newImages ?? []}
+                primaryImageId={primaryMainImageId}
+                primaryImageName={primaryMainImageName}
+                onSetPrimaryImage={(idOrName: string, isNew?: boolean) => handleSetPrimaryMainImage(idOrName, isNew)}
+                onAddNewImage={(files: File[]) => setFormData((prev) => ({ ...prev, newImages: [...(prev.newImages ?? []), ...files] }))}
+                onRemoveExistingImage={(imgId: string) => {
+                  setFormData((prev) => ({ ...prev, existingImages: (prev.existingImages ?? []).filter((img) => img.id !== imgId) }))
+                  if (primaryMainImageId === imgId) setPrimaryMainImageId("")
+                }}
+                onRemoveNewImage={(index: number) => {
+                  const toRemove = (formData.newImages ?? [])[index]
+                  setFormData((prev) => ({ ...prev, newImages: (prev.newImages ?? []).filter((_, i) => i !== index) }))
+                  if (toRemove && toRemove.name === primaryMainImageName) setPrimaryMainImageName("")
+                }}
+                buyTogetherOptions={buyTogetherOptions}
+                onBuyTogetherChange={(id) => setFormData(d => ({ ...d, buyTogether_id: id }))}
+              />
+            )}
           </Tab>
 
           <Tab key="descriptions" title="Descrições">
-            <ProductDescriptionEditorUpdate
-              descriptions={formData.productDescriptions}
-              onDescriptionsChange={(d) =>
-                setFormData({ ...formData, productDescriptions: d })
-              }
-            />
+            {initialLoading ? (
+              <div className="space-y-3">
+                <SkeletonLine className="h-5 w-48" />
+                <SkeletonBox className="h-40" />
+                <SkeletonLine className="h-5 w-48" />
+                <SkeletonBox className="h-40" />
+              </div>
+            ) : (
+              <ProductDescriptionEditorUpdate descriptions={formData.productDescriptions} onDescriptionsChange={(d) => setFormData({ ...formData, productDescriptions: d })} />
+            )}
           </Tab>
 
           <Tab key="categories" title="Categorias">
-            <CategoryManagerUpdate
-              categories={categories}
-              selectedCategories={formData.categories}
-              onSelectionChange={(c) => setFormData({ ...formData, categories: c })}
-            />
+            {initialLoading ? (
+              <div className="space-y-4 max-w-lg">
+                <SkeletonLine className="h-5 w-32" />
+                <div className="flex flex-wrap gap-2">
+                  <SkeletonBox className="h-8 w-24" />
+                  <SkeletonBox className="h-8 w-24" />
+                  <SkeletonBox className="h-8 w-24" />
+                </div>
+              </div>
+            ) : (
+              <CategoryManagerUpdate categories={categories} selectedCategories={formData.categories} onSelectionChange={(c) => setFormData({ ...formData, categories: c })} />
+            )}
           </Tab>
 
           <Tab key="seo" title="SEO">
-            <SeoProductInfoUpdate
-              formData={formData}
-              onFormDataChange={(data) => setFormData({ ...formData, ...data })}
-            />
+            {initialLoading ? (
+              <div className="space-y-3 max-w-2xl">
+                <SkeletonBox className="h-10" />
+                <SkeletonBox className="h-10" />
+                <SkeletonBox className="h-10" />
+              </div>
+            ) : (
+              <SeoProductInfoUpdate formData={formData} onFormDataChange={(data) => setFormData({ ...formData, ...data })} />
+            )}
           </Tab>
 
           <Tab key="videos" title="Vídeos">
-            <VideoLinksManagerUpdate
-              links={formData.videos}
-              onLinksChange={(newLinks) =>
-                setFormData({ ...formData, videos: newLinks })
-              }
-            />
+            {initialLoading ? (
+              <div className="space-y-3">
+                <SkeletonLine className="h-5 w-24" />
+                <SkeletonBox className="h-12 w-64" />
+              </div>
+            ) : (
+              <VideoLinksManagerUpdate links={formData.videos} onLinksChange={(newLinks) => setFormData({ ...formData, videos: newLinks })} />
+            )}
           </Tab>
 
           <Tab key="variants" title="Variantes">
-            <VariantManagerUpdate
-              formData={formData}
-              onFormDataChange={setFormData}
-              promotions={promotions}
-              variantFiles={variantFiles}
-              setVariantFiles={setVariantFiles}
-              attributeFiles={attributeFiles}
-              setAttributeFiles={setAttributeFiles}
-              primaryVariantImageIdByVariantId={primaryVariantImageIdByVariantId}
-              onSetPrimaryVariantImageId={(variantId: string, imageId: string) =>
-                setPrimaryVariantImageIdByVariantId((prev) => ({
-                  ...prev,
-                  [variantId]: imageId
-                }))
-              }
-              primaryAttributeImageIdByVariantAndAttrIdx={
-                primaryAttributeImageIdByVariantAndAttrIdx
-              }
-              onSetPrimaryAttributeImageId={(
-                variantId: string,
-                attrIndex: number,
-                imageId: string
-              ) => {
-                setPrimaryAttributeImageIdByVariantAndAttrIdx((prev) => {
-                  const copy = { ...prev }
-                  if (!copy[variantId]) copy[variantId] = {}
-                  copy[variantId][attrIndex] = imageId
-                  return copy
-                })
-              }}
-            />
+            {initialLoading ? (
+              <div className="space-y-4">
+                <SkeletonVariantCard />
+                <SkeletonVariantCard />
+              </div>
+            ) : (
+              <VariantManagerUpdate
+                formData={formData}
+                onFormDataChange={setFormData}
+                promotions={promotions}
+                variantFiles={variantFiles}
+                setVariantFiles={setVariantFiles}
+                attributeFiles={attributeFiles}
+                setAttributeFiles={setAttributeFiles}
+                primaryVariantImageIdByVariantId={primaryVariantImageIdByVariantId}
+                onSetPrimaryVariantImageId={(variantId: string, imageId: string) => setPrimaryVariantImageIdByVariantId((prev) => ({ ...prev, [variantId]: imageId }))}
+                primaryAttributeImageIdByVariantAndAttrIdx={primaryAttributeImageIdByVariantAndAttrIdx}
+                onSetPrimaryAttributeImageId={(variantId: string, attrIndex: number, imageId: string) => {
+                  setPrimaryAttributeImageIdByVariantAndAttrIdx((prev) => {
+                    const copy = { ...prev }
+                    if (!copy[variantId]) copy[variantId] = {}
+                    copy[variantId][attrIndex] = imageId
+                    return copy
+                  })
+                }}
+              />
+            )}
           </Tab>
 
           <Tab key="relations" title="Relacionamentos">
-            <ProductRelationsUpdate
-              relations={formData.relations as ProductRelation[]}
-              products={products}
-              onRelationsChange={(newRels) =>
-                setFormData({ ...formData, relations: newRels })
-              }
-            />
+            {initialLoading ? (
+              <div className="space-y-3 max-w-lg">
+                <SkeletonLine className="h-5 w-48" />
+                <SkeletonBox className="h-10" />
+                <SkeletonBox className="h-10" />
+              </div>
+            ) : (
+              <ProductRelationsUpdate relations={formData.relations as ProductRelation[]} products={products} onRelationsChange={(newRels) => setFormData({ ...formData, relations: newRels })} />
+            )}
           </Tab>
         </Tabs>
 
         <style jsx global>{`
-          .my-tabs [role="tab"][aria-selected="true"] {
-            background: #e09200;
-            color: white;
-          }
-          .my-tabs [role="tab"]:not([aria-selected="true"]) {
-            color: #000;
-          }
-          .my-tabs [role="tab"]:not([aria-selected="true"]):hover {
-            background: #f3f4f6;
-          }
-          .my-tabs > .nextui-tabs-tablist {
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-          }
-          .my-tabs .nextui-tabs-panel {
-            padding: 1rem;
-          }
+          .my-tabs [role="tab"][aria-selected="true"] { background: #e09200; color: white; }
+          .my-tabs [role="tab"]:not([aria-selected="true"]) { color: #000; }
+          .my-tabs [role="tab"]:not([aria-selected="true"]):hover { background: #f3f4f6; }
+          .my-tabs > .nextui-tabs-tablist { gap: 0.5rem; padding: 0.5rem 1rem; }
+          .my-tabs .nextui-tabs-panel { padding: 1rem; }
         `}</style>
 
         <div className="mt-6">
-          <Button
-            className="text-white bg-green-600"
-            onPress={handleSubmit}
-            isLoading={loading}
-          >
-            Atualizar Produto
-          </Button>
+          <Button className="text-white bg-green-600" onPress={handleSubmit} isLoading={loading}>Atualizar Produto</Button>
         </div>
       </Section>
     </SidebarAndHeader>
