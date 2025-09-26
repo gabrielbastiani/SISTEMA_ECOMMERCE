@@ -32,23 +32,15 @@ import {
   ProductRelationsUpdate
 } from '@/app/components/add_product/update_product/ProductRelationsUpdate'
 
-/**
- * Skeleton helpers (simples, baseadas em Tailwind animate-pulse).
- * Você pode substituir por componentes visuais do NextUI se preferir.
- */
+import { CharacteristicManagerUpdate, CharacteristicItem } from '@/app/components/add_product/update_product/CharacteristicManagerUpdate'
+
+/* Skeleton helpers (mantive seu layout de skeletons) */
 const SkeletonLine: React.FC<{ className?: string }> = ({ className = '' }) => (
   <div className={`h-4 rounded bg-gray-200 ${className} animate-pulse`} />
 )
 
 const SkeletonBox: React.FC<{ w?: string; h?: string; className?: string }> = ({ w = 'w-full', h = 'h-6', className = '' }) => (
   <div className={`${w} ${h} rounded bg-gray-200 ${className} animate-pulse`} />
-)
-
-const SkeletonInputRow: React.FC = () => (
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <SkeletonBox className="h-10" />
-    <SkeletonBox className="h-10" />
-  </div>
 )
 
 const SkeletonVariantCard: React.FC = () => (
@@ -97,13 +89,16 @@ export default function UpdateProductPage() {
   const [primaryMainImageId, setPrimaryMainImageId] = useState<string>("")
   const [primaryMainImageName, setPrimaryMainImageName] = useState<string>("")
 
-  // variant / attribute primaries (kept as before for variants existing images)
+  // variant / attribute primaries
   const [primaryVariantImageIdByVariantId, setPrimaryVariantImageIdByVariantId] = useState<Record<string, string>>({})
   const [primaryAttributeImageIdByVariantAndAttrIdx, setPrimaryAttributeImageIdByVariantAndAttrIdx] = useState<Record<string, Record<number, string>>>({})
 
-  // loading for submit
+  // characteristics states
+  const [characteristicFiles, setCharacteristicFiles] = useState<File[]>([]) // files to append
+  const [characteristicsLocal, setCharacteristicsLocal] = useState<CharacteristicItem[]>([])
+
+  // loading
   const [loading, setLoading] = useState(false)
-  // initial loading for page data (separate and non-blocking skeletons)
   const [initialLoading, setInitialLoading] = useState(true)
 
   useEffect(() => {
@@ -205,6 +200,28 @@ export default function UpdateProductPage() {
 
         if (!mounted) return
 
+        // Build characteristics array from p.productCharacteristics (if provided by backend)
+        const rawChars: any[] = Array.isArray(p.productCharacteristics) ? p.productCharacteristics : []
+        const mappedChars: CharacteristicItem[] = rawChars.map((c: any) => {
+          const imageField = c.image ?? c.imageName ?? null
+          let previewUrl: string | null = null
+          if (imageField) {
+            if (typeof imageField === 'string' && (imageField.startsWith('http://') || imageField.startsWith('https://') || imageField.startsWith('/'))) {
+              previewUrl = imageField
+            } else if (typeof imageField === 'string') {
+              previewUrl = `/files/${imageField}`
+            }
+          }
+          return {
+            id: c.id,
+            key: c.key ?? '',
+            value: c.value ?? '',
+            file: null,
+            imageName: imageField ?? null,
+            previewUrl
+          } as CharacteristicItem
+        })
+
         setFormData({
           ...initialFormData,
           id: p.id,
@@ -237,15 +254,21 @@ export default function UpdateProductPage() {
             return { url: v.url, thumbnail: id ? `https://img.youtube.com/vi/${id}/0.jpg` : undefined } as VideoInput
           }),
 
-          productDescriptions: (p.productsDescriptions ?? []).map((d: any) => ({ id: d.id, title: d.title, description: d.description, status: d.status as any } as ProductDescriptionWithId)),
+          productDescriptions: (p.productsDescriptions ?? []).map((d: any) => ({ id: d.id, title: d.title, description: d.description, status: d.status } as ProductDescriptionWithId)),
 
           variants: formVariants,
 
           relations: [
             ...(p.parentRelations ?? []).map((r: any) => ({ id: r.id, relationDirection: 'parent' as const, relatedProductId: r.childProduct_id, relationType: r.relationType, sortOrder: r.sortOrder, isRequired: r.isRequired })),
             ...(p.childRelations ?? []).map((r: any) => ({ id: r.id, relationDirection: 'child' as const, relatedProductId: r.parentProduct_id, relationType: r.relationType, sortOrder: r.sortOrder, isRequired: r.isRequired }))
-          ]
+          ],
+
+          // add loaded characteristics to formData for convenience
+          characteristics: mappedChars.map(c => ({ id: c.id, key: c.key, value: c.value, imageName: c.imageName }))
         })
+
+        // set local char state for interactive editing
+        setCharacteristicsLocal(mappedChars)
 
         // Inicializa variantFiles e attributeFiles (vazios)
         const vfInit: Record<string, File[]> = {}
@@ -279,7 +302,6 @@ export default function UpdateProductPage() {
     }
   }, [product_id])
 
-  // handler central para definir primary do produto (existing id || new by name)
   const handleSetPrimaryMainImage = (idOrName: string, isNew?: boolean) => {
     if (isNew) {
       setPrimaryMainImageName(idOrName)
@@ -288,6 +310,26 @@ export default function UpdateProductPage() {
       setPrimaryMainImageId(idOrName)
       setPrimaryMainImageName("")
     }
+  }
+
+  // Characteristics change handler (recebe do componente update)
+  const onCharacteristicsChange = (chars: CharacteristicItem[]) => {
+    const files: File[] = chars.map(c => c.file).filter(Boolean) as File[]
+    setCharacteristicFiles(files)
+
+    const forPayload = chars.map(c => ({
+      id: c.id,
+      key: c.key,
+      value: c.value,
+      imageName: c.file instanceof File ? c.file.name : (c.imageName ?? null)
+    }))
+
+    setFormData(prev => ({
+      ...prev,
+      characteristics: forPayload
+    }))
+
+    setCharacteristicsLocal(chars)
   }
 
   const handleSubmit = async () => {
@@ -315,19 +357,16 @@ export default function UpdateProductPage() {
 
       if (formData.videos && formData.videos.length > 0) productPayload.videoLinks = formData.videos.map((v) => v.url)
 
-      // existing images (ids)
       if (formData.existingImages) {
         productPayload.existingImages = formData.existingImages.map((img) => img.id)
       }
 
-      // primary: prefer id (existing), otherwise name for new images
       if (primaryMainImageId && primaryMainImageId.trim() !== "") {
         productPayload.primaryMainImageId = primaryMainImageId
       } else if (primaryMainImageName && primaryMainImageName.trim() !== "") {
         productPayload.primaryMainImageName = primaryMainImageName
       }
 
-      // new images list (names) — backend will map originalname -> altText
       if (formData.newImages && formData.newImages.length > 0) {
         productPayload.newImages = formData.newImages.map((file) => file.name)
       }
@@ -348,7 +387,6 @@ export default function UpdateProductPage() {
 
           existingImages: (v.existingImages || []).map((img) => img.id),
 
-          // primary for variant uses existing id map (unchanged)
           primaryImageId: primaryVariantImageIdByVariantId[v.id] || ""
         }
 
@@ -376,27 +414,47 @@ export default function UpdateProductPage() {
 
       if (cleanVariants.length > 0) productPayload.variants = cleanVariants
 
+      // Características: incluir no payload
+      const charsForPayload = (formData as any).characteristics ?? []
+      if (Array.isArray(charsForPayload) && charsForPayload.length > 0) {
+        productPayload.characteristics = charsForPayload
+          .map((c: any) => ({
+            id: c.id ?? undefined,
+            key: String(c.key ?? '').trim(),
+            value: String(c.value ?? '').trim(),
+            imageName: c.imageName === undefined ? null : c.imageName
+          }))
+      } else {
+        productPayload.characteristics = []
+      }
+
       const formPayload = new FormData()
       formPayload.append('payload', JSON.stringify(productPayload))
 
-        // append files — use a safer separator '::' in field names
-        ; (formData.newImages || []).forEach((file) => {
-          formPayload.append(`productImage::${file.name}`, file)
-        })
+      // append files — use explicit loops to avoid ASI/parsing problems
+      const newImagesList = formData.newImages || []
+      for (const file of newImagesList) {
+        formPayload.append(`productImage::${file.name}`, file)
+      }
 
-      Object.entries(variantFiles).forEach(([variantId, arquivos]) => {
-        arquivos.forEach((file) => {
+      for (const [variantId, arquivos] of Object.entries(variantFiles)) {
+        for (const file of arquivos) {
           formPayload.append(`variantImage::${variantId}::${file.name}`, file)
-        })
-      })
+        }
+      }
 
-      Object.entries(attributeFiles).forEach(([variantId, mapaDeAttrs]) => {
-        Object.entries(mapaDeAttrs).forEach(([attrIdxStr, arquivos]) => {
-          arquivos.forEach((file) => {
+      for (const [variantId, mapaDeAttrs] of Object.entries(attributeFiles)) {
+        for (const [attrIdxStr, arquivos] of Object.entries(mapaDeAttrs)) {
+          for (const file of arquivos) {
             formPayload.append(`attributeImage::${variantId}::${attrIdxStr}::${file.name}`, file)
-          })
-        })
-      })
+          }
+        }
+      }
+
+      // append characteristics files (backend expects 'characteristicImages' field)
+      for (const file of (characteristicFiles || [])) {
+        formPayload.append('characteristicImages', file, file.name)
+      }
 
       const api = setupAPIClientEcommerce()
       await api.put('/product/update', formPayload)
@@ -487,6 +545,20 @@ export default function UpdateProductPage() {
               </div>
             ) : (
               <ProductDescriptionEditorUpdate descriptions={formData.productDescriptions} onDescriptionsChange={(d) => setFormData({ ...formData, productDescriptions: d })} />
+            )}
+          </Tab>
+
+          <Tab key="characteristics" title="Caracteristicas">
+            {initialLoading ? (
+              <div>
+                <SkeletonLine className="h-5 w-48" />
+                <SkeletonBox className="h-24" />
+              </div>
+            ) : (
+              <CharacteristicManagerUpdate
+                characteristics={characteristicsLocal}
+                onChange={onCharacteristicsChange}
+              />
             )}
           </Tab>
 

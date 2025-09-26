@@ -132,7 +132,7 @@ export const ProductRelations = ({ relations, products, onRelationsChange }: Pro
                             </Autocomplete>
                         </Tooltip>
 
-                        <Tooltip
+                        {/* <Tooltip
                             content="Determine o tipo de relação entre os produtos"
                             className="bg-white text-red-400 border border-gray-200 p-3 max-w-[300px]"
                         >
@@ -161,7 +161,7 @@ export const ProductRelations = ({ relations, products, onRelationsChange }: Pro
                                     Simples
                                 </SelectItem>
                             </Select>
-                        </Tooltip>
+                        </Tooltip> */}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -182,7 +182,7 @@ export const ProductRelations = ({ relations, products, onRelationsChange }: Pro
                             />
                         </Tooltip>
 
-                        <Tooltip
+                        {/* <Tooltip
                             content="Se a relação é obrigatória para a venda"
                             className="bg-white text-red-400 border border-gray-200 p-3 max-w-[300px]"
                         >
@@ -193,7 +193,7 @@ export const ProductRelations = ({ relations, products, onRelationsChange }: Pro
                             >
                                 <span className="text-black">Obrigatório para Compra</span>
                             </Checkbox>
-                        </Tooltip>
+                        </Tooltip> */}
                     </div>
                 </div>
             ))}

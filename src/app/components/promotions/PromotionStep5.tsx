@@ -1,8 +1,9 @@
 'use client'
 
-import { Dispatch, SetStateAction, useState, ChangeEvent } from 'react'
+import React, { Dispatch, SetStateAction, useRef, useState, ChangeEvent } from 'react'
 import { Button, Tooltip } from '@nextui-org/react'
 import { PromotionWizardDto } from 'Types/types'
+import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce'
 
 // Tipo local que estende o BadgeInput original com o File
 export type BadgeWithFile = {
@@ -16,14 +17,20 @@ interface Props {
   setData: Dispatch<SetStateAction<PromotionWizardDto & { badges: BadgeWithFile[] }>>
   onBack: () => void
   onFinish: () => void
+  isSaving?: boolean
 }
 
-export default function PromotionStep5({ data, setData, onBack, onFinish }: Props) {
+export default function PromotionStep5({ data, setData, onBack, onFinish, isSaving = false }: Props) {
+  // apiRef criado uma vez (padrão consistente; atualmente não utilizado aqui)
+  const apiRef = useRef<any | null>(null)
+  if (!apiRef.current) apiRef.current = setupAPIClientEcommerce()
+
   const [title, setTitle] = useState<string>('')
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string>('')
 
   const onFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (isSaving) return
     const f = e.target.files?.[0] ?? null
     if (!f) return
     setFile(f)
@@ -31,6 +38,7 @@ export default function PromotionStep5({ data, setData, onBack, onFinish }: Prop
   }
 
   const add = () => {
+    if (isSaving) return
     if (!title || !file) return
     setData((d: any) => ({
       ...d,
@@ -45,12 +53,13 @@ export default function PromotionStep5({ data, setData, onBack, onFinish }: Prop
   }
 
   const remove = (i: number) => {
+    if (isSaving) return
     setData((d: any) => ({ ...d, badges: d.badges.filter((_: any, j: number) => j !== i) }))
   }
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Passo 5: Selos</h2>
+      <h2 className="text-xl font-semibold">Passo 5: Selos</h2>
 
       <table className="w-full border-collapse">
         <thead>
@@ -68,7 +77,7 @@ export default function PromotionStep5({ data, setData, onBack, onFinish }: Prop
                 <img src={b.imageUrl} alt={b.title} className="h-12 object-contain" />
               </td>
               <td className="p-2">
-                <button className="text-red-600" onClick={() => remove(i)}>
+                <button className="text-red-600" onClick={() => remove(i)} disabled={isSaving}>
                   Remover
                 </button>
               </td>
@@ -90,6 +99,7 @@ export default function PromotionStep5({ data, setData, onBack, onFinish }: Prop
               onChange={e => setTitle(e.target.value)}
               className="bg-white border border-gray-200 rounded-md w-full text-black p-2"
               placeholder='Titulo do selo'
+              disabled={isSaving}
             />
           </Tooltip>
         </div>
@@ -101,6 +111,7 @@ export default function PromotionStep5({ data, setData, onBack, onFinish }: Prop
             accept="image/*"
             onChange={onFileChange}
             className="border p-1 rounded w-full"
+            disabled={isSaving as any}
           />
           {preview && (
             <img src={preview} alt="preview" className="mt-2 h-24 object-contain border" />
@@ -113,11 +124,12 @@ export default function PromotionStep5({ data, setData, onBack, onFinish }: Prop
           type="button"
           onClick={onBack}
           className="px-4 py-2 rounded bg-gray-200 text-black hover:bg-gray-300"
+          disabled={isSaving}
         >
           Voltar
         </button>
         <Button
-          disabled={!title || !file}
+          disabled={!title || !file || isSaving}
           onClick={add}
           className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
         >
@@ -126,6 +138,7 @@ export default function PromotionStep5({ data, setData, onBack, onFinish }: Prop
         <Button
           onClick={onFinish}
           className="px-4 py-2 bg-violet-500 text-white rounded hover:bg-violet-600"
+          disabled={isSaving}
         >
           Concluir
         </Button>

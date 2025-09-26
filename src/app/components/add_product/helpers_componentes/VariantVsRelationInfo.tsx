@@ -33,7 +33,7 @@ export function VariantVsRelationInfo() {
                     </ul>
                 </section>
 
-                <section>
+                {/* <section>
                     <h4 className="font-semibold mb-1">3. Campos de Relação</h4>
                     <ul className="list-disc list-inside space-y-1">
                         <li>
@@ -49,16 +49,16 @@ export function VariantVsRelationInfo() {
                             <strong>Obrigatório (isRequired)</strong>: se marcado, a seleção dessa relação é <em>obrigatória</em> em fluxos de compra conjunta.
                         </li>
                     </ul>
-                </section>
+                </section> */}
 
-                <section>
+                {/* <section>
                     <h4 className="font-semibold mb-1">4. Quando usar cada abordagem</h4>
                     <ul className="list-disc list-inside space-y-1">
                         <li><strong>Variantes Técnicas:</strong> quando precisar de controle completo de estoque e atributos diferenciados.</li>
                         <li><strong>Relações VARIANT:</strong> exibir opções de produto "primo" (Standard vs Pro) no site sem criar variantes técnicas.</li>
                         <li><strong>Relações SIMPLE:</strong> agrupar rapidamente produtos de cor/tamanho para oferta conjunta.</li>
                     </ul>
-                </section>
+                </section> */}
             </div>
         </div>
     );

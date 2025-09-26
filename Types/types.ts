@@ -96,6 +96,14 @@ export interface ProductVariant {
     videoLinks?: string[]
 }
 
+export interface ProductProductCharacteristics {
+    id?: string;
+    product_id?: string;
+    key?: string
+    value?: string
+    image?: string
+}
+
 export interface ProductFormData {
     id?: string;
     relations: any;
@@ -114,6 +122,7 @@ export interface ProductFormData {
     width?: number;
     height?: number;
     categories: string[];
+    characteristics: any;
     mainPromotion_id?: string;
     buyTogether_id?: string | null;
     images: File[];
@@ -126,6 +135,7 @@ export interface ProductFormData {
     videoLinks?: string[]
     existingImages?: ImageRecord[];
     newImages?: File[];
+    productCharacteristics: ProductProductCharacteristics[];
 }
 
 export interface RelationFormData {
@@ -161,6 +171,8 @@ export const initialFormData: ProductFormData = {
     images: [],
     videos: [],
     productDescriptions: [],
+    productCharacteristics: [],
+    characteristics: [],
     relations: [],
     variants: [] as VariantFormData[],
     videoLinks: [],

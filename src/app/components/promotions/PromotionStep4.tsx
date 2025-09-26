@@ -1,25 +1,32 @@
 'use client'
-import { Dispatch, SetStateAction, useState } from 'react'
+
+import React, { Dispatch, SetStateAction, useRef, useState } from 'react'
 import { Input, Tooltip } from '@nextui-org/react'
 import { Editor } from '@tinymce/tinymce-react'
 import { PromotionWizardDto } from 'Types/types'
+import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce'
 
-const TOKEN_TINY = process.env.NEXT_PUBLIC_TINYMCE_API_KEY;
+const TOKEN_TINY = process.env.NEXT_PUBLIC_TINYMCE_API_KEY || ''
 
 interface Props {
   data: PromotionWizardDto
   setData: Dispatch<SetStateAction<PromotionWizardDto>>
   onBack: () => void
   onNext: () => void
+  isSaving?: boolean
 }
 
-export default function PromotionStep4({ data, setData, onBack, onNext }: Props) {
-  
+export default function PromotionStep4({ data, setData, onBack, onNext, isSaving = false }: Props) {
+  // apiRef criado uma vez (padrão consistente; atualmente não utilizado aqui)
+  const apiRef = useRef<any | null>(null)
+  if (!apiRef.current) apiRef.current = setupAPIClientEcommerce()
+
   const [title, setTitle] = useState('')
   const [type, setType] = useState<'SPOT' | 'PRODUCT_PAGE'>('SPOT')
   const [content, setContent] = useState('')
 
   const add = () => {
+    if (isSaving) return
     if (!title || !content) return
     setData(d => ({
       ...d,
@@ -28,7 +35,8 @@ export default function PromotionStep4({ data, setData, onBack, onNext }: Props)
         { title, type, content }
       ]
     }))
-    setTitle(''); setContent('')
+    setTitle('')
+    setContent('')
   }
 
   const remove = (i: number) =>
@@ -56,7 +64,11 @@ export default function PromotionStep4({ data, setData, onBack, onNext }: Props)
                 <div dangerouslySetInnerHTML={{ __html: d.content }} />
               </td>
               <td className="p-2">
-                <button className="text-red-600" onClick={() => remove(i)}>
+                <button
+                  className="text-red-600"
+                  onClick={() => remove(i)}
+                  disabled={isSaving}
+                >
                   Remover
                 </button>
               </td>
@@ -76,14 +88,13 @@ export default function PromotionStep4({ data, setData, onBack, onNext }: Props)
               value={title}
               onChange={e => setTitle(e.target.value)}
               className="bg-white border border-gray-200 rounded-md"
-              classNames={{
-                input: "text-black",
-              }}
+              classNames={{ input: "text-black" }}
               placeholder='Titulo'
+              disabled={isSaving}
             />
           </Tooltip>
-
         </div>
+
         <div>
           <Tooltip
             content="Selecione o tipo de divulgação, o tipo texto é para o Spot (exibido no anúncio, na listagem da loja), e o tipo HTML é para os detalhes do produto (exibido na página do produto). (Preenchimento Obrigatório)"
@@ -94,13 +105,14 @@ export default function PromotionStep4({ data, setData, onBack, onNext }: Props)
               className="w-full border p-2 rounded text-black"
               value={type}
               onChange={e => setType(e.target.value as any)}
+              disabled={isSaving}
             >
               <option value="SPOT">Spot</option>
               <option value="PRODUCT_PAGE">Página do produto</option>
             </select>
           </Tooltip>
-
         </div>
+
         <div>
           <Tooltip
             content="Informe um texto descritivo com informações da divulgação. (Preenchimento Obrigatório)"
@@ -109,9 +121,16 @@ export default function PromotionStep4({ data, setData, onBack, onNext }: Props)
           >
             <label className="block">Conteúdo</label>
           </Tooltip>
+
           <Editor
             apiKey={TOKEN_TINY}
-            init={{ height: 200, menubar: false, plugins: ['link', 'lists', 'code'], toolbar: 'undo redo | bold italic | bullist numlist | code' }}
+            init={{
+              height: 200,
+              menubar: false,
+              plugins: ['link', 'lists', 'code'],
+              toolbar: 'undo redo | bold italic | bullist numlist | code',// @ts-ignore
+              readonly: isSaving ? 1 : 0 // tenta prevenir edição quando salvando
+            }}
             value={content}
             onEditorChange={c => setContent(c)}
           />
@@ -123,6 +142,7 @@ export default function PromotionStep4({ data, setData, onBack, onNext }: Props)
           type="button"
           onClick={onBack}
           className="px-4 py-2 rounded bg-gray-200 text-black hover:bg-gray-300"
+          disabled={isSaving}
         >
           Voltar
         </button>
@@ -130,6 +150,7 @@ export default function PromotionStep4({ data, setData, onBack, onNext }: Props)
           type="button"
           onClick={add}
           className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          disabled={isSaving || !title || !content}
         >
           Adicionar Conteúdo
         </button>
@@ -137,6 +158,7 @@ export default function PromotionStep4({ data, setData, onBack, onNext }: Props)
           type="button"
           onClick={onNext}
           className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+          disabled={isSaving}
         >
           Próximo
         </button>

@@ -16,8 +16,10 @@ import { VariantManager } from '@/app/components/add_product/VariantManager'
 import { ProductRelations } from '@/app/components/add_product/ProductRelations'
 import { VideoLinksManager } from '@/app/components/add_product/VideoLinksManager'
 import { SeoProductInfo } from '@/app/components/add_product/SeoProductInfo'
+import { CharacteristicManager } from '@/app/components/add_product/CharacteristicManager'
 
 export default function AddProductPage() {
+
   const { user } = useContext(AuthContext)
 
   const [categories, setCategories] = useState<Category[]>([])
@@ -26,18 +28,14 @@ export default function AddProductPage() {
 
   const [formData, setFormData] = useState<ProductFormData>(initialFormData)
   const [mainImages, setMainImages] = useState<File[]>([])
-
   const [primaryMainImageIndex, setPrimaryMainImageIndex] = useState<number>(-1)
-
   const [productVideoLinks, setProductVideoLinks] = useState<VideoInput[]>([])
   const [variantVideoLinks, setVariantVideoLinks] = useState<Record<string, VideoInput[]>>({})
-
   const [variantFiles, setVariantFiles] = useState<Record<string, File[]>>({})
   const [attributeFiles, setAttributeFiles] = useState<Record<string, Record<number, File[]>>>({})
-
   const [buyTogetherOptions, setBuyTogetherOptions] = useState<BuyTogetherOption[]>([])
-
   const [loading, setLoading] = useState(false)
+  const [characteristicFiles, setCharacteristicFiles] = useState<File[]>([])
 
   useEffect(() => {
     const api = setupAPIClientEcommerce()
@@ -45,7 +43,7 @@ export default function AddProductPage() {
     api.get('/category/cms').then(r => setCategories(r.data.all_categories_disponivel)).catch(console.error)
     api.get('/get/products').then(r => setAllProducts(r.data.allow_products)).catch(console.error)
     api.get('/buy_together').then(r => setBuyTogetherOptions(r.data as BuyTogetherOption[])).catch(() => toast.error('Não foi possível carregar grupos Compre Junto.'))
-  }, []);
+  }, [])
 
   const resetForm = () => {
     setFormData(initialFormData)
@@ -55,17 +53,16 @@ export default function AddProductPage() {
     setPrimaryMainImageIndex(-1)
     setVariantFiles({})
     setAttributeFiles({})
+    setCharacteristicFiles([])
   }
 
   const handleSubmit = async () => {
     setLoading(true)
     try {
       const formPayload = new FormData()
-
-      // Campos simples / arrays (exceto variantes, relações, vídeoLinks)
       Object.entries(formData).forEach(([key, value]) => {
         if (value === undefined || value === null) return
-        if (key === 'variants' || key === 'relations' || key === 'videoLinks') return
+        if (key === 'variants' || key === 'relations' || key === 'videoLinks' || key === 'characteristics') return
         if (Array.isArray(value) || typeof value === 'object') {
           formPayload.append(key, JSON.stringify(value))
         } else {
@@ -74,12 +71,10 @@ export default function AddProductPage() {
       })
 
       formPayload.append('userEcommerce_id', user?.id || '')
-
-      // Vídeo-links do produto
       const videoLinksToSend = productVideoLinks.map(v => v.url)
       formPayload.append('videoLinks', JSON.stringify(videoLinksToSend))
 
-      // Montar as variantes com os novos campos “images” e “primaryImageName” e, dentro de cada atributo, “images” e “primaryAttributeImageName”
+      // Variantes
       const cleanVariants = formData.variants.map(v => {
         const variantId = v.id
         const uploadedVariantFiles = variantFiles[variantId] || []
@@ -89,11 +84,9 @@ export default function AddProductPage() {
             ? uploadedVariantFiles[indexPrimaryVariant].name
             : null
 
-        // Para cada atributo, capturamos “primaryAttributeImageName”
         const attributesWithPrimaries = v.attributes.map((attr, idx) => {
           const uploadedAttrFiles = attributeFiles[variantId]?.[idx] || []
-          const indexPrimaryAttr =
-            primaryAttributeIndexById[variantId]?.[idx] ?? -1
+          const indexPrimaryAttr = primaryAttributeIndexById[variantId]?.[idx] ?? -1
           const primaryAttributeImageName =
             indexPrimaryAttr >= 0 && uploadedAttrFiles[indexPrimaryAttr]
               ? uploadedAttrFiles[indexPrimaryAttr].name
@@ -102,9 +95,8 @@ export default function AddProductPage() {
           return {
             key: attr.key,
             value: attr.value,
-            // Se quiser enviar status de atributo, pode acrescentar aqui
             images: uploadedAttrFiles.map(f => f.name),
-            primaryAttributeImageName, // NOME da imagem principal do atributo (ou null)
+            primaryAttributeImageName,
           }
         })
 
@@ -119,7 +111,7 @@ export default function AddProductPage() {
           allowBackorders: v.allowBackorders,
           mainPromotion_id: v.mainPromotion_id,
           images: uploadedVariantFiles.map(f => f.name),
-          primaryImageName: primaryVariantImageName, // NOME da imagem principal da variante (ou null)
+          primaryImageName: primaryVariantImageName,
           videoLinks: variantVideoLinks[variantId]?.map(x => x.url) || [],
           attributes: attributesWithPrimaries,
         }
@@ -127,52 +119,94 @@ export default function AddProductPage() {
 
       formPayload.append('variants', JSON.stringify(cleanVariants))
       formPayload.append('relations', JSON.stringify(formData.relations))
+      const rawCharacteristics = (formData as any).characteristics ?? []
+      const normalizedChars = Array.isArray(rawCharacteristics) ? rawCharacteristics : [rawCharacteristics]
 
-      // Anexar arquivos físicos: mainImages
-      mainImages.forEach(f => {
-        formPayload.append('images', f)
+      const validCharacteristics = normalizedChars
+        .filter((c: any) => c?.key && c?.value)
+        .map((c: any) => {
+          const correspondingFile = characteristicFiles.find(file =>
+            file.name === c.imageName
+          )
+
+          return {
+            key: String(c.key).trim(),
+            value: String(c.value).trim(),
+            imageName: correspondingFile ? correspondingFile.name : (c.imageName || null)
+          }
+        })
+
+      formPayload.append('characteristics', JSON.stringify(validCharacteristics))
+
+      mainImages.forEach(file => {
+        formPayload.append('images', file, file.name)
       })
-      // Enviar nome da imagem principal do produto
-      const primaryMainName =
-        primaryMainImageIndex >= 0 && mainImages[primaryMainImageIndex]
-          ? mainImages[primaryMainImageIndex].name
-          : ''
+
+      // Imagem principal
+      const primaryMainName = primaryMainImageIndex >= 0 && mainImages[primaryMainImageIndex]
+        ? mainImages[primaryMainImageIndex].name
+        : ''
       formPayload.append('primaryMainImageName', primaryMainName)
 
-      // Anexar arquivos físicos: variantImages
-      Object.values(variantFiles).forEach(files =>
-        files.forEach(file => formPayload.append('variantImages', file))
-      )
+      // Anexar arquivos de variantes
+      Object.values(variantFiles).forEach((files: File[]) => {
+        files.forEach(file => {
+          formPayload.append('variantImages', file, file.name)
+        })
+      })
 
-      // Anexar arquivos físicos: attributeImages
-      Object.values(attributeFiles).forEach(attrs =>
-        Object.values(attrs).forEach(files =>
-          files.forEach(file => formPayload.append('attributeImages', file))
-        )
-      )
+      // Anexar arquivos de atributos
+      Object.values(attributeFiles).forEach((attrMap: Record<number, File[]>) => {
+        Object.values(attrMap).forEach((files: File[]) => {
+          files.forEach(file => {
+            formPayload.append('attributeImages', file, file.name)
+          })
+        })
+      })
+
+      characteristicFiles.forEach(file => {
+        formPayload.append('characteristicImages', file, file.name)
+      })
 
       const api = setupAPIClientEcommerce()
       await api.post('/product/create', formPayload, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 30000
       })
 
       toast.success('Produto cadastrado!')
       resetForm()
     } catch (e: any) {
-      console.error(e)
+      console.error('Error creating product:', e)
       toast.error(e.response?.data?.error || 'Erro ao cadastrar')
     } finally {
       setLoading(false)
     }
   }
 
-  const [primaryVariantIndexById, setPrimaryVariantIndexById] = useState<
-    Record<string, number>
-  >({});
+  const [primaryVariantIndexById, setPrimaryVariantIndexById] = useState<Record<string, number>>({})
+  const [primaryAttributeIndexById, setPrimaryAttributeIndexById] = useState<Record<string, Record<number, number>>>({})
 
-  const [primaryAttributeIndexById, setPrimaryAttributeIndexById] = useState<
-    Record<string, Record<number, number>>
-  >({});
+  const onCharacteristicsChange = (chars: any[]) => {
+    const files: File[] = chars
+      .map(c => c.file)
+      .filter((file): file is File => file instanceof File && file.name !== undefined)
+
+    setCharacteristicFiles(files)
+
+    const characteristicsForFormData = chars.map(c => ({
+      key: c.key,
+      value: c.value,
+      imageName: c.file instanceof File ? c.file.name : (c.imageName || null)
+    }))
+
+    setFormData(prev => ({
+      ...prev,
+      characteristics: characteristicsForFormData
+    }))
+  }
 
   return (
     <SidebarAndHeader>
@@ -184,6 +218,7 @@ export default function AddProductPage() {
           color="primary"
           className="my-tabs bg-white rounded-lg shadow-sm"
         >
+          {/* ... resto do código das tabs permanece igual ... */}
           <Tab key="info" title="Informações Básicas">
             <BasicProductInfo
               formData={formData}
@@ -203,6 +238,13 @@ export default function AddProductPage() {
               onDescriptionsChange={(desc) =>
                 setFormData({ ...formData, productDescriptions: desc })
               }
+            />
+          </Tab>
+
+          <Tab key="characteristics" title="Caracteristicas">
+            <CharacteristicManager
+              characteristics={(formData as any).characteristics ?? []}
+              onChange={onCharacteristicsChange}
             />
           </Tab>
 
@@ -262,29 +304,25 @@ export default function AddProductPage() {
         </Tabs>
 
         <style jsx global>{`
-        /* Aba ativa: laranja */
-        .my-tabs [role="tab"][aria-selected="true"] {
-          background: #e09200;
-          color: #ffffff;
-          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        /* Aba inativa: texto cinza, hover com fundo cinza-claro */
-        .my-tabs [role="tab"]:not([aria-selected="true"]) {
-          color: #000000;
-        }
-        .my-tabs [role="tab"]:not([aria-selected="true"]):hover {
-          background: #f3f4f6;
-        }
-        /* Espaçamento interno da lista de tabs */
-        .my-tabs > .nextui-tabs-tablist {
-          gap: 0.5rem;
-          padding: 0.5rem 1rem;
-        }
-        /* Padding do painel de conteúdo */
-        .my-tabs .nextui-tabs-panel {
-          padding: 1rem;
-        }
-      `}</style>
+          .my-tabs [role="tab"][aria-selected="true"] {
+            background: #e09200;
+            color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          }
+          .my-tabs [role="tab"]:not([aria-selected="true"]) {
+            color: #000000;
+          }
+          .my-tabs [role="tab"]:not([aria-selected="true"]):hover {
+            background: #f3f4f6;
+          }
+          .my-tabs > .nextui-tabs-tablist {
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+          }
+          .my-tabs .nextui-tabs-panel {
+            padding: 1rem;
+          }
+        `}</style>
 
         <div className="mt-6">
           <Button

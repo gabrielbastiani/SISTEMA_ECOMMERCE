@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { ActionInput, ActionType } from 'Types/types'
 import { setupAPIClientEcommerce } from '@/app/services/apiEcommerce'
 import { toast } from 'react-toastify'
@@ -14,13 +14,12 @@ interface MultiSelectProps {
     options: MultiSelectOption[]
     selected: string[]
     onChange: (newSel: string[]) => void
+    disabled?: boolean
 }
-function MultiSelect({ label, options, selected, onChange }: MultiSelectProps) {
+function MultiSelect({ label, options, selected, onChange, disabled = false }: MultiSelectProps) {
     const [open, setOpen] = useState(false)
     const toggle = (v: string) =>
-        selected.includes(v)
-            ? onChange(selected.filter(x => x !== v))
-            : onChange([...selected, v])
+        selected.includes(v) ? onChange(selected.filter(x => x !== v)) : onChange([...selected, v])
 
     return (
         <div className="relative">
@@ -29,6 +28,7 @@ function MultiSelect({ label, options, selected, onChange }: MultiSelectProps) {
                 type="button"
                 onClick={() => setOpen(o => !o)}
                 className="w-full text-left border p-2 rounded flex justify-between items-center bg-white"
+                disabled={disabled}
             >
                 <span className="truncate">
                     {selected.length > 0
@@ -36,8 +36,7 @@ function MultiSelect({ label, options, selected, onChange }: MultiSelectProps) {
                         : 'Nenhum selecionado'}
                 </span>
                 <svg
-                    className={`w-4 h-4 transform transition-transform ${open ? 'rotate-180' : ''
-                        }`}
+                    className={`w-4 h-4 transform transition-transform ${open ? 'rotate-180' : ''}`}
                     viewBox="0 0 20 20"
                 >
                     <path d="M5.5 8l4.5 4.5L14.5 8h-9z" fill="currentColor" />
@@ -52,6 +51,7 @@ function MultiSelect({ label, options, selected, onChange }: MultiSelectProps) {
                                 checked={selected.includes(opt.value)}
                                 onChange={() => toggle(opt.value)}
                                 className="mr-2"
+                                disabled={disabled}
                             />
                             {opt.label}
                         </label>
@@ -63,16 +63,9 @@ function MultiSelect({ label, options, selected, onChange }: MultiSelectProps) {
                     {options
                         .filter(o => selected.includes(o.value))
                         .map(o => (
-                            <span
-                                key={o.value}
-                                className="flex items-center bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm"
-                            >
+                            <span key={o.value} className="flex items-center bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm">
                                 {o.label}
-                                <button
-                                    type="button"
-                                    onClick={() => toggle(o.value)}
-                                    className="ml-1 text-green-600 hover:text-green-900"
-                                >
+                                <button type="button" onClick={() => toggle(o.value)} className="ml-1 text-green-600 hover:text-green-900" disabled={disabled}>
                                     ×
                                 </button>
                             </span>
@@ -114,17 +107,21 @@ interface Props {
     onSave: (actions: ActionInput[]) => Promise<void>
     onBack: () => void
     onNext: () => void
+    isSaving?: boolean
 }
 
 export default function PromotionStep3Edit({
-    initialActions, onSave, onBack, onNext
+    initialActions,
+    onSave,
+    onBack,
+    onNext,
+    isSaving = false
 }: Props) {
-    const api = setupAPIClientEcommerce()
+    // apiRef estável
+    const apiRef = useRef<any | null>(null)
+    if (!apiRef.current) apiRef.current = setupAPIClientEcommerce()
 
-    const defaultActionType = (initialActions.length > 0
-        ? initialActions[0].type
-        : actionOptions[0].value
-    ) as ActionType
+    const defaultActionType = (initialActions.length > 0 ? initialActions[0].type : actionOptions[0].value) as ActionType
 
     const [actions, setActions] = useState<ActionInput[]>([...initialActions])
     const [type, setType] = useState<ActionType>(defaultActionType)
@@ -133,34 +130,54 @@ export default function PromotionStep3Edit({
     const [variants, setVariants] = useState<{ id: string; sku: string }[]>([])
     const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
     const [brands, setBrands] = useState<string[]>([])
+    const [loadingOptions, setLoadingOptions] = useState(true)
 
     useEffect(() => {
+        let mounted = true
         async function loadAll() {
             try {
+                setLoadingOptions(true)
+                const api = apiRef.current
                 const [pRes, vRes, cRes] = await Promise.all([
                     api.get('/get/products'),
                     api.get('/variant/get'),
                     api.get('/category/cms')
                 ])
-                setProducts(pRes.data.allow_products.map((p: any) => ({ id: p.id, name: p.name })))
-                setVariants(vRes.data.map((v: any) => ({ id: v.id, sku: v.sku })))
-                setCategories(cRes.data.all_categories_disponivel.map((c: any) => ({ id: c.id, name: c.name })))
-                const allBrands = pRes.data.allow_products.map((p: any) => p.brand).filter((b: any) => typeof b === 'string') as string[]
+
+                if (!mounted) return
+
+                const prods = (pRes?.data?.allow_products || []) as any[]
+                setProducts(prods.map((p: any) => ({ id: p.id, name: p.name })))
+                setVariants((vRes?.data || []).map((v: any) => ({ id: v.id, sku: v.sku })))
+                setCategories((cRes?.data?.all_categories_disponivel || []).map((c: any) => ({ id: c.id, name: c.name })))
+                const allBrands = prods.map((p: any) => p.brand).filter((b: any) => typeof b === 'string') as string[]
                 setBrands(Array.from(new Set(allBrands)))
-            } catch {
+            } catch (err) {
+                console.error('Erro ao carregar dados de ação', err)
                 toast.error('Erro ao carregar dados de ação')
+            } finally {
+                if (mounted) setLoadingOptions(false)
             }
         }
         loadAll()
-    }, [api])
+        return () => { mounted = false }
+        // note: no dependency on apiRef to avoid unnecessary re-runs
+    }, [])
+
+    useEffect(() => {
+        // reset params when changing type
+        setParams({})
+    }, [type])
 
     function saveAction() {
+        if (isSaving || loadingOptions) return
         setActions(a => [...a, { type, params }])
         setType(actionOptions[0].value)
         setParams({})
     }
 
     function removeAction(i: number) {
+        if (isSaving) return
         setActions(a => a.filter((_, idx) => idx !== i))
     }
 
@@ -169,25 +186,25 @@ export default function PromotionStep3Edit({
     const categoryOpts = categories.map(c => ({ value: c.id, label: c.name }))
 
     function renderFields() {
+        if (loadingOptions) {
+            return (
+                <div className="animate-pulse space-y-2">
+                    <div className="h-10 bg-gray-200 rounded" />
+                    <div className="h-10 bg-gray-200 rounded" />
+                    <div className="h-10 bg-gray-200 rounded w-3/4" />
+                </div>
+            )
+        }
+
         switch (type) {
             case ActionType.FIXED_VARIANT_DISCOUNT:
                 return (
                     <>
-                        <MultiSelect
-                            label="Variantes"
-                            options={variantOpts}
-                            selected={params.variantIds || []}
-                            onChange={arr => setParams((p: any) => ({ ...p, variantIds: arr }))}
-                        />
+                        <MultiSelect label="Variantes" options={variantOpts} selected={params.variantIds || []} onChange={arr => setParams((p: any) => ({ ...p, variantIds: arr }))} disabled={isSaving} />
                         <div className='mt-10'>
                             <label className='text-foreground'>
                                 Valor do desconto (R$)*{' '}
-                                <input
-                                    type="number"
-                                    value={params.amount || ''}
-                                    onChange={e => setParams({ ...params, amount: Number(e.target.value) })}
-                                    className='p-2 text-black border-4'
-                                />
+                                <input type="number" value={params.amount || ''} onChange={e => setParams({ ...params, amount: Number(e.target.value) })} className='p-2 text-black border-4' disabled={isSaving} />
                             </label>
                         </div>
                     </>
@@ -196,20 +213,10 @@ export default function PromotionStep3Edit({
             case ActionType.FIXED_PRODUCT_DISCOUNT:
                 return (
                     <>
-                        <MultiSelect
-                            label="Produtos"
-                            options={productOpts}
-                            selected={params.productIds || []}
-                            onChange={arr => setParams((p: any) => ({ ...p, productIds: arr }))}
-                        />
+                        <MultiSelect label="Produtos" options={productOpts} selected={params.productIds || []} onChange={arr => setParams((p: any) => ({ ...p, productIds: arr }))} disabled={isSaving} />
                         <label className='mt-9 text-foreground'>
                             Valor do desconto (R$)*{' '}
-                            <input
-                                type="number"
-                                value={params.amount || ''}
-                                onChange={e => setParams({ ...params, amount: Number(e.target.value) })}
-                                className='p-2 text-black border-4'
-                            />
+                            <input type="number" value={params.amount || ''} onChange={e => setParams({ ...params, amount: Number(e.target.value) })} className='p-2 text-black border-4' disabled={isSaving} />
                         </label>
                     </>
                 )
@@ -217,20 +224,10 @@ export default function PromotionStep3Edit({
             case ActionType.FREE_VARIANT_ITEM:
                 return (
                     <>
-                        <MultiSelect
-                            label="Variantes"
-                            options={variantOpts}
-                            selected={params.variantIds || []}
-                            onChange={arr => setParams((p: any) => ({ ...p, variantIds: arr }))}
-                        />
+                        <MultiSelect label="Variantes" options={variantOpts} selected={params.variantIds || []} onChange={arr => setParams((p: any) => ({ ...p, variantIds: arr }))} disabled={isSaving} />
                         <label className='text-foreground'>
                             Unidades de brinde*{' '}
-                            <input
-                                type="number"
-                                value={params.qty || ''}
-                                onChange={e => setParams({ ...params, qty: Number(e.target.value) })}
-                                className='p-2 text-black border-4'
-                            />
+                            <input type="number" value={params.qty || ''} onChange={e => setParams({ ...params, qty: Number(e.target.value) })} className='p-2 text-black border-4' disabled={isSaving} />
                         </label>
                     </>
                 )
@@ -238,20 +235,10 @@ export default function PromotionStep3Edit({
             case ActionType.FREE_PRODUCT_ITEM:
                 return (
                     <>
-                        <MultiSelect
-                            label="Produtos"
-                            options={productOpts}
-                            selected={params.productIds || []}
-                            onChange={arr => setParams((p: any) => ({ ...p, productIds: arr }))}
-                        />
+                        <MultiSelect label="Produtos" options={productOpts} selected={params.productIds || []} onChange={arr => setParams((p: any) => ({ ...p, productIds: arr }))} disabled={isSaving} />
                         <label className='text-foreground'>
                             Unidades de brinde*{' '}
-                            <input
-                                type="number"
-                                value={params.qty || ''}
-                                onChange={e => setParams({ ...params, qty: Number(e.target.value) })}
-                                className='p-2 text-black border-4'
-                            />
+                            <input type="number" value={params.qty || ''} onChange={e => setParams({ ...params, qty: Number(e.target.value) })} className='p-2 text-black border-4' disabled={isSaving} />
                         </label>
                     </>
                 )
@@ -259,200 +246,114 @@ export default function PromotionStep3Edit({
             case ActionType.PERCENT_CATEGORY:
                 return (
                     <>
-                        <MultiSelect
-                            label="Categorias"
-                            options={categoryOpts}
-                            selected={params.categoryIds || []}
-                            onChange={arr => setParams((p: any) => ({ ...p, categoryIds: arr }))}
-                        />
+                        <MultiSelect label="Categorias" options={categoryOpts} selected={params.categoryIds || []} onChange={arr => setParams((p: any) => ({ ...p, categoryIds: arr }))} disabled={isSaving} />
                         <div className='mt-10 text-black'>
                             <label className='text-foreground'>
                                 Percentual (%)*{' '}
-                                <input
-                                    type="number"
-                                    value={params.percent || ''}
-                                    onChange={e => setParams({ ...params, percent: Number(e.target.value) })}
-                                    className='p-2 text-black border-4'
-                                />
+                                <input type="number" value={params.percent || ''} onChange={e => setParams({ ...params, percent: Number(e.target.value) })} className='p-2 text-black border-4' disabled={isSaving} />
                             </label>
                         </div>
                     </>
                 )
 
             case ActionType.PERCENT_VARIANT:
-            case ActionType.PERCENT_PRODUCT:
-                {
-                    const isVariant = type === ActionType.PERCENT_VARIANT
-                    const opts = isVariant ? variantOpts : productOpts
-                    const key = isVariant ? 'variantIds' : 'productIds'
-                    const label = isVariant ? 'Variantes*' : 'Produtos*'
+            case ActionType.PERCENT_PRODUCT: {
+                const isVariant = type === ActionType.PERCENT_VARIANT
+                const opts = isVariant ? variantOpts : productOpts
+                const key = isVariant ? 'variantIds' : 'productIds'
+                const label = isVariant ? 'Variantes*' : 'Produtos*'
 
-                    return (
-                        <>
-                            <MultiSelect
-                                label={label}
-                                options={opts}
-                                selected={params[key] || []}
-                                onChange={arr =>
-                                    setParams((p: any) => ({ ...p, [key]: arr }))
-                                }
-                            />
-                            <div className='mt-10'>
-                                <label className='text-foreground'>
-                                    Percentual (%)*{' '}
-                                    <input
-                                        type="number"
-                                        value={params.percent || ''}
-                                        onChange={e => setParams({ ...params, percent: Number(e.target.value) })}
-                                        className='p-2 text-black border-4'
-                                    />
-                                </label>
-                            </div>
-
-                        </>
-                    )
-                }
+                return (
+                    <>
+                        <MultiSelect label={label} options={opts} selected={params[key] || []} onChange={arr => setParams((p: any) => ({ ...p, [key]: arr }))} disabled={isSaving} />
+                        <div className='mt-10'>
+                            <label className='text-foreground'>
+                                Percentual (%)*{' '}
+                                <input type="number" value={params.percent || ''} onChange={e => setParams({ ...params, percent: Number(e.target.value) })} className='p-2 text-black border-4' disabled={isSaving} />
+                            </label>
+                        </div>
+                    </>
+                )
+            }
 
             case ActionType.PERCENT_ITEM_COUNT:
                 return (
                     <>
-                        <MultiSelect
-                            label="Produtos"
-                            options={productOpts}
-                            selected={params.productIds || []}
-                            onChange={arr => setParams((p: any) => ({ ...p, productIds: arr }))}
-                        />
+                        <MultiSelect label="Produtos" options={productOpts} selected={params.productIds || []} onChange={arr => setParams((p: any) => ({ ...p, productIds: arr }))} disabled={isSaving} />
                         <div className='mt-10'>
                             <label className='text-foreground'>
                                 Percentual (%)*{' '}
-                                <input
-                                    type="number"
-                                    value={params.percent || ''}
-                                    onChange={e => setParams({ ...params, percent: Number(e.target.value) })}
-                                    className='p-2 text-black border-4'
-                                />
+                                <input type="number" value={params.percent || ''} onChange={e => setParams({ ...params, percent: Number(e.target.value) })} className='p-2 text-black border-4' disabled={isSaving} />
                             </label>
                             <label className='text-foreground'>
                                 Número de unidades*{' '}
-                                <input
-                                    type="number"
-                                    value={params.qty || ''}
-                                    onChange={e => setParams({ ...params, qty: Number(e.target.value) })}
-                                    className='p-2 text-black border-4'
-                                />
+                                <input type="number" value={params.qty || ''} onChange={e => setParams({ ...params, qty: Number(e.target.value) })} className='p-2 text-black border-4' disabled={isSaving} />
                             </label>
                         </div>
-
                     </>
                 )
 
             case ActionType.PERCENT_EXTREME_ITEM:
                 return (
                     <>
-                        <MultiSelect
-                            label="Variantes"
-                            options={variantOpts}
-                            selected={params.variantIds || []}
-                            onChange={arr => setParams((p: any) => ({ ...p, variantIds: arr }))}
-                        />
+                        <MultiSelect label="Variantes" options={variantOpts} selected={params.variantIds || []} onChange={arr => setParams((p: any) => ({ ...p, variantIds: arr }))} disabled={isSaving} />
                         <div className='mt-10'>
                             <label className='text-foreground'>
                                 Percentual (%)*{' '}
-                                <input
-                                    type="number"
-                                    value={params.percent || ''}
-                                    onChange={e => setParams({ ...params, percent: Number(e.target.value) })}
-                                    className='p-2 text-black border-4'
-                                />
+                                <input type="number" value={params.percent || ''} onChange={e => setParams({ ...params, percent: Number(e.target.value) })} className='p-2 text-black border-4' disabled={isSaving} />
                             </label>
                         </div>
 
                         <fieldset>
                             <legend className='text-foreground'>Aplicar desconto em:</legend>
                             <label className='text-foreground'>
-                                <input
-                                    type="checkbox"
-                                    checked={params.lowest || false}
-                                    onChange={() => setParams({ ...params, lowest: !params.lowest })}
-                                />{' '}
-                                De menor valor
+                                <input type="checkbox" checked={params.lowest || false} onChange={() => setParams({ ...params, lowest: !params.lowest })} disabled={isSaving} /> De menor valor
                             </label>
                             <label>
-                                <input
-                                    type="checkbox"
-                                    checked={params.highest || false}
-                                    onChange={() => setParams({ ...params, highest: !params.highest })}
-                                />{' '}
-                                De maior valor
+                                <input type="checkbox" checked={params.highest || false} onChange={() => setParams({ ...params, highest: !params.highest })} disabled={isSaving} /> De maior valor
                             </label>
                         </fieldset>
                     </>
                 )
 
             case ActionType.PERCENT_BRAND_ITEMS:
-            case ActionType.FIXED_BRAND_ITEMS:
-                {
-                    const isPercent = type === ActionType.PERCENT_BRAND_ITEMS
-                    return (
-                        <>
-                            <label className='text-foreground'>
-                                {isPercent ? 'Percentual (%)' : 'Valor (R$)'}*{' '}
-                                <input
-                                    type="number"
-                                    value={params[isPercent ? 'percent' : 'amount'] || ''}
-                                    onChange={e =>
-                                        setParams({
-                                            ...params,
-                                            [isPercent ? 'percent' : 'amount']: Number(e.target.value)
-                                        })
-                                    }
-                                />
-                            </label>
-                            <fieldset>
-                                <legend className='text-foreground'>Marca(s)*</legend>
-                                {brands.map(b => (
-                                    <label key={b} className="block">
-                                        <input
-                                            type="checkbox"
-                                            checked={params.brandNames?.includes(b) || false}
-                                            onChange={e => {
-                                                const sel = new Set<string>(params.brandNames || [])
-                                                e.target.checked ? sel.add(b) : sel.delete(b)
-                                                setParams({ ...params, brandNames: Array.from(sel) })
-                                            }}
-                                        />{' '}
-                                        {b}
-                                    </label>
-                                ))}
-                            </fieldset>
-                        </>
-                    )
-                }
+            case ActionType.FIXED_BRAND_ITEMS: {
+                const isPercent = type === ActionType.PERCENT_BRAND_ITEMS
+                return (
+                    <>
+                        <label className='text-foreground'>
+                            {isPercent ? 'Percentual (%)' : 'Valor (R$)'}*{' '}
+                            <input type="number" value={params[isPercent ? 'percent' : 'amount'] || ''} onChange={e => setParams({ ...params, [isPercent ? 'percent' : 'amount']: Number(e.target.value) })} className='p-2 text-black border-2' disabled={isSaving} />
+                        </label>
+                        <fieldset>
+                            <legend className='text-foreground'>Marca(s)*</legend>
+                            {brands.map(b => (
+                                <label key={b} className="block">
+                                    <input type="checkbox" checked={params.brandNames?.includes(b) || false} onChange={e => {
+                                        const sel = new Set<string>(params.brandNames || [])
+                                        e.target.checked ? sel.add(b) : sel.delete(b)
+                                        setParams({ ...params, brandNames: Array.from(sel) })
+                                    }} disabled={isSaving} /> {b}
+                                </label>
+                            ))}
+                        </fieldset>
+                    </>
+                )
+            }
 
             case ActionType.PERCENT_SHIPPING:
             case ActionType.PERCENT_SUBTOTAL:
             case ActionType.PERCENT_TOTAL_NO_SHIPPING:
             case ActionType.PERCENT_TOTAL_PER_PRODUCT:
-        return (
-          <>
-            {/* aqui adicionamos o select de exclusão */}
-            <MultiSelect
-              label="Excluir do desconto"
-              options={productOpts}
-              selected={params.excludeProductIds || []}
-              onChange={(arr) => setParams((p: any) => ({ ...p, excludeProductIds: arr }))}
-            />
-            <div className="mt-4">
-              <label className="block mb-1 font-medium text-black">Percentual (%)*</label>
-              <input
-                type="number"
-                value={params.amount || ''}
-                onChange={e => setParams((p: any) => ({ ...p, amount: Number(e.target.value) }))}
-                className="w-full border p-2 rounded text-black"
-              />
-            </div>
-          </>
-        )
+                return (
+                    <>
+                        <MultiSelect label="Excluir do desconto" options={productOpts} selected={params.excludeProductIds || []} onChange={(arr) => setParams((p: any) => ({ ...p, excludeProductIds: arr }))} disabled={isSaving} />
+                        <div className="mt-4">
+                            <label className="block mb-1 font-medium text-black">Percentual (%)*</label>
+                            <input type="number" value={params.amount || ''} onChange={e => setParams((p: any) => ({ ...p, amount: Number(e.target.value) }))} className="w-full border p-2 rounded text-black" disabled={isSaving} />
+                        </div>
+                    </>
+                )
 
             case ActionType.FIXED_SHIPPING:
             case ActionType.FIXED_SUBTOTAL:
@@ -462,12 +363,7 @@ export default function PromotionStep3Edit({
                 return (
                     <label className='text-foreground'>
                         Valor (R$)*{' '}
-                        <input
-                            type="number"
-                            value={params.amount || ''}
-                            onChange={e => setParams({ ...params, amount: Number(e.target.value) })}
-                            className='p-2 text-black border-4'
-                        />
+                        <input type="number" value={params.amount || ''} onChange={e => setParams({ ...params, amount: Number(e.target.value) })} className='p-2 text-black border-4' disabled={isSaving} />
                     </label>
                 )
 
@@ -477,104 +373,74 @@ export default function PromotionStep3Edit({
     }
 
     function formatDetails(a: ActionInput) {
-        const p = a.params
-        switch (a.type) {
-            case ActionType.FIXED_VARIANT_DISCOUNT:
-                return `Variantes: ${variants
-                    .filter(v => p.variantIds?.includes(v.id))
-                    .map(v => v.sku)
-                    .join(', ')} | Valor: ${currency.format(p.amount)}`
-
-            case ActionType.FIXED_PRODUCT_DISCOUNT:
-                return `Produtos: ${products
-                    .filter(pdt => p.variantIds?.includes(pdt.id))
-                    .map(pdt => pdt.name)
-                    .join(', ')} | Valor: ${currency.format(p.amount)}`
-
-            case ActionType.FREE_VARIANT_ITEM:
-                return `Brinde variantes: ${variants
-                    .filter(v => p.variantIds?.includes(v.id))
-                    .map(v => v.sku)
-                    .join(', ')} | Qtd: ${p.qty}`
-
-            case ActionType.FREE_PRODUCT_ITEM:
-                return `Brinde produtos: ${products
-                    .filter(pdt => pdt.id && p.productIds?.includes(pdt.id))
-                    .map(pdt => pdt.name)
-                    .join(', ')} | Qtd: ${p.qty}`
-
-            case ActionType.PERCENT_CATEGORY:
-                return `Categorias: ${categories
-                    .filter(c => p.categoryIds?.includes(c.id))
-                    .map(c => c.name)
-                    .join(', ')} | Desconto: ${percent(p.percent)}`
-
-            case ActionType.PERCENT_VARIANT:
-            case ActionType.PERCENT_PRODUCT:
-                {
+        const p = a.params || {}
+        try {
+            switch (a.type) {
+                case ActionType.FIXED_VARIANT_DISCOUNT:
+                    return `Variantes: ${variants.filter(v => p.variantIds?.includes(v.id)).map(v => v.sku).join(', ')} | Valor: ${currency.format(p.amount || 0)}`
+                case ActionType.FIXED_PRODUCT_DISCOUNT:
+                    return `Produtos: ${products.filter(pdt => p.productIds?.includes(pdt.id)).map(pdt => pdt.name).join(', ')} | Valor: ${currency.format(p.amount || 0)}`
+                case ActionType.FREE_VARIANT_ITEM:
+                    return `Brinde variantes: ${variants.filter(v => p.variantIds?.includes(v.id)).map(v => v.sku).join(', ')} | Qtd: ${p.qty || 0}`
+                case ActionType.FREE_PRODUCT_ITEM:
+                    return `Brinde produtos: ${products.filter(pdt => pdt.id && p.productIds?.includes(pdt.id)).map(pdt => pdt.name).join(', ')} | Qtd: ${p.qty || 0}`
+                case ActionType.PERCENT_CATEGORY:
+                    return `Categorias: ${categories.filter(c => p.categoryIds?.includes(c.id)).map(c => c.name).join(', ')} | Desconto: ${percent(p.percent || 0)}`
+                case ActionType.PERCENT_VARIANT:
+                case ActionType.PERCENT_PRODUCT: {
                     const list = a.type === ActionType.PERCENT_VARIANT ? variants : products
-                    const names = list
-                        .filter(item => {
-                            const key = a.type === ActionType.PERCENT_VARIANT ? 'variantIds' : 'productIds'
-                            // @ts-ignore
-                            return p[key]?.includes(item.id)
-                        })
-                        .map(item => 'sku' in item ? item.sku : (item as any).name)
-                    return `${a.type === ActionType.PERCENT_VARIANT ? 'Variantes' : 'Produtos'}: ${names.join(', ')} | Desconto: ${percent(p.percent)}`
+                    const names = list.filter(item => {
+                        const key = a.type === ActionType.PERCENT_VARIANT ? 'variantIds' : 'productIds'
+                        // @ts-ignore
+                        return p[key]?.includes(item.id)
+                    }).map(item => 'sku' in item ? (item as any).sku : (item as any).name)
+                    return `${a.type === ActionType.PERCENT_VARIANT ? 'Variantes' : 'Produtos'}: ${names.join(', ')} | Desconto: ${percent(p.percent || 0)}`
                 }
-
-            case ActionType.PERCENT_ITEM_COUNT:
-                return `Produtos: ${products
-                    .filter(pdt => p.productIds?.includes(pdt.id))
-                    .map(pdt => pdt.name)
-                    .join(', ')} | ${percent(p.percent)} em ${p.qty} unidades`
-
-            case ActionType.PERCENT_EXTREME_ITEM:
-                {
-                    const skus = variants
-                        .filter(v => p.variantIds?.includes(v.id))
-                        .map(v => v.sku)
-                    const modes = [
-                        p.lowest ? 'menor valor' : null,
-                        p.highest ? 'maior valor' : null
-                    ].filter(Boolean).join(', ')
-                    return `Variantes: ${skus.join(', ')} | ${percent(p.percent)} | ${modes}`
+                case ActionType.PERCENT_ITEM_COUNT:
+                    return `Produtos: ${products.filter(pdt => p.productIds?.includes(pdt.id)).map(pdt => pdt.name).join(', ')} | ${percent(p.percent || 0)} em ${p.qty || 0} unidades`
+                case ActionType.PERCENT_EXTREME_ITEM:
+                    return `Variantes: ${variants.filter(v => p.variantIds?.includes(v.id)).map(v => v.sku).join(', ')} | ${percent(p.percent || 0)} | ${[p.lowest ? 'menor valor' : null, p.highest ? 'maior valor' : null].filter(Boolean).join(', ')}`
+                case ActionType.PERCENT_BRAND_ITEMS:
+                case ActionType.FIXED_BRAND_ITEMS:
+                    return `Marcas: ${p.brandNames?.join(', ')} | Valor: ${a.type === ActionType.PERCENT_BRAND_ITEMS ? percent(p.percent || 0) : currency.format(p.amount || 0)}`
+                case ActionType.PERCENT_SHIPPING:
+                case ActionType.PERCENT_SUBTOTAL:
+                case ActionType.PERCENT_TOTAL_NO_SHIPPING:
+                case ActionType.PERCENT_TOTAL_PER_PRODUCT: {
+                    const excl = Array.isArray(p.excludeProductIds) ? p.excludeProductIds : []
+                    const nomes = products.filter(prod => excl.includes(prod.id)).map(prod => prod.name)
+                    return `-${p.amount || 0}% em todos os produtos exceto: ${nomes.join(', ')}`
                 }
-
-            case ActionType.PERCENT_BRAND_ITEMS:
-            case ActionType.FIXED_BRAND_ITEMS:
-                {
-                    const valLabel = a.type === ActionType.PERCENT_BRAND_ITEMS
-                        ? percent(p.percent)
-                        : currency.format(p.amount)
-                    return `Marcas: ${p.brandNames?.join(', ')} | Valor: ${valLabel}`
-                }
-
-            case ActionType.PERCENT_SHIPPING:
-            case ActionType.PERCENT_SUBTOTAL:
-            case ActionType.PERCENT_TOTAL_NO_SHIPPING:
-            case ActionType.PERCENT_TOTAL_PER_PRODUCT:
-        const excluídos = Array.isArray(p.excludeProductIds) ? p.excludeProductIds : []
-        const nomes = products
-          .filter(prod => excluídos.includes(prod.id))
-          .map(prod => prod.name)
-        return `-${p.amount}% em todos os produtos exceto: ${nomes.join(', ')}`
-
-            case ActionType.FIXED_SHIPPING:
-            case ActionType.FIXED_SUBTOTAL:
-            case ActionType.FIXED_TOTAL_NO_SHIPPING:
-            case ActionType.FIXED_TOTAL_PER_PRODUCT:
-            case ActionType.MAX_SHIPPING_DISCOUNT:
-                return `Valor: ${currency.format(p.amount)}`
-
-            default:
-                return JSON.stringify(a.params)
+                case ActionType.FIXED_SHIPPING:
+                case ActionType.FIXED_SUBTOTAL:
+                case ActionType.FIXED_TOTAL_NO_SHIPPING:
+                case ActionType.FIXED_TOTAL_PER_PRODUCT:
+                case ActionType.MAX_SHIPPING_DISCOUNT:
+                    return `Valor: ${currency.format(p.amount || 0)}`
+                default:
+                    return JSON.stringify(a.params)
+            }
+        } catch (err) {
+            return JSON.stringify(a.params)
         }
     }
 
+    const disabled = Boolean(isSaving)
+
     return (
-        <div className="space-y-6">
-            <h2 className="text-xl font-semibold">Passo 3: Defina as Ações</h2>
+        <div className="space-y-6 relative">
+            {(isSaving) && (
+                <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/70">
+                    <div className="animate-pulse w-full max-w-2xl p-6 bg-white rounded shadow">
+                        <div className="h-4 bg-gray-200 rounded mb-3" />
+                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-6" />
+                        <div className="h-32 bg-gray-200 rounded" />
+                        <div className="text-center mt-4 text-gray-700 font-medium">Salvando ações...</div>
+                    </div>
+                </div>
+            )}
+
+            <h2 className="text-xl font-semibold">Passo 3: Defina as Ações</h2>
 
             {/* tabela de preview */}
             <table className="w-full border-collapse">
@@ -593,11 +459,7 @@ export default function PromotionStep3Edit({
                                 <td className="p-2 text-foreground">{label}</td>
                                 <td className="p-2">{formatDetails(a)}</td>
                                 <td className="p-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => removeAction(i)}
-                                        className="text-red-600 hover:underline"
-                                    >
+                                    <button type="button" onClick={() => removeAction(i)} className="text-red-600 hover:underline" disabled={disabled}>
                                         Remover
                                     </button>
                                 </td>
@@ -610,11 +472,7 @@ export default function PromotionStep3Edit({
             {/* seleção de tipo */}
             <div>
                 <label className="block mb-1">Ação*</label>
-                <select
-                    value={type}
-                    onChange={e => setType(e.target.value as ActionType)}
-                    className="w-full border p-2 rounded text-black"
-                >
+                <select value={type} onChange={e => setType(e.target.value as ActionType)} className="w-full border p-2 rounded text-black" disabled={loadingOptions || disabled}>
                     {actionOptions.map(o => (
                         <option key={o.value} value={o.value}>
                             {o.label}
@@ -628,23 +486,10 @@ export default function PromotionStep3Edit({
 
             {/* botões */}
             <div className="flex justify-between">
-                <button onClick={onBack} className="px-4 py-2 bg-gray-200 rounded text-black">
-                    Voltar
-                </button>
-                <button onClick={saveAction} className="px-4 py-2 bg-violet-600 text-white rounded">
-                    Adicionar Ação
-                </button>
-                <button
-                    onClick={async () => {
-                        await onSave(actions)
-                    }}
-                    className="px-4 py-2 bg-green-600 text-white rounded"
-                >
-                    Salvar Ações
-                </button>
-                <button onClick={onNext} className="px-4 py-2 bg-orange-500 text-white rounded">
-                    Próximo
-                </button>
+                <button onClick={onBack} className="px-4 py-2 bg-gray-200 rounded text-black" disabled={disabled}>Voltar</button>
+                <button onClick={saveAction} className="px-4 py-2 bg-violet-600 text-white rounded" disabled={disabled || loadingOptions}>Adicionar Ação</button>
+                <button onClick={async () => { if (!disabled) await onSave(actions) }} className="px-4 py-2 bg-green-600 text-white rounded" disabled={disabled || loadingOptions}>Salvar Ações</button>
+                <button onClick={onNext} className="px-4 py-2 bg-orange-500 text-white rounded" disabled={disabled}>Próximo</button>
             </div>
         </div>
     )

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { ChangeEvent, useContext, useEffect, useState } from "react";
 import { setupAPIClientEcommerce } from "@/app/services/apiEcommerce";
@@ -35,8 +35,9 @@ interface Category {
 export default function ManageCategoriesMobile() {
 
     const { user } = useContext(AuthContext);
-    const [loading, setLoading] = useState(false);
-    const [availableCategories, setAvailableCategories] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false); // submit loading
+    const [categoriesLoading, setCategoriesLoading] = useState(true); // skeleton for categories
+    const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [photo, setPhoto] = useState<File | null>(null);
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -54,15 +55,27 @@ export default function ManageCategoriesMobile() {
 
     useEffect(() => {
         fetchCategories();
+        // allow external triggers to refetch (existing behaviour)
+        const onRefetch = () => fetchCategories();
+        window.addEventListener("refetchCategories", onRefetch);
+        return () => window.removeEventListener("refetchCategories", onRefetch);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const fetchCategories = async () => {
+        setCategoriesLoading(true);
         try {
             const apiClient = setupAPIClientEcommerce();
             const response = await apiClient.get('/category/cms');
-            setAvailableCategories(response.data.rootCategories);
+            // manter tipagem: rootCategories pode vir undefined -> fallback []
+            const roots = response.data?.rootCategories ?? [];
+            setAvailableCategories(roots);
         } catch (error) {
+            console.error('fetchCategories error', error);
             toast.error("Erro ao carregar categorias");
+            setAvailableCategories([]);
+        } finally {
+            setCategoriesLoading(false);
         }
     };
 
@@ -103,8 +116,9 @@ export default function ManageCategoriesMobile() {
             setAvatarUrl(null);
             setPhoto(null);
             refetchCategories();
-            fetchCategories();
+            await fetchCategories();
         } catch (error) {
+            console.error("onSubmit error", error);
             toast.error("Erro ao cadastrar a categoria.");
         } finally {
             setLoading(false);
@@ -128,7 +142,7 @@ export default function ManageCategoriesMobile() {
 
             // Atualização otimista com recarregamento
             const response = await apiClient.get('/category/cms');
-            setAvailableCategories(response.data.rootCategories);
+            setAvailableCategories(response.data.rootCategories ?? []);
 
             toast.success("Categoria movida com sucesso!");
         } catch (error) {
@@ -230,6 +244,24 @@ export default function ManageCategoriesMobile() {
         );
     };
 
+    // Skeleton helpers
+    const SkeletonLine = ({ width = 'w-full', height = 'h-4' }: { width?: string, height?: string }) => (
+        <div className={`bg-gray-200 rounded ${height} ${width} animate-pulse`} />
+    );
+
+    const SkeletonCategoryRow = ({ depth = 0 }: { depth?: number }) => (
+        <div className="mb-2">
+            <div className="flex items-center justify-between bg-gray-100 p-3 rounded-lg border-l-4 border-blue-200"
+                style={{ marginLeft: `${depth * 20}px` }}>
+                <div className="flex items-center flex-1 gap-2">
+                    <div className="w-4 h-4 bg-gray-200 rounded animate-pulse" />
+                    <div className="w-56 h-4 bg-gray-200 rounded animate-pulse" />
+                </div>
+                <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse" />
+            </div>
+        </div>
+    );
+
     return (
         <SidebarAndHeader>
             <Section>
@@ -280,18 +312,30 @@ export default function ManageCategoriesMobile() {
                                 <label htmlFor="parentId" className="block text-sm font-medium text-[#FFFFFF]">
                                     Subcategoria de alguma categoria?
                                 </label>
-                                <select
-                                    {...register("parentId")}
-                                    className="border-2 rounded-md h-12 px-3 w-full text-black"
-                                    defaultValue=""
-                                >
-                                    <option value="">Nenhuma (Categoria Raiz)</option>
-                                    {availableCategories.map(category => (
-                                        <option className="text-black" key={category.id} value={category.id}>
-                                            {category.name}
-                                        </option>
-                                    ))}
-                                </select>
+
+                                {categoriesLoading ? (
+                                    <div className="space-y-2 mt-2">
+                                        <SkeletonLine width="w-full" height="h-12" />
+                                        <div className="flex gap-2">
+                                            <SkeletonLine width="w-1/3" height="h-8" />
+                                            <SkeletonLine width="w-1/3" height="h-8" />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <select
+                                        {...register("parentId")}
+                                        className="border-2 rounded-md h-12 px-3 w-full text-black"
+                                        defaultValue=""
+                                    >
+                                        <option value="">Nenhuma (Categoria Raiz)</option>
+                                        {availableCategories.map(category => (
+                                            <option className="text-black" key={category.id} value={category.id}>
+                                                {category.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
+
                                 {errors.parentId && <p className="text-red-500 text-xs">{errors.parentId.message}</p>}
                             </div>
                         </div>
@@ -308,8 +352,8 @@ export default function ManageCategoriesMobile() {
                         <div className="col-span-1 md:col-span-3">
                             <button
                                 type="submit"
-                                disabled={loading}
-                                className="w-full px-6 py-3 bg-green-500 text-[#FFFFFF] rounded hover:bg-green-600 transition duration-300"
+                                disabled={loading || categoriesLoading}
+                                className="w-full px-6 py-3 bg-green-500 text-[#FFFFFF] rounded hover:bg-green-600 transition duration-300 disabled:opacity-50"
                             >
                                 {loading ? "Cadastrando..." : "Cadastrar Categoria"}
                             </button>
@@ -326,7 +370,22 @@ export default function ManageCategoriesMobile() {
                 </div>
 
                 <div className="p-4 space-y-2">
-                    {renderCategoryTree(availableCategories)}
+                    {/* skeleton para árvore de categorias */}
+                    {categoriesLoading ? (
+                        <>
+                            {Array.from({ length: 8 }).map((_, i) => (
+                                <SkeletonCategoryRow key={i} depth={Math.floor(i / 3)} />
+                            ))}
+                        </>
+                    ) : (
+                        <>
+                            {availableCategories.length === 0 ? (
+                                <div className="text-gray-500">Nenhuma categoria encontrada.</div>
+                            ) : (
+                                renderCategoryTree(availableCategories)
+                            )}
+                        </>
+                    )}
                 </div>
 
                 {showMoveOptions && <MoveOptionsModal />}

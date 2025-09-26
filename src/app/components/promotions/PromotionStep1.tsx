@@ -8,9 +8,11 @@ interface Props {
     data: PromotionWizardDto
     setData: Dispatch<SetStateAction<PromotionWizardDto>>
     onNext: () => void
+    isSaving?: boolean
 }
 
-export default function PromotionStep1({ data, setData, onNext }: Props) {
+export default function PromotionStep1({ data, setData, onNext, isSaving = false }: Props) {
+
     const [newCoupon, setNewCoupon] = useState('')
 
     const addCoupon = () => {
@@ -54,6 +56,9 @@ export default function PromotionStep1({ data, setData, onNext }: Props) {
             .slice(0, 16)
     }
 
+    // Se estiver salvando, desabilita inputs para evitar mudanças durante o POST
+    const disabled = Boolean(isSaving)
+
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
             <h2 className="text-xl font-semibold">Passo 1: Defina a Promoção</h2>
@@ -71,6 +76,7 @@ export default function PromotionStep1({ data, setData, onNext }: Props) {
                     onChange={e => setData(d => ({ ...d, name: e.target.value }))}
                     className="bg-white border border-gray-200 rounded-md"
                     classNames={{ input: "text-black" }}
+                    disabled={disabled}
                 />
             </Tooltip>
 
@@ -86,6 +92,7 @@ export default function PromotionStep1({ data, setData, onNext }: Props) {
                     onChange={e => setData(d => ({ ...d, description: e.target.value }))}
                     className="w-full h-32 p-3 border-2 rounded-md text-black"
                     placeholder="Digite a descrição aqui..."
+                    disabled={disabled as any}
                 />
             </Tooltip>
 
@@ -101,6 +108,7 @@ export default function PromotionStep1({ data, setData, onNext }: Props) {
                         onChange={e =>
                             setData(d => ({ ...d, startDate: new Date(e.target.value) }))
                         }
+                        disabled={disabled}
                     />
                 </div>
                 <div>
@@ -113,6 +121,7 @@ export default function PromotionStep1({ data, setData, onNext }: Props) {
                         onChange={e =>
                             setData(d => ({ ...d, endDate: new Date(e.target.value) }))
                         }
+                        disabled={disabled}
                     />
                 </div>
             </div>
@@ -130,6 +139,7 @@ export default function PromotionStep1({ data, setData, onNext }: Props) {
                         <Checkbox
                             isSelected={!data.hasCoupon}
                             onChange={() => setData(d => ({ ...d, hasCoupon: !d.hasCoupon }))}
+                            isDisabled={disabled}
                         >
                             Sem cupom
                         </Checkbox>
@@ -142,7 +152,7 @@ export default function PromotionStep1({ data, setData, onNext }: Props) {
                         <Checkbox
                             isSelected={data.multipleCoupons}
                             onChange={() => setData(d => ({ ...d, multipleCoupons: !d.multipleCoupons }))}
-                            isDisabled={!data.hasCoupon}
+                            isDisabled={!data.hasCoupon || disabled}
                         >
                             Múltiplos cupons
                         </Checkbox>
@@ -155,7 +165,7 @@ export default function PromotionStep1({ data, setData, onNext }: Props) {
                         <Checkbox
                             isSelected={data.reuseSameCoupon}
                             onChange={() => setData(d => ({ ...d, reuseSameCoupon: !d.reuseSameCoupon }))}
-                            isDisabled={!data.hasCoupon}
+                            isDisabled={!data.hasCoupon || disabled}
                         >
                             Reutilizar mesmo cupom
                         </Checkbox>
@@ -171,8 +181,9 @@ export default function PromotionStep1({ data, setData, onNext }: Props) {
                                 onChange={e => setNewCoupon(e.target.value)}
                                 onKeyDown={handleKeyDown}
                                 className="flex-1"
+                                disabled={disabled}
                             />
-                            <Button className='text-violet-500' onClick={addCoupon} disabled={!newCoupon.trim()}>
+                            <Button className='text-violet-500' onClick={addCoupon} disabled={!newCoupon.trim() || disabled}>
                                 Adicionar
                             </Button>
                         </div>
@@ -185,6 +196,7 @@ export default function PromotionStep1({ data, setData, onNext }: Props) {
                                             type="button"
                                             onClick={() => removeCoupon(code)}
                                             className="text-red-600 font-bold"
+                                            disabled={disabled}
                                         >
                                             ×
                                         </button>
@@ -216,6 +228,7 @@ export default function PromotionStep1({ data, setData, onNext }: Props) {
                         }
                         placeholder="Qtd por cliente"
                         className="bg-white text-black"
+                        disabled={disabled}
                     />
                 </Tooltip>
                 <Tooltip
@@ -234,6 +247,7 @@ export default function PromotionStep1({ data, setData, onNext }: Props) {
                         }
                         placeholder="Qtd total de cupons"
                         className="bg-white text-black"
+                        disabled={disabled}
                     />
                 </Tooltip>
             </div>
@@ -249,6 +263,7 @@ export default function PromotionStep1({ data, setData, onNext }: Props) {
                             setData(d => ({ ...d, status: e.target.value as PromotionWizardDto['status'] }))
                         }
                         required
+                        disabled={disabled}
                     >
                         <option value="">Selecione o status</option>
                         <option value="Disponivel">Disponível</option>
@@ -264,6 +279,7 @@ export default function PromotionStep1({ data, setData, onNext }: Props) {
                         onChange={e =>
                             setData(d => ({ ...d, cumulative: e.target.value === 'yes' }))
                         }
+                        disabled={disabled}
                     >
                         <option value="yes">Sim</option>
                         <option value="no">Não</option>
@@ -284,13 +300,14 @@ export default function PromotionStep1({ data, setData, onNext }: Props) {
                             }
                             placeholder="Prioridade"
                             className="bg-white rounded-md text-black"
+                            disabled={disabled}
                         />
                     </Tooltip>
                 </div>
             </div>
 
             <div className="text-right">
-                <Button className='px-4 py-2 bg-orange-500 text-white rounded' type="submit">Próximo</Button>
+                <Button className='px-4 py-2 bg-orange-500 text-white rounded' type="submit" disabled={disabled}>Próximo</Button>
             </div>
         </form>
     )

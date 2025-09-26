@@ -1,4 +1,3 @@
-// components/add_product/update_product/ProductRelationsUpdate.tsx
 'use client'
 
 import { ChangeEvent } from 'react'
@@ -16,7 +15,6 @@ import {
 } from '@nextui-org/react'
 import { PlusIcon, TrashIcon, InformationCircleIcon } from '@heroicons/react/24/outline'
 import { CollapsibleInfo } from '../helpers_componentes/CollapsibleInfo'
-// Tipos: devem refletir exatamente o que o backend espera
 export type RelationDirection = 'parent' | 'child'
 export type RelationType = 'VARIANT' | 'SIMPLE'
 
@@ -90,7 +88,6 @@ export const ProductRelationsUpdate: React.FC<ProductRelationsUpdateProps> = ({
                                 onValueChange={(value) => {
                                     const newRelations = [...relations]
                                     newRelations[index].relationDirection = value as RelationDirection
-                                    // Ao trocar a direção, limpamos o produto selecionado:
                                     newRelations[index].relatedProductId = ''
                                     onRelationsChange(newRelations)
                                 }}
@@ -134,10 +131,8 @@ export const ProductRelationsUpdate: React.FC<ProductRelationsUpdateProps> = ({
                                         : 'Selecionar Produto Pai'
                                 }
                                 defaultItems={products}
-                                // Aqui usamos “selectedKey” singular:
                                 selectedKey={relation.relatedProductId || undefined}
                                 onSelectionChange={(key) => {
-                                    // key: Key | null
                                     const newRelations = [...relations]
                                     newRelations[index].relatedProductId = (key as string) || ''
                                     onRelationsChange(newRelations)
@@ -156,7 +151,7 @@ export const ProductRelationsUpdate: React.FC<ProductRelationsUpdateProps> = ({
                             </Autocomplete>
                         </Tooltip>
 
-                        <Tooltip
+                        {/* <Tooltip
                             content="Determine o tipo de relação entre os produtos"
                             className="bg-white text-red-400 border border-gray-200 p-3 max-w-[300px]"
                         >
@@ -186,7 +181,7 @@ export const ProductRelationsUpdate: React.FC<ProductRelationsUpdateProps> = ({
                                     Simples
                                 </SelectItem>
                             </Select>
-                        </Tooltip>
+                        </Tooltip> */}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -207,7 +202,7 @@ export const ProductRelationsUpdate: React.FC<ProductRelationsUpdateProps> = ({
                             />
                         </Tooltip>
 
-                        <Tooltip
+                        {/* <Tooltip
                             content="Se a relação é obrigatória para a venda"
                             className="bg-white text-red-400 border border-gray-200 p-3 max-w-[300px]"
                         >
@@ -220,7 +215,7 @@ export const ProductRelationsUpdate: React.FC<ProductRelationsUpdateProps> = ({
                             >
                                 <span className="text-black">Obrigatório para Compra</span>
                             </Checkbox>
-                        </Tooltip>
+                        </Tooltip> */}
                     </div>
                 </div>
             ))}
