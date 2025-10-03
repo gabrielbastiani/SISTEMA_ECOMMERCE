@@ -53,10 +53,10 @@ export default function AddFilterPage() {
     const [maxValue, setMaxValue] = useState<number | ''>('');
     const [groupId, setGroupId] = useState<string>('');
     const [selectedCatIds, setSelectedCatIds] = useState<string[]>([]);
+    const [forSearch, setForSearch] = useState(false);
 
-    // attribute keys (novo): chaves detectadas ou escolhidas pelo admin
+    // attribute keys
     const [attributeKeys, setAttributeKeys] = useState<string[]>([]);
-    // chaves detectadas (lista de todas possiveis detectadas com amostras)
     const [detectedKeys, setDetectedKeys] = useState<Record<string, string[]>>({});
 
     const [groups, setGroups] = useState<FilterGroup[]>([]);
@@ -126,16 +126,14 @@ export default function AddFilterPage() {
     const toggleCategory = (id: string) =>
         setSelectedCatIds(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
 
-    // DETECT attribute keys: chama endpoint que retorna keys com amostras (recomendado)
+    // DETECT attribute keys
     async function detectAttributeKeysForSelectedCategories() {
         if (selectedCatIds.length === 0) { toast.info('Selecione ao menos 1 categoria para detectar atributos'); return; }
         setDetecting(true);
 
-        // decide source a partir do campo selecionado
         const source = fieldName === 'variantAttribute' ? 'variant' : (fieldName === 'productCharacteristic' ? 'productCharacteristic' : 'both');
 
         try {
-            // usar endpoint dedicado no backend e enviar 'source'
             const r = await api.post('/filters/detectAttributeKeys', { categoryIds: selectedCatIds, source });
             if (r?.data?.keys) {
                 const map: Record<string, string[]> = {};
@@ -152,12 +150,12 @@ export default function AddFilterPage() {
             console.warn('detectAttributeKeys: endpoint dedicado falhou (fallback):', err);
         }
 
-        // FALLBACK (quando o endpoint falha): inferir localmente a partir de /categories/:slug/products
+        // FALLBACK
         try {
             const mapSamples: Record<string, Set<string>> = {};
             const catsWithSlugs = categories.filter(c => selectedCatIds.includes(c.id) && c.slug).map(c => c.slug as string);
             if (catsWithSlugs.length === 0) {
-                toast.error('Não foi possível detectar chaves automaticamente (faltam slugs nas categorias). Implemente endpoint /filters/detectAttributeKeys no backend ou inclua slugs no endpoint /category/cms.');
+                toast.error('Não foi possível detectar chaves automaticamente (faltam slugs nas categorias).');
                 setDetecting(false);
                 return;
             }
@@ -218,12 +216,11 @@ export default function AddFilterPage() {
         }
     }
 
-    // selecionar/deselecionar keys detectadas
     function toggleAttributeKey(key: string) {
         setAttributeKeys(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key])
     }
 
-    // SUBMIT
+    // SUBMIT - CORRIGIDO
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
@@ -237,20 +234,31 @@ export default function AddFilterPage() {
             }
 
             const r = await api.post<{ id: string }>('/filters/create', {
-                name, fieldName: finalFieldName, type, dataType, displayStyle,
-                isActive, order, autoPopulate,
+                name, 
+                fieldName: finalFieldName, 
+                type, 
+                dataType, 
+                displayStyle,
+                isActive, 
+                order, 
+                autoPopulate,
                 minValue: minValue === '' ? null : minValue,
                 maxValue: maxValue === '' ? null : maxValue,
                 groupId: groupId || null,
-                attributeKeys
+                attributeKeys,
+                forSearch // Incluído no payload
             });
             const filterId = r.data.id;
 
-            await Promise.all(
-                selectedCatIds.map(catId =>
-                    api.post('/categoryFilters/create', { category_id: catId, filter_id: filterId })
-                )
-            );
+            // CORREÇÃO: Sempre associa categorias, independente do forSearch
+            // Um filtro pode ser para categorias E para busca ao mesmo tempo
+            if (selectedCatIds.length > 0) {
+                await Promise.all(
+                    selectedCatIds.map(catId =>
+                        api.post('/categoryFilters/create', { category_id: catId, filter_id: filterId })
+                    )
+                );
+            }
 
             toast.success('Filtro cadastrado!');
             router.push('/filters');
@@ -262,13 +270,8 @@ export default function AddFilterPage() {
         }
     };
 
-    // Skeleton helpers
     const SkeletonLine = ({ width = 'w-full', height = 'h-4' }: { width?: string, height?: string }) => (
         <div className={`bg-gray-200 rounded ${height} ${width} animate-pulse`} />
-    );
-
-    const SkeletonBox = ({ w = 'w-full', h = 'h-8' }: { w?: string, h?: string }) => (
-        <div className={`${w} ${h} bg-gray-200 rounded animate-pulse`} />
     );
 
     return (
@@ -278,7 +281,6 @@ export default function AddFilterPage() {
                 <TitlePage title="ADICIONAR FILTRO" />
 
                 {isLoading ? (
-                    // Skeleton while groups/categories load
                     <div className="mt-6 space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="md:col-span-2">
@@ -338,6 +340,7 @@ export default function AddFilterPage() {
 
                             {/* Nome */}
                             <div>
+                                <label className="block text-sm font-medium mb-1">Nome do Filtro</label>
                                 <Tooltip
                                     className="bg-white text-red-500 border border-gray-200 p-2"
                                     content="Nome a ser exibido no front (ex.: Preço, Cor)"
@@ -345,12 +348,14 @@ export default function AddFilterPage() {
                                 >
                                     <input required value={name}
                                         onChange={e => setName(e.target.value)}
+                                        placeholder="Ex: Preço, Cor, Tamanho"
                                         className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
                                 </Tooltip>
                             </div>
 
-                            {/* FieldName - Com labels descritivas */}
+                            {/* FieldName */}
                             <div>
+                                <label className="block text-sm font-medium mb-1">Campo</label>
                                 <Tooltip
                                     className="bg-white text-red-500 border border-gray-200 p-2"
                                     content="Nome do campo ou identificador associado (ex.: price_per ou variantAttribute ou productCharacteristic)"
@@ -369,7 +374,7 @@ export default function AddFilterPage() {
                                 </Tooltip>
                             </div>
 
-                            {/* Se escolheu variantAttribute ou productCharacteristic, mostramos UI melhorada */}
+                            {/* Se escolheu variantAttribute ou productCharacteristic */}
                             {(fieldName === 'variantAttribute' || fieldName === 'productCharacteristic') && (
                                 <div className="md:col-span-2 p-2 border rounded">
                                     <div className="flex items-center justify-between mb-2">
@@ -411,9 +416,9 @@ export default function AddFilterPage() {
                                             <input type="text" placeholder="Ex.: cor" onKeyDown={(e) => {
                                                 if (e.key === 'Enter') {
                                                     e.preventDefault()
-                                                    const val = (e.target as HTMLInputElement).value.trim()// @ts-ignore
+                                                    const val = (e.target as HTMLInputElement).value.trim()
                                                     if (val && !attributeKeys.includes(val)) setAttributeKeys(prev => [...prev, val])
-                                                        (e.target as HTMLInputElement).value = ''
+                                                    (e.target as HTMLInputElement).value = ''
                                                 }
                                             }} className="mt-1 block w-full rounded border-gray-300 text-black p-2" />
                                             <div className="text-xs text-gray-500 mt-1">Pressione Enter para adicionar</div>
@@ -435,6 +440,7 @@ export default function AddFilterPage() {
 
                             {/* Type */}
                             <div>
+                                <label className="block text-sm font-medium mb-1">Tipo</label>
                                 <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Tipo de filtro: RANGE, SELECT, MULTI_SELECT" placement="top-start">
                                     <select value={type}
                                         onChange={e => setType(e.target.value as any)}
@@ -446,6 +452,7 @@ export default function AddFilterPage() {
 
                             {/* DataType */}
                             <div>
+                                <label className="block text-sm font-medium mb-1">Tipo de Dado</label>
                                 <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Tipo de dado subjacente (NUMBER, STRING, etc.)" placement="top-start">
                                     <select value={dataType}
                                         onChange={e => setDataType(e.target.value as any)}
@@ -457,6 +464,7 @@ export default function AddFilterPage() {
 
                             {/* DisplayStyle */}
                             <div>
+                                <label className="block text-sm font-medium mb-1">Estilo de Exibição</label>
                                 <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Define o componente visual a ser usado" placement="top-start">
                                     <select value={displayStyle}
                                         onChange={e => setDisplayStyle(e.target.value as any)}
@@ -476,6 +484,7 @@ export default function AddFilterPage() {
 
                             {/* Order */}
                             <div>
+                                <label className="block text-sm font-medium mb-1">Ordem</label>
                                 <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Define a ordem de exibição entre os filtros" placement="top-start">
                                     <input type="number" value={order}
                                         onChange={e => setOrder(Number(e.target.value))}
@@ -492,19 +501,32 @@ export default function AddFilterPage() {
                                 </Tooltip>
                             </div>
 
+                            {/* ForSearch - CORRIGIDO: Agora pode ser usado junto com categorias */}
+                            <div className="flex items-center space-x-2">
+                                <input id="forSearch" type="checkbox" checked={forSearch}
+                                    onChange={e => setForSearch(e.target.checked)} className="h-4 w-4" />
+                                <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Se marcado, este filtro estará disponível na página de busca, além das categorias selecionadas acima." placement="top-start">
+                                    <label htmlFor="forSearch" className="text-sm">Disponível na Busca</label>
+                                </Tooltip>
+                            </div>
+
                             {/* Min/Max */}
                             {type === 'RANGE' && <>
                                 <div>
+                                    <label className="block text-sm font-medium mb-1">Valor Mínimo</label>
                                     <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Ex.: preço mínimo pré-configurado (opcional)" placement="top-start">
                                         <input type="number" value={minValue}
                                             onChange={e => setMinValue(e.target.value === '' ? '' : Number(e.target.value))}
+                                            placeholder="Ex: 0"
                                             className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
                                     </Tooltip>
                                 </div>
                                 <div>
+                                    <label className="block text-sm font-medium mb-1">Valor Máximo</label>
                                     <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Ex.: preço máximo pré-configurado (opcional)" placement="top-start">
                                         <input type="number" value={maxValue}
                                             onChange={e => setMaxValue(e.target.value === '' ? '' : Number(e.target.value))}
+                                            placeholder="Ex: 1000"
                                             className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
                                     </Tooltip>
                                 </div>
@@ -513,6 +535,7 @@ export default function AddFilterPage() {
                             {/* Grupo + Modal */}
                             <div className="md:col-span-2 flex items-end space-x-2">
                                 <div className="flex-1">
+                                    <label className="block text-sm font-medium mb-1">Grupo</label>
                                     <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="O grupo representa por exemplo: Caracteristicas, Preços etc..." placement="top-start">
                                         <select value={groupId}
                                             onChange={e => setGroupId(e.target.value)}
@@ -531,7 +554,15 @@ export default function AddFilterPage() {
                             </div>
                         </div>
 
-                        <div className="pt-4 border-t flex justify-end">
+                        <div className="pt-4 border-t flex justify-between items-center">
+                            <button 
+                                type="button"
+                                onClick={() => router.push('/filters/search')}
+                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                            >
+                                Gerenciar Filtros para Busca
+                            </button>
+                            
                             <button type="submit" disabled={submitting || isLoading}
                                 className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">
                                 {submitting ? 'Salvando...' : 'Salvar Filtro'}
@@ -565,6 +596,7 @@ export default function AddFilterPage() {
                                 <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Nome do grupo (ex.: Características, Preço)" placement="top-start">
                                     <input value={newGroupName}
                                         onChange={e => setNewGroupName(e.target.value)}
+                                        placeholder="Nome do grupo"
                                         className="mt-1 block w-full rounded border-black border-2 shadow-sm text-black p-2" />
                                 </Tooltip>
                             </div>
@@ -572,6 +604,7 @@ export default function AddFilterPage() {
                                 <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Ordem de exibição do grupo na interface de usuário" placement="top-start">
                                     <input type="number" value={newGroupOrder}
                                         onChange={e => setNewGroupOrder(Number(e.target.value))}
+                                        placeholder="Ordem"
                                         className="mt-1 block w-full rounded border-black border-2 shadow-sm text-black p-2" />
                                 </Tooltip>
                             </div>

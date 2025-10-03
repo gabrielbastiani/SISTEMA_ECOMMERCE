@@ -3,6 +3,7 @@
 import React, { FormEvent, Dispatch, SetStateAction, useState } from 'react'
 import { Input, Checkbox, Button, Tooltip } from '@nextui-org/react'
 import { PromotionWizardDto } from 'Types/types'
+import { toast } from 'react-toastify'
 
 interface Props {
     data: PromotionWizardDto
@@ -18,10 +19,22 @@ export default function PromotionStep1({ data, setData, onNext, isSaving = false
     const addCoupon = () => {
         const code = newCoupon.trim()
         if (!code) return
+
+        // evita duplicados
         if ((data.coupons ?? []).includes(code)) {
+            setNewCoupon('')
+            toast.info('Código já adicionado.')
+            return
+        }
+
+        // regra principal: só permite >1 cupom se multipleCoupons === true
+        const currentCount = (data.coupons ?? []).length
+        if (!data.multipleCoupons && currentCount >= 1) {
+            toast.warn('Ative "Múltiplos cupons" para adicionar mais de um código.')
             setNewCoupon('')
             return
         }
+
         setData(d => ({
             ...d,
             coupons: [...(d.coupons ?? []), code]
@@ -138,7 +151,22 @@ export default function PromotionStep1({ data, setData, onNext, isSaving = false
                     >
                         <Checkbox
                             isSelected={!data.hasCoupon}
-                            onChange={() => setData(d => ({ ...d, hasCoupon: !d.hasCoupon }))}
+                            onChange={() => setData(d => {
+                                const newHas = !d.hasCoupon
+                                if (!newHas) {
+                                    // limpa campos relacionados a cupom
+                                    return {
+                                        ...d,
+                                        hasCoupon: false,
+                                        multipleCoupons: false,
+                                        reuseSameCoupon: false,
+                                        coupons: [],
+                                        perUserCouponLimit: undefined,
+                                        totalCouponCount: undefined
+                                    }
+                                }
+                                return { ...d, hasCoupon: true }
+                            })}
                             isDisabled={disabled}
                         >
                             Sem cupom
@@ -151,14 +179,22 @@ export default function PromotionStep1({ data, setData, onNext, isSaving = false
                     >
                         <Checkbox
                             isSelected={data.multipleCoupons}
-                            onChange={() => setData(d => ({ ...d, multipleCoupons: !d.multipleCoupons }))}
+                            onChange={() => setData(d => {
+                                const newMultiple = !d.multipleCoupons
+                                // se desativar múltiplos e já existem >1 cupons, mantém apenas o primeiro
+                                if (!newMultiple && (d.coupons?.length ?? 0) > 1) {
+                                    toast.info('Múltiplos cupons desativado — mantendo apenas o primeiro cupom.')
+                                    return { ...d, multipleCoupons: false, coupons: (d.coupons ?? []).slice(0, 1) }
+                                }
+                                return { ...d, multipleCoupons: newMultiple }
+                            })}
                             isDisabled={!data.hasCoupon || disabled}
                         >
                             Múltiplos cupons
                         </Checkbox>
                     </Tooltip>
-                    <Tooltip
-                        content="Quando ativada essa opção, um mesmo numero de cupom da listagem poderá ser utilizado mais de uma vez na loja, incluisive pelo mesmo usurio."
+                    {/* <Tooltip
+                        content="Quando ativada essa opção, um mesmo numero de cupom da listagem poderá ser utilizado mais de uma vez na loja, inclusive pelo mesmo usuário."
                         placement="top-start"
                         className="bg-white text-red-500 border border-gray-200 p-2"
                     >
@@ -169,7 +205,7 @@ export default function PromotionStep1({ data, setData, onNext, isSaving = false
                         >
                             Reutilizar mesmo cupom
                         </Checkbox>
-                    </Tooltip>
+                    </Tooltip> */}
                 </div>
 
                 {data.hasCoupon && (
