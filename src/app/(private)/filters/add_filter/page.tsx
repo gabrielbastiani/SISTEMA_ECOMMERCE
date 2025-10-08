@@ -35,6 +35,9 @@ const FIELD_NAME_OPTIONS = [
 ];
 
 export default function AddFilterPage() {
+
+  // NOTA: não tornamos `api` dependência do useEffect para evitar re-runs infinitos,
+  // pois setupAPIClientEcommerce() pode retornar um objeto novo a cada render.
   const api = setupAPIClientEcommerce();
   const router = useRouter();
 
@@ -53,6 +56,9 @@ export default function AddFilterPage() {
   const [groupId, setGroupId] = useState<string>('');
   const [selectedCatIds, setSelectedCatIds] = useState<string[]>([]);
 
+  // novo: controla se o filtro aparece na página de busca
+  const [forSearch, setForSearch] = useState<boolean>(false);
+
   // attribute keys
   const [attributeKeys, setAttributeKeys] = useState<string[]>([]);
   const [detectedKeys, setDetectedKeys] = useState<Record<string, string[]>>({});
@@ -68,17 +74,22 @@ export default function AddFilterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [detecting, setDetecting] = useState(false);
 
-  // load groups + categories
+  // load groups + categories (apenas uma vez)
   useEffect(() => {
     let mounted = true;
+
     async function load() {
-      setIsLoading(true);
       try {
+        // indica loading só enquanto fetch está ativo
+        if (mounted) setIsLoading(true);
+
         const [gRes, cRes] = await Promise.all([
           api.get<FilterGroup[]>('/filterGroups/getAll').catch(() => ({ data: [] })),
           api.get<CategoryCmsResponse>('/category/cms').catch(() => ({ data: { all_categories_disponivel: [] } }))
         ]);
+
         if (!mounted) return;
+
         setGroups(Array.isArray((gRes as any).data) ? (gRes as any).data : []);
         setCategories((cRes as any).data?.all_categories_disponivel ?? []);
       } catch (err) {
@@ -88,16 +99,19 @@ export default function AddFilterPage() {
         if (mounted) setIsLoading(false);
       }
     }
+
     load();
+
     return () => { mounted = false; };
-  }, []);
+    // <-- Intencionalmente sem dependências para evitar re-execução infinita
+  }, []); // NÃO incluir `api` aqui
 
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) { toast.error('Nome do grupo obrigatório'); return; }
     setGroupSubmitting(true);
     try {
       const r = await api.post<FilterGroup>('/filterGroups/create', { name: newGroupName, order: newGroupOrder });
-      setGroups(g => [...g, r.data]);
+      setGroups(prev => [...prev, r.data]);
       setGroupId(r.data.id);
       setNewGroupName(''); setNewGroupOrder(0);
       toast.success('Grupo criado');
@@ -109,13 +123,15 @@ export default function AddFilterPage() {
       setGroupSubmitting(false);
     }
   };
+
   const handleDeleteGroup = async (id: string) => {
     try {
       await api.delete(`/filterGroups/deleteGroup/${id}`);
-      setGroups(g => g.filter(x => x.id !== id));
+      setGroups(prev => prev.filter(x => x.id !== id));
       toast.success('Grupo excluído');
-      if (groupId === id) setGroupId(groups[0]?.id || '');
-    } catch {
+      setGroupId(prev => (prev === id ? (groups[0]?.id || '') : prev));
+    } catch (err) {
+      console.error('delete group error', err);
       toast.error('Erro ao excluir grupo');
     }
   };
@@ -127,15 +143,12 @@ export default function AddFilterPage() {
     if (selectedCatIds.length === 0) { toast.info('Selecione ao menos 1 categoria para detectar atributos'); return; }
     setDetecting(true);
     try {
-      // POST para endpoint de detecção (aceita body.categoryIds e body.source)
       const source = fieldName === 'variantAttribute' ? 'variant' : (fieldName === 'productCharacteristic' ? 'productCharacteristic' : 'both');
       const r = await api.post('/filters/detectAttributeKeys', { categoryIds: selectedCatIds, source });
       if (r?.data?.keys || (r?.data?.keysWithCounts)) {
-        // response pode ter keys (list) ou keysWithCounts
         const keysRaw = r.data.keys ?? Object.keys(r.data.keysWithCounts ?? {}).map(k => k);
         const map: Record<string, string[]> = {};
-        for (const k of keysRaw) map[k] = []; // amostras não obrigatórias aqui
-        // se backend retornou details with variant/productCharacteristic samples, use
+        for (const k of keysRaw) map[k] = [];
         if (r.data.details) {
           if (r.data.details.variantKeys) {
             for (const k of r.data.details.variantKeys) if (k) map[k] = map[k] ?? [];
@@ -150,7 +163,7 @@ export default function AddFilterPage() {
       console.warn('detectAttributeKeys: endpoint dedicated failed:', err);
     }
 
-    // fallback (inferir via produtos por slug)
+    // fallback
     try {
       const mapSamples: Record<string, Set<string>> = {};
       const catsWithSlugs = categories.filter(c => selectedCatIds.includes(c.id) && c.slug).map(c => c.slug as string);
@@ -214,12 +227,9 @@ export default function AddFilterPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      let finalFieldName = fieldName;
-      // If user selected attributeKeys but left fieldName variantAttribute/productCharacteristic,
-      // we keep fieldName as generic and send attributeKeys array
       const payload = {
         name,
-        fieldName: finalFieldName,
+        fieldName,
         type,
         dataType,
         displayStyle,
@@ -229,13 +239,13 @@ export default function AddFilterPage() {
         minValue: minValue === '' ? null : minValue,
         maxValue: maxValue === '' ? null : maxValue,
         groupId: groupId || null,
-        attributeKeys
+        attributeKeys,
+        forSearch
       };
 
       const r = await api.post<{ id: string }>('/filters/create', payload);
       const filterId = r.data.id;
 
-      // associate with selected categories
       if (selectedCatIds.length > 0) {
         await Promise.all(selectedCatIds.map(catId => api.post('/categoryFilters/create', { category_id: catId, filter_id: filterId })));
       }
@@ -407,6 +417,14 @@ export default function AddFilterPage() {
             <div className="flex items-center space-x-2">
               <input id="active" type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)} className="h-4 w-4" />
               <label htmlFor="active" className="text-sm">Ativo</label>
+            </div>
+
+            {/* Novo: flag forSearch */}
+            <div className="flex items-center space-x-2">
+              <input id="forSearch" type="checkbox" checked={forSearch} onChange={e => setForSearch(e.target.checked)} className="h-4 w-4" />
+              <Tooltip content="Se marcado, este filtro será exibido na página de resultados de busca (busca por termo).">
+                <label htmlFor="forSearch" className="text-sm">Exibir na página de busca</label>
+              </Tooltip>
             </div>
 
             <div>

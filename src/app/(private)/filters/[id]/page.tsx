@@ -67,24 +67,35 @@ export default function FilterUpdate() {
     const [submitting, setSubmitting] = useState(false);
     const [detecting, setDetecting] = useState(false);
 
+    // novo: flag que define se o filtro aparece na página de busca (forSearch)
+    const [forSearch, setForSearch] = useState<boolean>(false);
+
     // Carrega dados iniciais (busca filter + groups + categories em paralelo)
     useEffect(() => {
+        let mounted = true;
+
         async function load() {
+            if (!id) return;
             setIsLoading(true);
             try {
-                const filterPromise = api.get<any>(`/filters/get/${id}`);
-                const groupsPromise = api.get<FilterGroup[]>('/filterGroups/getAll');
-                const categoriesPromise = api.get<{ all_categories_disponivel: Category[] }>('/category/cms');
-                const catFiltersPromise = api.get<CategoryFilter[]>(`/filter/categories?filter_id=${id}`).catch(() => ({ data: [] }));
+                // fetchs paralelos
+                const filterPromise = api.get<any>(`/filters/get/${id}`).catch(err => { throw err; });
+                const groupsPromise = api.get<FilterGroup[]>('/filterGroups/getAll').catch(() => ({ data: [] }));
+                const categoriesPromise = api.get<{ all_categories_disponivel: Category[] }>('/category/cms').catch(() => ({ data: { all_categories_disponivel: [] } }));
+                // categorias associadas ao filtro (pode ser vazio)
+                const catFiltersPromise = api.get(`/filter/categories?filter_id=${id}`).catch(() => ({ data: [] }));
 
                 const [fRes, gRes, cRes, cfRes] = await Promise.all([filterPromise, groupsPromise, categoriesPromise, catFiltersPromise]);
 
-                const d = fRes.data;
+                if (!mounted) return;
+
+                const d = fRes.data ?? {};
 
                 // FIELDNAME / attributeKeys: trata variantAttribute:xxx e productCharacteristic:xxx
                 if (d.fieldName && typeof d.fieldName === 'string' && d.fieldName.startsWith('variantAttribute:')) {
                     const parts = d.fieldName.split(':');
                     setFieldName('variantAttribute');
+                    // tudo que vem depois do ":" vira attribute key (suporta ":" dentro da key)
                     setAttributeKeys([parts.slice(1).join(':')]);
                 } else if (d.fieldName && typeof d.fieldName === 'string' && d.fieldName.startsWith('productCharacteristic:')) {
                     const parts = d.fieldName.split(':');
@@ -109,9 +120,13 @@ export default function FilterUpdate() {
                 const currentGroupId = d.group?.id ?? '';
                 setGroupId(currentGroupId);
 
+                // novo: lê forSearch se backend devolver
+                setForSearch(Boolean(d.forSearch));
+
                 const fetchedGroups = Array.isArray(gRes.data) ? gRes.data : [];
                 let mergedGroups = fetchedGroups;
-                if (d.group && !fetchedGroups.some(g => g.id === d.group.id)) {
+                // se filter veio com group que não está na lista, junta para permitir selecionar
+                if (d.group && !fetchedGroups.some((g: FilterGroup) => g.id === d.group.id)) {
                     mergedGroups = [d.group, ...fetchedGroups];
                 }
                 setGroups(mergedGroups);
@@ -122,14 +137,17 @@ export default function FilterUpdate() {
                 setOrigCatFilters(cfData ?? []);
                 setSelectedCatIds((cfData ?? []).map((x: CategoryFilter) => x.category_id));
             } catch (err) {
-                console.error(err);
+                console.error('Erro ao carregar filtro / grupos / categorias', err);
                 toast.error('Erro ao carregar filtro');
             } finally {
-                setIsLoading(false);
+                if (mounted) setIsLoading(false);
             }
         }
+
         load();
-    }, [id]);
+
+        return () => { mounted = false; };
+    }, [id]); // dependemos somente do id para evitar loops
 
     // categorias
     const toggleCategory = (catId: string) =>
@@ -143,22 +161,26 @@ export default function FilterUpdate() {
             const r = await api.post<FilterGroup>('/filterGroups/create', {
                 name: newGroupName, order: newGroupOrder
             });
-            setGroups(g => [...g, r.data]);
+            setGroups(prev => [...prev, r.data]);
             setGroupId(r.data.id);
             setNewGroupName(''); setNewGroupOrder(0);
             toast.success('Grupo criado');
-        } catch {
+            setShowGroupModal(false);
+        } catch (err) {
+            console.error('create group error', err);
             toast.error('Erro ao criar grupo');
+        } finally {
+            setGroupSubmitting(false);
         }
-        setGroupSubmitting(false);
     };
     const handleDeleteGroup = async (grpId: string) => {
         try {
             await api.delete(`/filterGroups/deleteGroup/${grpId}`);
-            setGroups(g => g.filter(x => x.id !== grpId));
+            setGroups(prev => prev.filter(x => x.id !== grpId));
             if (groupId === grpId) setGroupId(groups[0]?.id ?? '');
             toast.success('Grupo excluído');
-        } catch {
+        } catch (err) {
+            console.error('delete group error', err);
             toast.error('Erro ao excluir grupo');
         }
     };
@@ -174,8 +196,7 @@ export default function FilterUpdate() {
 
         try {
             // usar endpoint dedicado via POST e passar source
-            const r = await api.post('/filters/detectAttributeKeys', { categoryIds: toDetectCatIds, source });
-            // backend pode retornar keys como array de strings ou array de { key, samples }
+            const r = await api.post('/filters/detectAttributeKeys', { categoryIds: toDetectCatIds, source }).catch(() => ({ data: null }));
             if (r?.data?.keys) {
                 const map: Record<string, string[]> = {};
                 for (const k of r.data.keys) {
@@ -191,7 +212,6 @@ export default function FilterUpdate() {
                 return;
             }
 
-            // se backend retornar details.variantKeys/details.productCharacteristicKeys (compat layer)
             if (r?.data?.details) {
                 const map: Record<string, string[]> = {};
                 if (r.data.details.variantKeys && (source === 'variant' || source === 'both')) {
@@ -217,13 +237,13 @@ export default function FilterUpdate() {
             const catsWithSlugs = categories.filter(c => toDetectCatIds.includes(c.id) && c.slug).map(c => c.slug as string);
 
             if (catsWithSlugs.length === 0) {
-                toast.error('Não foi possível detectar chaves automaticamente (faltam slugs nas categorias). Implemente /filters/detectAttributeKeys no backend ou adicione slugs às categorias.');
+                toast.error('Não foi possível detectar chaves automaticamente (faltam slugs nas categorias).');
                 setDetecting(false);
                 return;
             }
 
             for (const slug of catsWithSlugs) {
-                const resp = await api.get(`/categories/${encodeURIComponent(slug)}/products`, { params: { perPage: 200, page: 1 } });
+                const resp = await api.get(`/categories/${encodeURIComponent(slug)}/products`, { params: { perPage: 200, page: 1 } }).catch(() => ({ data: { products: [] } }));
                 const products = resp.data?.products ?? [];
                 for (const p of products) {
                     // variant attributes (se necessário)
@@ -251,7 +271,7 @@ export default function FilterUpdate() {
                         }
                     }
 
-                    // productCharacteristics (se necessário) - não misturar com variant attributes
+                    // productCharacteristics (se necessário)
                     if (source === 'productCharacteristic' || source === 'both') {
                         if (Array.isArray(p.productCharacteristics)) {
                             for (const pc of p.productCharacteristics) {
@@ -302,27 +322,30 @@ export default function FilterUpdate() {
                 minValue: minValue === '' ? null : minValue,
                 maxValue: maxValue === '' ? null : maxValue,
                 groupId: groupId || null,
-                attributeKeys
+                attributeKeys,
+                forSearch // <-- inclui forSearch no payload de atualização
             };
 
             // 1) PUT filter
+            // Observação: o endpoint que seu projeto usa para update no backend pode variar; aqui mantemos /filter/update/:id
             await api.put(`/filter/update/${id}`, payload);
 
             // 2) sincroniza category-filters
             const toRemove = origCatFilters.filter(cf => !selectedCatIds.includes(cf.category_id));
             const toAdd = selectedCatIds.filter(cid => !origCatFilters.some(cf => cf.category_id === cid));
             await Promise.all([
-                ...toRemove.map(cf => api.delete(`/categoryFilters/delete/${cf.id}`)),
-                ...toAdd.map(cid => api.post(`/categoryFilters/create`, { category_id: cid, filter_id: id }))
+                ...toRemove.map(cf => api.delete(`/categoryFilters/delete/${cf.id}`).catch(() => null)),
+                ...toAdd.map(cid => api.post(`/categoryFilters/create`, { category_id: cid, filter_id: id }).catch(() => null))
             ]);
 
             toast.success('Filtro atualizado com sucesso');
             router.push('/filters');
         } catch (err) {
-            console.error(err);
+            console.error('Erro no update do filtro:', err);
             toast.error('Erro ao atualizar filtro');
+        } finally {
+            setSubmitting(false);
         }
-        setSubmitting(false);
     };
 
     // Skeleton helper components (simple inline functions)
@@ -350,20 +373,12 @@ export default function FilterUpdate() {
                                     <SkeletonLine width="w-1/4" height="h-6" />
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 p-2 border rounded">
-                                    {/* 8 small boxes */}
-                                    {Array.from({ length: 8 }).map((_, i) => (
-                                        <div key={i} className="h-8 bg-gray-200 rounded animate-pulse" />
-                                    ))}
+                                    {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-8 bg-gray-200 rounded animate-pulse" />)}
                                 </div>
                             </div>
 
-                            <div>
-                                <SkeletonLine width="w-full" height="h-10" />
-                            </div>
-
-                            <div>
-                                <SkeletonBox w="w-full" h="h10" />
-                            </div>
+                            <div><SkeletonLine width="w-full" height="h-10" /></div>
+                            <div><SkeletonBox w="w-full" h="h10" /></div>
 
                             <div className="md:col-span-2 p-2 border rounded space-y-2">
                                 <SkeletonLine width="w-1/3" height="h-5" />
@@ -374,21 +389,9 @@ export default function FilterUpdate() {
                                 <SkeletonLine width="w-2/3" height="h-4" />
                             </div>
 
-                            <div>
-                                <SkeletonLine width="w-full" height="h-10" />
-                            </div>
-
-                            <div>
-                                <SkeletonLine width="w-full" height="h-10" />
-                            </div>
-
-                            <div>
-                                <SkeletonLine width="w-full" height="h-10" />
-                            </div>
-
-                            <div>
-                                <SkeletonLine width="w-full" height="h-10" />
-                            </div>
+                            <div><SkeletonLine width="w-full" height="h-10" /></div>
+                            <div><SkeletonLine width="w-full" height="h-10" /></div>
+                            <div><SkeletonLine width="w-full" height="h-10" /></div>
 
                             <div className="md:col-span-2 flex items-end justify-end">
                                 <div className="w-40 h-10 bg-gray-200 rounded animate-pulse" />
@@ -396,7 +399,7 @@ export default function FilterUpdate() {
                         </div>
                     </div>
                 ) : (
-                    // REAL FORM (entire form as before)
+                    // REAL FORM
                     <form onSubmit={handleSubmit} className="mt-6 space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
@@ -444,8 +447,7 @@ export default function FilterUpdate() {
                                             <div className="text-xs text-gray-500">Escolha as chaves que o filtro deve considerar. Use detectar para buscar amostras.</div>
                                         </div>
                                         <div className="flex gap-2">
-                                            <button type="button" onClick={detectAttributeKeysForSelectedCategories} disabled={detecting || selectedCatIds.length === 0}
-                                                className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+                                            <button type="button" onClick={detectAttributeKeysForSelectedCategories} disabled={detecting || (selectedCatIds.length === 0 && origCatFilters.length === 0)} className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
                                                 {detecting ? 'Detectando...' : 'Detectar chaves'}
                                             </button>
                                         </div>
@@ -476,7 +478,7 @@ export default function FilterUpdate() {
                                                     e.preventDefault()
                                                     const val = (e.target as HTMLInputElement).value.trim()// @ts-ignore
                                                     if (val && !attributeKeys.includes(val)) setAttributeKeys(prev => [...prev, val])
-                                                        (e.target as HTMLInputElement).value = ''
+                                                    (e.target as HTMLInputElement).value = ''
                                                 }
                                             }} className="mt-1 block w-full rounded border-gray-300 text-black p-2" />
                                             {attributeKeys.length > 0 && (
@@ -528,6 +530,14 @@ export default function FilterUpdate() {
                                 <input id="active" type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)} className="h-4 w-4" />
                                 <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Ativar/desativar este filtro" placement="top-start">
                                     <label htmlFor="active" className="text-sm">Ativo</label>
+                                </Tooltip>
+                            </div>
+
+                            {/* forSearch checkbox (NOVO) */}
+                            <div className="flex items-center space-x-2">
+                                <input id="forSearch" type="checkbox" checked={forSearch} onChange={e => setForSearch(e.target.checked)} className="h-4 w-4" />
+                                <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Se marcado, este filtro será exibido na página de resultados de busca (busca por termo)." placement="top-start">
+                                    <label htmlFor="forSearch" className="text-sm">Exibir na página de busca</label>
                                 </Tooltip>
                             </div>
 
