@@ -21,8 +21,8 @@ interface CategoryFilter { id: string; category_id: string }
 const FIELD_NAME_OPTIONS = [
     { value: 'price_of', label: 'Preço Original' },
     { value: 'price_per', label: 'Preço Promocional' },
-    { value: 'variantAttribute', label: 'Atributo da Variante' },
-    { value: 'variant.sku', label: 'SKU da Variante' }, // usar variant.sku por compatibilidade
+    { value: 'variantAttribute', label: 'Atributo da Variante (ex: cor, tamanho)' },
+    { value: 'variant.sku', label: 'SKU da Variante' },
     { value: 'skuMaster', label: 'SKU Mestre' },
     { value: 'brand', label: 'Marca' },
     { value: 'weight', label: 'Peso' },
