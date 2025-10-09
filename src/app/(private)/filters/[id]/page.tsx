@@ -478,7 +478,7 @@ export default function FilterUpdate() {
                                                     e.preventDefault()
                                                     const val = (e.target as HTMLInputElement).value.trim()// @ts-ignore
                                                     if (val && !attributeKeys.includes(val)) setAttributeKeys(prev => [...prev, val])
-                                                    (e.target as HTMLInputElement).value = ''
+                                                        (e.target as HTMLInputElement).value = ''
                                                 }
                                             }} className="mt-1 block w-full rounded border-gray-300 text-black p-2" />
                                             {attributeKeys.length > 0 && (

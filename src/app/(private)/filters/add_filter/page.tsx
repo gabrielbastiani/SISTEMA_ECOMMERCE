@@ -36,8 +36,6 @@ const FIELD_NAME_OPTIONS = [
 
 export default function AddFilterPage() {
 
-  // NOTA: não tornamos `api` dependência do useEffect para evitar re-runs infinitos,
-  // pois setupAPIClientEcommerce() pode retornar um objeto novo a cada render.
   const api = setupAPIClientEcommerce();
   const router = useRouter();
 
@@ -80,7 +78,6 @@ export default function AddFilterPage() {
 
     async function load() {
       try {
-        // indica loading só enquanto fetch está ativo
         if (mounted) setIsLoading(true);
 
         const [gRes, cRes] = await Promise.all([
@@ -103,7 +100,6 @@ export default function AddFilterPage() {
     load();
 
     return () => { mounted = false; };
-    // <-- Intencionalmente sem dependências para evitar re-execução infinita
   }, []); // NÃO incluir `api` aqui
 
   const handleCreateGroup = async () => {
@@ -139,31 +135,114 @@ export default function AddFilterPage() {
   const toggleCategory = (id: string) =>
     setSelectedCatIds(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
 
+  /**
+   * detectAttributeKeysForSelectedCategories
+   * - envia source = 'variant' | 'productCharacteristic' | 'both' para o backend
+   * - se backend retornar chaves específicas em detalhes, usa apenas as chaves correspondentes a `source`
+   * - se backend não retornar chaves específicas, avisa e usa o conjunto genérico (fallback)
+   * - fallback local (busca produtos) respeita estritamente `source` (não mistura)
+   */
   async function detectAttributeKeysForSelectedCategories() {
     if (selectedCatIds.length === 0) { toast.info('Selecione ao menos 1 categoria para detectar atributos'); return; }
     setDetecting(true);
+
+    const source = fieldName === 'variantAttribute'
+      ? 'variant'
+      : (fieldName === 'productCharacteristic' ? 'productCharacteristic' : 'both');
+
     try {
-      const source = fieldName === 'variantAttribute' ? 'variant' : (fieldName === 'productCharacteristic' ? 'productCharacteristic' : 'both');
-      const r = await api.post('/filters/detectAttributeKeys', { categoryIds: selectedCatIds, source });
-      if (r?.data?.keys || (r?.data?.keysWithCounts)) {
-        const keysRaw = r.data.keys ?? Object.keys(r.data.keysWithCounts ?? {}).map(k => k);
-        const map: Record<string, string[]> = {};
-        for (const k of keysRaw) map[k] = [];
-        if (r.data.details) {
-          if (r.data.details.variantKeys) {
-            for (const k of r.data.details.variantKeys) if (k) map[k] = map[k] ?? [];
+      const r = await api.post('/filters/detectAttributeKeys', { categoryIds: selectedCatIds, source }).catch(() => ({ data: null }));
+
+      // Prioridade: if backend returned details splitted by origin, use them according to `source`.
+      if (r?.data) {
+        // If backend provides details.variantKeys / details.productCharacteristicKeys
+        const details = r.data.details ?? null;
+
+        if (details) {
+          const map: Record<string, string[]> = {};
+          if (source === 'variant' || source === 'both') {
+            if (Array.isArray(details.variantKeys)) {
+              for (const k of details.variantKeys) map[String(k)] = [];
+            }
+          }
+          if (source === 'productCharacteristic' || source === 'both') {
+            if (Array.isArray(details.productCharacteristicKeys)) {
+              for (const k of details.productCharacteristicKeys) map[String(k)] = [];
+            }
+          }
+          if (Object.keys(map).length > 0) {
+            setDetectedKeys(map);
+            toast.success('Chaves detectadas (backend: detalhes por origem)');
+            setDetecting(false);
+            return;
           }
         }
-        setDetectedKeys(map);
-        toast.success('Chaves detectadas');
-        setDetecting(false);
-        return;
+
+        // If backend returned explicit top-level fields like variantKeys or productCharacteristicKeys
+        if (source === 'variant' && Array.isArray(r.data.variantKeys)) {
+          const map: Record<string, string[]> = {};
+          for (const k of r.data.variantKeys) map[String(k)] = [];
+          setDetectedKeys(map);
+          toast.success('Chaves de variante detectadas (backend)');
+          setDetecting(false);
+          return;
+        }
+        if (source === 'productCharacteristic' && Array.isArray(r.data.productCharacteristicKeys)) {
+          const map: Record<string, string[]> = {};
+          for (const k of r.data.productCharacteristicKeys) map[String(k)] = [];
+          setDetectedKeys(map);
+          toast.success('Chaves de característica detectadas (backend)');
+          setDetecting(false);
+          return;
+        }
+
+        // Fallback for backend response that contains generic `keys` (non source-specific).
+        if (Array.isArray(r.data.keys)) {
+          if (source === 'both') {
+            const map: Record<string, string[]> = {};
+            for (const k of r.data.keys) map[String(k)] = [];
+            setDetectedKeys(map);
+            toast.success('Chaves detectadas (backend)');
+            setDetecting(false);
+            return;
+          } else {
+            // backend didn't separate by source; warn user and still use keys (non-ideal)
+            const map: Record<string, string[]> = {};
+            for (const k of r.data.keys) map[String(k)] = [];
+            toast.warn('Backend retornou chaves genéricas; nem todas distinguem origem (variant/productCharacteristic). Usando chaves combinadas.');
+            setDetectedKeys(map);
+            setDetecting(false);
+            return;
+          }
+        }
+
+        // If backend returned keysWithCounts as object
+        if (r.data.keysWithCounts && typeof r.data.keysWithCounts === 'object') {
+          // If source === both, take all keys
+          if (source === 'both') {
+            const map: Record<string, string[]> = {};
+            for (const k of Object.keys(r.data.keysWithCounts)) map[k] = [];
+            setDetectedKeys(map);
+            toast.success('Chaves detectadas (backend counts)');
+            setDetecting(false);
+            return;
+          } else {
+            // no way to know origin -> warn and return combined
+            const map: Record<string, string[]> = {};
+            for (const k of Object.keys(r.data.keysWithCounts)) map[k] = [];
+            toast.warn('Backend retornou chaves com contagens, sem separação por origem; usando resultado combinado.');
+            setDetectedKeys(map);
+            setDetecting(false);
+            return;
+          }
+        }
       }
     } catch (err) {
       console.warn('detectAttributeKeys: endpoint dedicated failed:', err);
+      // continue to fallback below
     }
 
-    // fallback
+    // FALLBACK: inferir via produtos por slug, **respeitando** `source` (não misturar)
     try {
       const mapSamples: Record<string, Set<string>> = {};
       const catsWithSlugs = categories.filter(c => selectedCatIds.includes(c.id) && c.slug).map(c => c.slug as string);
@@ -174,45 +253,52 @@ export default function AddFilterPage() {
       }
 
       for (const slug of catsWithSlugs) {
-        const resp = await api.get(`/categories/${encodeURIComponent(slug)}/products`, { params: { perPage: 200, page: 1 } });
+        const resp = await api.get(`/categories/${encodeURIComponent(slug)}/products`, { params: { perPage: 200, page: 1 } }).catch(() => ({ data: { products: [] } }));
         const products = resp.data?.products ?? [];
         for (const p of products) {
-          if (Array.isArray(p.variants)) {
-            for (const v of p.variants) {
-              if (Array.isArray(v.attributes)) {
-                for (const a of v.attributes) {
-                  const k = a.key; const val = a.value;
-                  if (!k) continue;
-                  if (!mapSamples[k]) mapSamples[k] = new Set();
-                  if (val !== undefined && val !== null) mapSamples[k].add(String(val));
-                }
-              } else if (Array.isArray(v.variantAttribute)) {
-                for (const a of v.variantAttribute) {
-                  const k = a.key; const val = a.value;
-                  if (!k) continue;
-                  if (!mapSamples[k]) mapSamples[k] = new Set();
-                  if (val !== undefined && val !== null) mapSamples[k].add(String(val));
+          // se queremos VARIANT attributes
+          if (source === 'variant' || source === 'both') {
+            if (Array.isArray(p.variants)) {
+              for (const v of p.variants) {
+                if (Array.isArray(v.attributes)) {
+                  for (const a of v.attributes) {
+                    const k = a.key; const val = a.value;
+                    if (!k) continue;
+                    if (!mapSamples[k]) mapSamples[k] = new Set();
+                    if (val !== undefined && val !== null) mapSamples[k].add(String(val));
+                  }
+                } else if (Array.isArray(v.variantAttribute)) {
+                  for (const a of v.variantAttribute) {
+                    const k = a.key; const val = a.value;
+                    if (!k) continue;
+                    if (!mapSamples[k]) mapSamples[k] = new Set();
+                    if (val !== undefined && val !== null) mapSamples[k].add(String(val));
+                  }
                 }
               }
             }
           }
-          if (Array.isArray(p.productCharacteristics)) {
-            for (const pc of p.productCharacteristics) {
-              const k = pc.key; const val = pc.value;
-              if (!k) continue;
-              if (!mapSamples[k]) mapSamples[k] = new Set();
-              if (val !== undefined && val !== null) mapSamples[k].add(String(val));
+
+          // se queremos PRODUCT CHARACTERISTICS
+          if (source === 'productCharacteristic' || source === 'both') {
+            if (Array.isArray(p.productCharacteristics)) {
+              for (const pc of p.productCharacteristics) {
+                const k = pc.key; const val = pc.value;
+                if (!k) continue;
+                if (!mapSamples[k]) mapSamples[k] = new Set();
+                if (val !== undefined && val !== null) mapSamples[k].add(String(val));
+              }
             }
           }
         }
       }
 
-      const mapObj: Record<string, string[]> = {}
-      for (const k of Object.keys(mapSamples)) mapObj[k] = Array.from(mapSamples[k]).slice(0, 10)
-      setDetectedKeys(mapObj)
+      const mapObj: Record<string, string[]> = {};
+      for (const k of Object.keys(mapSamples)) mapObj[k] = Array.from(mapSamples[k]).slice(0, 10);
+      setDetectedKeys(mapObj);
       toast.success('Chaves detectadas (fallback por produtos)');
     } catch (err) {
-      console.error('detectAttributeKeys fallback error', err)
+      console.error('detectAttributeKeys fallback error', err);
       toast.error('Erro ao detectar chaves de atributos');
     } finally {
       setDetecting(false);
@@ -317,13 +403,13 @@ export default function AddFilterPage() {
             </div>
 
             <div>
-              <Tooltip content="Nome a ser exibido no front (ex.: Preço, Cor)">
+              <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Nome a ser exibido no front (ex.: Preço, Cor)">
                 <input required value={name} onChange={e => setName(e.target.value)} className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
               </Tooltip>
             </div>
 
             <div>
-              <Tooltip content="Nome do campo ou identificador (ex.: price_per, variantAttribute)">
+              <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Nome do campo ou identificador (ex.: price_per, variantAttribute)">
                 <select required value={fieldName} onChange={e => setFieldName(e.target.value)} className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2">
                   <option value="">Selecione um campo</option>
                   {FIELD_NAME_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
@@ -391,7 +477,7 @@ export default function AddFilterPage() {
             )}
 
             <div>
-              <Tooltip content="Tipo de filtro: RANGE, SELECT, MULTI_SELECT">
+              <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Tipo de filtro: RANGE, SELECT, MULTI_SELECT">
                 <select value={type} onChange={e => setType(e.target.value as any)} className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2">
                   <option>SELECT</option><option>MULTI_SELECT</option><option>RANGE</option>
                 </select>
@@ -399,7 +485,7 @@ export default function AddFilterPage() {
             </div>
 
             <div>
-              <Tooltip content="Tipo de dado subjacente (NUMBER, STRING)">
+              <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Tipo de dado subjacente (NUMBER, STRING)">
                 <select value={dataType} onChange={e => setDataType(e.target.value as any)} className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2">
                   <option>STRING</option><option>NUMBER</option>
                 </select>
@@ -407,7 +493,7 @@ export default function AddFilterPage() {
             </div>
 
             <div>
-              <Tooltip content="Componente visual">
+              <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Componente visual">
                 <select value={displayStyle} onChange={e => setDisplayStyle(e.target.value as any)} className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2">
                   <option>DROPDOWN</option><option>CHECKBOX</option><option>SLIDER</option>
                 </select>
@@ -422,32 +508,32 @@ export default function AddFilterPage() {
             {/* Novo: flag forSearch */}
             <div className="flex items-center space-x-2">
               <input id="forSearch" type="checkbox" checked={forSearch} onChange={e => setForSearch(e.target.checked)} className="h-4 w-4" />
-              <Tooltip content="Se marcado, este filtro será exibido na página de resultados de busca (busca por termo).">
+              <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Se marcado, este filtro será exibido na página de resultados de busca (busca por termo).">
                 <label htmlFor="forSearch" className="text-sm">Exibir na página de busca</label>
               </Tooltip>
             </div>
 
             <div>
-              <Tooltip content="Ordem de exibição">
+              <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Ordem de exibição">
                 <input type="number" value={order} onChange={e => setOrder(Number(e.target.value))} className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
               </Tooltip>
             </div>
 
             <div className="flex items-center space-x-2">
               <input id="auto" type="checkbox" checked={autoPopulate} onChange={e => setAutoPopulate(e.target.checked)} className="h-4 w-4" />
-              <Tooltip content="Se verdadeiro, o sistema pode preencher opções baseado nos produtos cadastrados.">
+              <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Se verdadeiro, o sistema pode preencher opções baseado nos produtos cadastrados.">
                 <label htmlFor="auto" className="text-sm">Auto Popular</label>
               </Tooltip>
             </div>
 
             {type === 'RANGE' && <>
               <div>
-                <Tooltip content="Valor mínimo pré-configurado (opcional)">
+                <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Valor mínimo pré-configurado (opcional)">
                   <input type="number" value={minValue} onChange={e => setMinValue(e.target.value === '' ? '' : Number(e.target.value))} className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
                 </Tooltip>
               </div>
               <div>
-                <Tooltip content="Valor máximo pré-configurado (opcional)">
+                <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Valor máximo pré-configurado (opcional)">
                   <input type="number" value={maxValue} onChange={e => setMaxValue(e.target.value === '' ? '' : Number(e.target.value))} className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2" />
                 </Tooltip>
               </div>
@@ -455,7 +541,7 @@ export default function AddFilterPage() {
 
             <div className="md:col-span-2 flex items-end space-x-2">
               <div className="flex-1">
-                <Tooltip content="Grupo (ex.: Características, Preço)">
+                <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Grupo (ex.: Características, Preço)">
                   <select value={groupId} onChange={e => setGroupId(e.target.value)} className="mt-1 block w-full rounded border-gray-300 shadow-sm text-black p-2">
                     <option value="">— Nenhum —</option>
                     {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
@@ -488,12 +574,12 @@ export default function AddFilterPage() {
 
             <div className="space-y-3 mb-4">
               <div>
-                <Tooltip content="Nome do grupo">
+                <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Nome do grupo">
                   <input value={newGroupName} onChange={e => setNewGroupName(e.target.value)} className="mt-1 block w-full rounded border-black border-2 shadow-sm text-black p-2" />
                 </Tooltip>
               </div>
               <div>
-                <Tooltip content="Ordem de exibição do grupo">
+                <Tooltip className="bg-white text-red-500 border border-gray-200 p-2" content="Ordem de exibição do grupo">
                   <input type="number" value={newGroupOrder} onChange={e => setNewGroupOrder(Number(e.target.value))} className="mt-1 block w-full rounded border-black border-2 shadow-sm text-black p-2" />
                 </Tooltip>
               </div>
