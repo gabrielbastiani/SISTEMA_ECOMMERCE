@@ -202,21 +202,27 @@ export default function Seo_id({ params }: { params: { seo_id: string } }) {
         }
     };
 
-    // Função para deletar imagem OG
+    // Função para deletar imagem OG (melhor tratamento e usa retorno do servidor)
     const handleDeleteOgImage = async (index: number) => {
         try {
             const apiClient = setupAPIClientEcommerce();
-            await apiClient.delete('/seo/og-image', {
+            // garantir que index seja number
+            const imageIndex = Number(index);
+            const response = await apiClient.delete('/seo/og-image', {
                 data: {
                     sEOSettings_id: params.seo_id,
-                    imageIndex: index
+                    imageIndex
                 }
             });
 
-            setExistingOgImages(prev => prev.filter((_, i) => i !== index));
+            // usar retorno do servidor (lista atualizada) preferencialmente
+            const updatedImages: string[] = response.data?.ogImages ?? [];
+            setExistingOgImages(updatedImages);
+
             toast.success("Imagem OG removida!");
 
         } catch (error) {
+            console.error("Erro ao chamar delete og-image:", error);
             toast.error("Erro ao remover imagem OG");
         }
     };
@@ -225,17 +231,21 @@ export default function Seo_id({ params }: { params: { seo_id: string } }) {
     const handleDeleteTwitterImage = async (index: number) => {
         try {
             const apiClient = setupAPIClientEcommerce();
-            await apiClient.delete('/seo/twitter-image', {
+            const imageIndex = Number(index);
+            const response = await apiClient.delete('/seo/twitter-image', {
                 data: {
                     sEOSettings_id: params.seo_id,
-                    imageIndex: index
+                    imageIndex
                 }
             });
 
-            setExistingTwitterImages(prev => prev.filter((_, i) => i !== index));
+            const updatedImages: string[] = response.data?.twitterImages ?? [];
+            setExistingTwitterImages(updatedImages);
+
             toast.success("Imagem Twitter removida!");
 
         } catch (error) {
+            console.error("Erro ao deletar imagem twitter:", error);
             toast.error("Erro ao remover imagem Twitter");
         }
     };
@@ -437,7 +447,7 @@ export default function Seo_id({ params }: { params: { seo_id: string } }) {
                                         <div key={index} className="relative group w-full aspect-square">
                                             <div className="relative w-full h-full rounded-lg border-2 overflow-hidden shadow-md hover:shadow-lg transition-shadow">
                                                 <Image
-                                                    src={`${API_URL}/files/${image}`}
+                                                    src={`${API_URL}/files/seo/${image}`}
                                                     alt={`Imagem OG ${index}`}
                                                     fill
                                                     className="object-cover"
@@ -566,7 +576,7 @@ export default function Seo_id({ params }: { params: { seo_id: string } }) {
                                                 <div key={index} className="relative group w-full aspect-square">
                                                     <div className="relative w-full h-full rounded-lg border-2 overflow-hidden shadow-md hover:shadow-lg transition-shadow">
                                                         <Image
-                                                            src={`${API_URL}/files/${image}`}
+                                                            src={`${API_URL}/files/seo/${image}`}
                                                             alt={`Imagem Twitter ${index}`}
                                                             fill
                                                             className="object-cover"

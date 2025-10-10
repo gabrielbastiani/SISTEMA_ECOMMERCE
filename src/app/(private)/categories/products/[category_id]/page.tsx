@@ -82,7 +82,7 @@ export default function ProductsCategoryPage() {
                 <>
                     {item.images?.length ? (
                         <Image
-                            src={`${API_URL}/files/${item.images[0].url}`}
+                            src={`${API_URL}/files/category/${item.images[0].url}`}
                             alt={item.images[0].altText || 'Imagem do produto'}
                             width={150}
                             height={150}
@@ -90,7 +90,7 @@ export default function ProductsCategoryPage() {
                             onClick={() =>
                                 user?.role !== "EMPLOYEE" &&
                                 item.images?.[0]?.url &&
-                                handleImageClick(`${API_URL}/files/${item.images[0].url}`)
+                                handleImageClick(`${API_URL}/files/category/${item.images[0].url}`)
                             }
                         />
                     ) : (

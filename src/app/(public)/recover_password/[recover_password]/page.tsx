@@ -92,7 +92,7 @@ export default function Recoverpassworduserblog({ params }: { params: { recover_
                             {configs?.logo ?
                                 <Link href='/'>
                                     <Image
-                                        src={configs?.logo ? `${API_URL}/files/${configs?.logo}` : noImage}
+                                        src={configs?.logo ? `${API_URL}/files/ecommerce/${configs?.logo}` : noImage}
                                         alt='logo-do-site'
                                         width={500}
                                         height={500}

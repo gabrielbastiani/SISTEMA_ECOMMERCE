@@ -66,7 +66,7 @@ export const MediaUpdateComponent: React.FC<MediaUpdateProps> = ({
                             const isPrimary = file.id === primaryId
                             return (
                                 <div key={file.id} className="relative shrink-0 group">
-                                    <Image src={`${API_URL}/files/${file.url}`} alt={file.altText} width={80} height={80} className={`h-20 w-20 object-cover rounded-lg border ${isPrimary ? 'ring-2 ring-primary' : ''}`} />
+                                    <Image src={`${API_URL}/files/product/${file.url}`} alt={file.altText} width={80} height={80} className={`h-20 w-20 object-cover rounded-lg border ${isPrimary ? 'ring-2 ring-primary' : ''}`} />
 
                                     <Button isIconOnly size="sm" className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80" onPress={() => onRemoveExisting(file.id)}>
                                         <TrashIcon className="h-4 w-4 text-red-500" />

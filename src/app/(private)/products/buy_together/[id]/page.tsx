@@ -68,7 +68,7 @@ export default function UpdateBuyTogetherPage() {
                     price: p.price_per,
                     imageUrl:
                         // prefixa com a base completa
-                        `${API_URL}/files/${p.images.find((i: any) => i.isPrimary)?.url ||
+                        `${API_URL}/files/product/${p.images.find((i: any) => i.isPrimary)?.url ||
                         p.images[0]?.url ||
                         '/public/no-image.png'
                         }`

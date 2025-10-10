@@ -40,7 +40,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 
   const faviconUrl = ecommerce?.favicon
-    ? new URL(`/files/${ecommerce.favicon}`, API_URL).toString()
+    ? new URL(`/files/userEcommerce/${ecommerce.favicon}`, API_URL).toString()
     : defaultMetadata.favicon;
 
   return {

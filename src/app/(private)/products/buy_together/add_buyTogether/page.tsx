@@ -87,7 +87,7 @@ export default function AddBuyTogether() {
         <components.Option {...props}>
             <div className="flex items-center space-x-3">
                 <Image
-                    src={`${API_URL}/files/${props.data.imageUrl}`}
+                    src={`${API_URL}/files/product/${props.data.imageUrl}`}
                     alt={props.data.label}
                     width={40}
                     height={40}
@@ -110,7 +110,7 @@ export default function AddBuyTogether() {
         <components.MultiValue {...props}>
             <div className="flex items-center space-x-1">
                 <Image
-                    src={`${API_URL}/files/${props.data.imageUrl}`}
+                    src={`${API_URL}/files/product/${props.data.imageUrl}`}
                     alt={props.data.label}
                     height={30}
                     width={30}
@@ -189,7 +189,7 @@ export default function AddBuyTogether() {
                                         className="flex flex-col items-center bg-gray-50 p-3 rounded-lg border"
                                     >
                                         <Image
-                                            src={`${API_URL}/files/${item.imageUrl}`}
+                                            src={`${API_URL}/files/product/${item.imageUrl}`}
                                             alt={item.label}
                                             height={100}
                                             width={100}

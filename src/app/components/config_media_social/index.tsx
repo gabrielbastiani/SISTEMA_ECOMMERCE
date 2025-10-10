@@ -84,7 +84,7 @@ export default function Config_media_social() {
                         <input type="file" accept="image/png, image/jpeg" onChange={handleFile} className="hidden" />
                         {logoUrl ? (
                             <Image
-                                src={logo_media && noImage ? logoUrl : `${API_URL}/files/${logoUrl}`}
+                                src={logo_media && noImage ? logoUrl : `${API_URL}/files/mediaSocial/${logoUrl}`}
                                 alt="Preview da imagem"
                                 width={80}
                                 height={80}

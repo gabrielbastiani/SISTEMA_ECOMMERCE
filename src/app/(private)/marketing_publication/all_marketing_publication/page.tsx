@@ -189,12 +189,12 @@ export default function All_marketing_publication() {
                                         {item.image_url ? (
                                             <>
                                                 <Image
-                                                    src={`${API_URL}/files/${item.image_url}`}
+                                                    src={`${API_URL}/files/marketing/${item.image_url}`}
                                                     alt={item.title}
                                                     width={100}
                                                     height={100}
                                                     className="w-8 h-8 rounded-full object-cover cursor-pointer"
-                                                    onClick={() => handleImageClick(`${API_URL}/files/${item.image_url}`)}
+                                                    onClick={() => handleImageClick(`${API_URL}/files/marketing/${item.image_url}`)}
                                                 />
                                                 {modalImage && (
                                                     <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">

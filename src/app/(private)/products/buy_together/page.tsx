@@ -182,7 +182,7 @@ export default function Buy_together() {
                                                         }`}
                                                 >
                                                     <Image
-                                                        src={`${API_URL}/files/${p.images[0]?.url}`}
+                                                        src={`${API_URL}/files/product/${p.images[0]?.url}`}
                                                         alt={p.name}
                                                         width={32}
                                                         height={32}

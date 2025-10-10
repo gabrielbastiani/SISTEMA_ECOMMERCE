@@ -92,7 +92,7 @@ export default function Login() {
                             {configs?.logo ?
                                 <Link href='/'>
                                     <Image
-                                        src={configs?.logo ? `${API_URL}/files/${configs.logo}` : noImage}
+                                        src={configs?.logo ? `${API_URL}/files/ecommerce/${configs.logo}` : noImage}
                                         alt='logo-do-ecommerce'
                                         width={500}
                                         height={300}

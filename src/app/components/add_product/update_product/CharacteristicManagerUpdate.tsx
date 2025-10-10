@@ -56,7 +56,7 @@ export function CharacteristicManagerUpdate({ characteristics = [], onChange }: 
             const imageName = c?.imageName ?? c?.image ?? null
             let previewUrl = c?.previewUrl ?? null
             if (!previewUrl && imageName) {
-                previewUrl = `/files/${imageName}`
+                previewUrl = `/files/characteristicProduct/${imageName}`
             }
             return {
                 id: c?.id ?? null,

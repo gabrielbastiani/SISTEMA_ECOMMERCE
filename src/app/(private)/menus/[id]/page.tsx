@@ -54,6 +54,8 @@ export default function EditMenuPage() {
     const api = setupAPIClientEcommerce()
     const base = api.defaults.baseURL
 
+    console.log(base)
+
     // — Menu state —
     const [menu, setMenu] = useState<Menu | null>(null)
     const [name, setName] = useState('')
@@ -146,7 +148,7 @@ export default function EditMenuPage() {
             setIconPreview(u)
             return () => URL.revokeObjectURL(u)
         }
-        if (currentIcon) setIconPreview(`${base}/files/${currentIcon}`)
+        if (currentIcon) setIconPreview(`${base}/files/menu/${currentIcon}`)
     }, [iconFile, currentIcon, base])
 
     useEffect(() => {
@@ -155,7 +157,7 @@ export default function EditMenuPage() {
             setItemIconPreview(u)
             return () => URL.revokeObjectURL(u)
         }
-        if (editingItem?.icon) setItemIconPreview(`${base}/files/${editingItem.icon}`)
+        if (editingItem?.icon) setItemIconPreview(`${base}/files/menu/${editingItem.icon}`)
         else setItemIconPreview(null)
     }, [itemIconFile, editingItem, base])
 
@@ -308,7 +310,7 @@ export default function EditMenuPage() {
             const isExpanded = expanded.has(node.id)
             const hasChildren = node.children.length > 0
             const indent = depth * 16
-            const iconUrl = node.icon ? `${base}/files/${node.icon}` : null
+            const iconUrl = node.icon ? `${base}/files/menu/${node.icon}` : null
 
             // calcula "Destino"
             let destino = '-'
@@ -459,12 +461,12 @@ export default function EditMenuPage() {
                         {iconPreview && (
                             <div>
                                 <FaRegTrashAlt
-                                                color='red'
-                                                size={20}
-                                                style={{ cursor: 'pointer', margin: '10px' }}
-                                                onClick={() => deleteMenuImageItem(menu?.id || '')}
-                                            />
-                            <img src={iconPreview} alt="Preview" className="mt-2 h-20 w-20 rounded border object-cover" />
+                                    color='red'
+                                    size={20}
+                                    style={{ cursor: 'pointer', margin: '10px' }}
+                                    onClick={() => deleteMenuImageItem(menu?.id || '')}
+                                />
+                                <img src={iconPreview} alt="Preview" className="mt-2 h-20 w-20 rounded border object-cover" />
                             </div>
                         )}
                     </div>

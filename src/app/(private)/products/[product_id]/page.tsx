@@ -209,7 +209,7 @@ export default function UpdateProductPage() {
             if (typeof imageField === 'string' && (imageField.startsWith('http://') || imageField.startsWith('https://') || imageField.startsWith('/'))) {
               previewUrl = imageField
             } else if (typeof imageField === 'string') {
-              previewUrl = `/files/${imageField}`
+              previewUrl = `/files/product/${imageField}`
             }
           }
           return {

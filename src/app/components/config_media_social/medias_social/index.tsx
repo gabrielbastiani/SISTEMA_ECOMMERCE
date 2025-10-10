@@ -128,7 +128,7 @@ export default function Medias_social() {
                                     src={
                                         logoUrl && logo_media?.name === media.logo_media
                                             ? logoUrl
-                                            : `${API_URL}/files/${media.logo_media}`
+                                            : `${API_URL}/files/mediaSocial/${media.logo_media}`
                                     }
                                     alt="Logo da mídia social"
                                     width={80}

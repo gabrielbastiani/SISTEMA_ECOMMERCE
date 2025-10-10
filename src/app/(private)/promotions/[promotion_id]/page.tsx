@@ -223,7 +223,7 @@ export default function UpdatePromotionPage() {
                 priority: data.priority
               }}
               onSave={handleSaveStep1}
-              onNext={() => setStep(2)}
+              onNext={() => setStep(2)}/* @ts-ignore */
               isSaving={isSaving}
             />
           )}
@@ -259,7 +259,7 @@ export default function UpdatePromotionPage() {
               initialBadges={data.badges.map(b => ({
                 title: b.title,
                 imageUrl: b.imageUrl,
-                previewUrl: `${API_URL}/files/${b.imageUrl}`
+                previewUrl: `${API_URL}/files/promotion/${b.imageUrl}`
               }))}
               onSave={handleSaveStep5}
               onBack={() => setStep(4)}

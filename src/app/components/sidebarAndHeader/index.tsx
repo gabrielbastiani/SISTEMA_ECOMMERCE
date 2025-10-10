@@ -316,7 +316,7 @@ export function SidebarAndHeader({ children }: Content) {
                             <div className="font-semibold uppercase mb-2 ml-2 mt-3 bg-background text-foreground transition-colors duration-300">
                                 <Link href="/">
                                     <Image
-                                        src={configs?.logo ? `${API_URL}/files/${configs.logo}` : noImage}
+                                        src={configs?.logo ? `${API_URL}/files/ecommerce/${configs.logo}` : noImage}
                                         width={120}
                                         height={120}
                                         alt="Logo do Ecommerce"

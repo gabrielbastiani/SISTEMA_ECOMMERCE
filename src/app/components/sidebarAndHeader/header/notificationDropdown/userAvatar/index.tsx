@@ -12,7 +12,7 @@ export const UserAvatar = ({ user, API_URL }: UserAvatarProps) => (
         <div className="border-2 rounded-full p-1 border-var(--foreground) overflow-hidden w-[50px] h-[50px] flex items-center justify-center">
             {user?.photo ? (
                 <Image
-                    src={`${API_URL}/files/${user.photo}`}
+                    src={`${API_URL}/files/userEcommerce/${user.photo}`}
                     alt="user"
                     width={50}
                     height={50}

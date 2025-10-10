@@ -199,7 +199,7 @@ export default function All_products() {
                                     <>
                                         {item.images?.length ? (
                                             <Image
-                                                src={`${API_URL}/files/${item.images[0].url}`}
+                                                src={`${API_URL}/files/product/${item.images[0].url}`}
                                                 alt={item.images[0].altText || 'Imagem do produto'}
                                                 width={100}
                                                 height={100}
@@ -207,7 +207,7 @@ export default function All_products() {
                                                 onClick={() =>
                                                     user?.role !== "EMPLOYEE" &&
                                                     item.images?.[0]?.url &&
-                                                    handleImageClick(`${API_URL}/files/${item.images[0].url}`)
+                                                    handleImageClick(`${API_URL}/files/product/${item.images[0].url}`)
                                                 }
                                             />
                                         ) : (
